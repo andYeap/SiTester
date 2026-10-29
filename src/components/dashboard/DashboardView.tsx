@@ -64,17 +64,17 @@ export default function DashboardView({
   }));
   const pieData = stats
     ? [
-        { name: "Pass", value: stats.distribution.pass, color: "#16a34a" },
-        { name: "Fail", value: stats.distribution.fail, color: "#dc2626" },
-        { name: "Bug", value: stats.distribution.bug, color: "#f97316" },
+        { name: "Pass", value: stats.distribution.pass, color: "#09090b" },
+        { name: "Fail", value: stats.distribution.fail, color: "#71717a" },
+        { name: "Bug", value: stats.distribution.bug, color: "#d4d4d8" },
       ]
     : [];
 
   const cards = [
-    { label: "Pengujian Bulan Ini", value: stats?.summary.total_bulan_ini ?? "—", accent: "from-indigo-500 to-violet-500", text: "text-slate-900" },
-    { label: "Pass Bulan Ini", value: stats?.summary.pass_bulan_ini ?? "—", accent: "from-emerald-500 to-teal-500", text: "text-emerald-600" },
-    { label: "Fail / Bug Bulan Ini", value: stats?.summary.fail_bulan_ini ?? "—", accent: "from-rose-500 to-orange-500", text: "text-rose-600" },
-    { label: "Fitur Belum Diuji", value: stats?.summary.fitur_belum_diuji ?? "—", accent: "from-slate-500 to-slate-700", text: "text-slate-900" },
+    { label: "Pengujian Bulan Ini", value: stats?.summary.total_bulan_ini ?? "—", top: "bg-neutral-950", text: "text-neutral-950" },
+    { label: "Pass Bulan Ini", value: stats?.summary.pass_bulan_ini ?? "—", top: "bg-neutral-950", text: "text-neutral-950" },
+    { label: "Fail / Bug Bulan Ini", value: stats?.summary.fail_bulan_ini ?? "—", top: "bg-neutral-400", text: "text-neutral-950" },
+    { label: "Fitur Belum Diuji", value: stats?.summary.fitur_belum_diuji ?? "—", top: "bg-neutral-300", text: "text-neutral-950" },
   ];
 
   return (
@@ -90,9 +90,9 @@ export default function DashboardView({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
           <div key={c.label} className="card relative overflow-hidden p-5">
-            <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${c.accent}`} aria-hidden />
-            <div className="text-sm font-medium text-slate-500">{c.label}</div>
-            <div className={`mt-1 text-3xl font-extrabold tracking-tight ${c.text}`}>{c.value}</div>
+            <div className={`absolute inset-x-0 top-0 h-1 ${c.top}`} aria-hidden />
+            <div className="text-sm font-medium text-neutral-500">{c.label}</div>
+            <div className={`mt-1 text-3xl font-extrabold tracking-tight tabular-nums ${c.text}`}>{c.value}</div>
           </div>
         ))}
       </div>
@@ -105,14 +105,14 @@ export default function DashboardView({
       )}
 
       <div className="card flex flex-wrap items-center gap-3 p-4">
-        <label htmlFor="dash-siklus" className="text-sm font-medium text-slate-600">Siklus</label>
-        <select id="dash-siklus" value={cycle} onChange={(e) => changeCycle(e.target.value)} disabled={loading} className="input mt-0 w-auto rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+        <label htmlFor="dash-siklus" className="text-sm font-medium text-neutral-600">Siklus</label>
+        <select id="dash-siklus" value={cycle} onChange={(e) => changeCycle(e.target.value)} disabled={loading} className="input mt-0 w-auto rounded-xl border-neutral-300 text-sm shadow-sm focus:border-neutral-950 focus:ring-neutral-950">
           <option value="">Semua siklus</option>
           {initialCycles.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
-        <span aria-live="polite" className="text-sm text-slate-400">{loading ? "Memuat…" : ""}</span>
+        <span aria-live="polite" className="text-sm text-neutral-400">{loading ? "Memuat…" : ""}</span>
       </div>
 
       {loading ? (
@@ -131,27 +131,27 @@ export default function DashboardView({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="card p-5 lg:col-span-2">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h3 className="font-semibold text-slate-700">
+            <h3 className="font-semibold text-neutral-800">
               Masa Pengujian ({range} hari terakhir){cycle ? ` — ${cycle}` : ""}
             </h3>
             <div className="flex gap-2 text-xs" role="group" aria-label="Rentang masa pengujian">
-              <button onClick={() => changeRange(7)} disabled={loading} aria-pressed={range === 7} className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:opacity-50 ${range === 7 ? "bg-slate-900 text-white shadow" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>7 hari</button>
-              <button onClick={() => changeRange(30)} disabled={loading} aria-pressed={range === 30} className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:opacity-50 ${range === 30 ? "bg-slate-900 text-white shadow" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>30 hari</button>
+              <button onClick={() => changeRange(7)} disabled={loading} aria-pressed={range === 7} className={`inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:opacity-50 ${range === 7 ? "border-neutral-950 bg-neutral-950 text-white shadow" : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950"}`}>7 hari</button>
+              <button onClick={() => changeRange(30)} disabled={loading} aria-pressed={range === 30} className={`inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:opacity-50 ${range === 30 ? "border-neutral-950 bg-neutral-950 text-white shadow" : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950"}`}>30 hari</button>
             </div>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dailyData}>
-                <XAxis dataKey="label" fontSize={10} interval={2} />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="total" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                <XAxis dataKey="label" fontSize={10} interval={2} stroke="#52525b" />
+                <YAxis allowDecimals={false} stroke="#52525b" />
+                <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#09090b" }} />
+                <Bar dataKey="total" fill="#09090b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
         <div className="card p-5">
-          <h3 className="font-semibold text-slate-700">
+          <h3 className="font-semibold text-neutral-800">
                 Hasil Pengujian Bulan Ini
               </h3>
           <div className="h-64">
@@ -166,9 +166,9 @@ export default function DashboardView({
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-slate-600">
+          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-neutral-700">
             {pieData.map((d) => (
-              <span key={d.name}><span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: d.color }} aria-hidden />{d.name}: {d.value}</span>
+              <span key={d.name}><span className="mr-1 inline-block h-2 w-2 rounded-full border border-neutral-950" style={{ background: d.color }} aria-hidden />{d.name}: {d.value}</span>
             ))}
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function DashboardView({
       )}
 
       <div className="card p-5">
-        <h3 className="mb-4 font-semibold text-slate-700">Fitur Paling Sering Diuji</h3>
+        <h3 className="mb-4 font-semibold text-neutral-800">Fitur Paling Sering Diuji</h3>
         {loading ? (
           <div className="space-y-3" aria-hidden>
             <div className="skeleton h-8" />
@@ -185,7 +185,7 @@ export default function DashboardView({
           </div>
         ) : (stats?.perFeature.length ?? 0) === 0 ? (
           <div className="empty-state">
-            <span className="empty-icon" aria-hidden>📋</span>
+            <span className="empty-icon" aria-hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6M9 16h6" /></svg></span>
             <p className="empty-title">Belum ada data pengujian</p>
             <p className="empty-hint">Catat hasil pengujian pertama agar grafik dan daftar ini terisi.</p>
             <a href="/pengujian-baru" className="btn-primary mt-2">Catat Pengujian</a>
@@ -193,18 +193,18 @@ export default function DashboardView({
         ) : (
         <div className="space-y-3">
           {(stats?.perFeature ?? []).map((f) => (
-            <div key={f.name} className="flex items-center justify-between gap-3 rounded-xl px-2 py-1.5 text-sm transition hover:bg-slate-50">
+            <div key={f.name} className="flex items-center justify-between gap-3 rounded-xl px-2 py-1.5 text-sm transition hover:bg-neutral-100">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="font-medium text-slate-800">{f.name}</span>
+                <span className="font-medium text-neutral-900">{f.name}</span>
                 {f.last_result ? (
-                  <span className={`badge ${f.last_result === "pass" ? "bg-green-100 text-green-700" : f.last_result === "fail" ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>
+                  <span className={`badge ${f.last_result === "pass" ? "badge-pass" : f.last_result === "fail" ? "badge-fail" : "badge-bug"}`}>
                     {f.last_result.toUpperCase()}
                   </span>
                 ) : (
-                  <span className="badge bg-slate-100 text-slate-500">Belum diuji</span>
+                  <span className="badge badge-neutral">Belum diuji</span>
                 )}
               </div>
-              <span className="shrink-0 text-slate-500">{f.count}x</span>
+              <span className="shrink-0 tabular-nums text-neutral-500">{f.count}x</span>
             </div>
           ))}
         </div>

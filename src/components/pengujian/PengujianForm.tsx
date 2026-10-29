@@ -170,10 +170,10 @@ export default function PengujianForm({
           <legend className="label">Apakah ini pengujian ulang?</legend>
           <div className="mt-2 flex gap-6">
             <label className="inline-flex min-h-11 items-center gap-2 text-sm">
-              <input type="radio" name="uji-retest" checked={!isRetest} onChange={() => { setIsRetest(false); checkNow(featureId, false, role, cycle); }} className="h-4 w-4 text-indigo-600 focus:ring-indigo-500" /> Tidak
+              <input type="radio" name="uji-retest" checked={!isRetest} onChange={() => { setIsRetest(false); checkNow(featureId, false, role, cycle); }} className="h-4 w-4 accent-neutral-950" /> Tidak
             </label>
             <label className="inline-flex min-h-11 items-center gap-2 text-sm">
-              <input type="radio" name="uji-retest" checked={isRetest} onChange={() => { setIsRetest(true); checkNow(featureId, true, role, cycle); }} className="h-4 w-4 text-indigo-600 focus:ring-indigo-500" /> Ya
+              <input type="radio" name="uji-retest" checked={isRetest} onChange={() => { setIsRetest(true); checkNow(featureId, true, role, cycle); }} className="h-4 w-4 accent-neutral-950" /> Ya
             </label>
           </div>
         </fieldset>
@@ -238,23 +238,23 @@ export default function PengujianForm({
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="label" htmlFor="uji-env">Lingkungan <span className="font-normal text-slate-400">(opsional)</span></label>
+            <label className="label" htmlFor="uji-env">Lingkungan <span className="font-normal text-neutral-400">(opsional)</span></label>
             <input id="uji-env" value={environment} onChange={(e) => setEnvironment(e.target.value)} placeholder="cth: Chrome 126 / Windows 11" className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="uji-expected">Yang diharapkan <span className="font-normal text-slate-400">(opsional)</span></label>
+            <label className="label" htmlFor="uji-expected">Yang diharapkan <span className="font-normal text-neutral-400">(opsional)</span></label>
             <textarea id="uji-expected" value={expected} onChange={(e) => setExpected(e.target.value)} rows={2} className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="uji-actual">Yang terjadi <span className="font-normal text-slate-400">(opsional)</span></label>
+            <label className="label" htmlFor="uji-actual">Yang terjadi <span className="font-normal text-neutral-400">(opsional)</span></label>
             <textarea id="uji-actual" value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="uji-file">Bukti gambar <span className="font-normal text-slate-400">(opsional, maks 2MB)</span></label>
+            <label className="label" htmlFor="uji-file">Bukti gambar <span className="font-normal text-neutral-400">(opsional, maks 2MB)</span></label>
             <input id="uji-file" type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)} className="input-file" />
           </div>
           <div>
-            <label className="label" htmlFor="uji-url">atau tautan bukti <span className="font-normal text-slate-400">(opsional)</span></label>
+            <label className="label" htmlFor="uji-url">atau tautan bukti <span className="font-normal text-neutral-400">(opsional)</span></label>
             <input id="uji-url" type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://..." className="input" />
           </div>
         </div>
@@ -271,14 +271,14 @@ export default function PengujianForm({
       </form>
 
       {check && !check.allowed && check.requiresApproval && (
-        <form onSubmit={requestRetest} className="card-pad space-y-4 border-amber-200 bg-amber-50">
-          <h3 className="font-semibold text-amber-900">Ajukan Permohonan Pengujian Ulang</h3>
-          <p className="text-sm text-amber-800">Hasil terakhir untuk kombinasi ini sudah Pass. Permohonan akan dikirim ke ketua tim untuk disetujui sebelum Anda bisa menguji ulang.</p>
+        <form onSubmit={requestRetest} className="card-pad space-y-4 border-2 border-neutral-950">
+          <h3 className="font-semibold text-neutral-950">Ajukan Permohonan Pengujian Ulang</h3>
+          <p className="text-sm text-neutral-700">Hasil terakhir untuk kombinasi ini sudah Pass. Permohonan akan dikirim ke ketua tim untuk disetujui sebelum Anda bisa menguji ulang.</p>
           <div>
-            <label className="label" htmlFor="uji-reason">Alasan <span className="font-normal text-slate-400">(opsional)</span></label>
-            <textarea id="uji-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="cth: verifikasi perbaikan dari developer…" className="input border-amber-300" />
+            <label className="label" htmlFor="uji-reason">Alasan <span className="font-normal text-neutral-400">(opsional)</span></label>
+            <textarea id="uji-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="cth: verifikasi perbaikan dari developer…" className="input" />
           </div>
-          <button className="inline-flex min-h-11 items-center justify-center rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2">
+          <button className="btn-dark">
             Kirim Permohonan
           </button>
         </form>

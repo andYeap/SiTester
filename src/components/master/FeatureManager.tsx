@@ -126,7 +126,7 @@ export default function FeatureManager({ isKetua, initialFeatures }: { isKetua: 
           {editing ? "Simpan" : "+ Tambah"}
         </button>
         {editing && (
-          <button type="button" onClick={() => { setEditing(null); setName(""); setProject(""); }} className="action-link text-slate-600">
+          <button type="button" onClick={() => { setEditing(null); setName(""); setProject(""); }} className="action-link">
             Batal
           </button>
         )}
@@ -145,41 +145,41 @@ export default function FeatureManager({ isKetua, initialFeatures }: { isKetua: 
                 <th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-neutral-200">
               {features.map((f) => (
-                <tr key={f.id} className="transition hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{f.name}</td>
-                  <td className="px-4 py-3 text-slate-600">{f.project_name ?? "—"}</td>
+                <tr key={f.id} className="transition hover:bg-neutral-100">
+                  <td className="px-4 py-3 font-medium text-neutral-800">{f.name}</td>
+                  <td className="px-4 py-3 text-neutral-600">{f.project_name ?? "—"}</td>
                   <td className="px-4 py-3">
                     {isKetua ? (
-                      <button onClick={() => toggle(f)} aria-pressed={f.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${f.is_active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                      <button onClick={() => toggle(f)} aria-pressed={f.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${f.is_active ? "badge-pass" : "badge-neutral"}`}>
                         {f.is_active ? "Aktif" : "Nonaktif"}
                       </button>
                     ) : (
-                      <span className={`badge ${f.is_active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                      <span className={`badge ${f.is_active ? "badge badge-pass" : "badge badge-neutral"}`}>
                         {f.is_active ? "Aktif" : "Nonaktif"}
                       </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {f.verified ? (
-                      <span className="badge bg-green-100 text-green-700">Terverifikasi</span>
+                      <span className="badge badge-pass">Terverifikasi</span>
                     ) : (
-                      <span className="badge bg-amber-100 text-amber-800" title={`Diusulkan oleh ${f.creator_name ?? "?"}`}>Usulan baru</span>
+                      <span className="badge badge-outline" title={`Diusulkan oleh ${f.creator_name ?? "?"}`}>Usulan baru</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{f.test_count}</td>
+                  <td className="px-4 py-3 text-neutral-600">{f.test_count}</td>
                   <td className="px-4 py-3 text-right">
                     {isKetua ? (
                       <span className="inline-flex flex-wrap justify-end gap-1">
                         {!f.verified && (
-                          <button onClick={() => verify(f)} className="action-link text-green-700">Verifikasi</button>
+                          <button onClick={() => verify(f)} className="action-link text-neutral-950">Verifikasi</button>
                         )}
-                        <button onClick={() => { setEditing(f); setName(f.name); setProject(f.project_name ?? ""); }} className="action-link text-indigo-600">Edit</button>
-                        <button onClick={() => remove(f)} className="action-link text-red-600">Hapus</button>
+                        <button onClick={() => { setEditing(f); setName(f.name); setProject(f.project_name ?? ""); }} className="action-link text-neutral-950">Edit</button>
+                        <button onClick={() => remove(f)} className="action-link text-neutral-950">Hapus</button>
                       </span>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-neutral-400">—</span>
                     )}
                   </td>
                 </tr>
@@ -187,7 +187,7 @@ export default function FeatureManager({ isKetua, initialFeatures }: { isKetua: 
             </tbody>
           </table>
           {features.length === 0 && (
-            <div className="empty-state border-t border-slate-100">
+            <div className="empty-state border-t border-neutral-200">
               <span className="empty-icon" aria-hidden>✨</span>
               <p className="empty-title">Belum ada fitur</p>
               <p className="empty-hint">Tambahkan fitur pertama lewat form di atas.</p>

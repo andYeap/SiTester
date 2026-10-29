@@ -33,18 +33,17 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-950 via-indigo-900 to-violet-900 px-4">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(129,140,248,0.25),transparent_60%)]" aria-hidden />
+    <div className="flex min-h-screen items-center justify-center bg-neutral-100 px-4">
       <form
         onSubmit={submit}
-        className="relative w-full max-w-sm space-y-5 rounded-2xl border border-white/40 bg-white/95 p-8 shadow-2xl shadow-indigo-950/40 backdrop-blur"
+        className="relative w-full max-w-sm space-y-5 rounded-2xl border border-neutral-200 bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_24px_64px_-32px_rgba(0,0,0,0.35)]"
       >
         <div className="text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-2xl font-black text-white shadow-lg shadow-indigo-500/40">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-950 text-2xl font-black text-white" aria-hidden>
             S
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">SITester</h1>
-          <p className="mt-1 text-sm text-slate-500">Masuk untuk mencatat pengujian.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-neutral-950">SITester</h1>
+          <p className="mt-1 text-sm text-neutral-500">Masuk untuk mencatat pengujian.</p>
         </div>
         {error && (
           <div className="alert-err" role="alert">

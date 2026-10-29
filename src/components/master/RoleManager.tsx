@@ -98,25 +98,25 @@ export default function RoleManager({ initialRoles }: { initialRoles: Role[] }) 
           <thead className="table-head">
             <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Label</th><th scope="col" className="table-th">Status</th><th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th></tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-neutral-200">
             {roles.map((r) => (
-              <tr key={r.name} className="transition hover:bg-slate-50">
-                <td className="px-4 py-3 font-mono text-xs text-slate-700">{r.name}</td>
-                <td className="px-4 py-3 text-slate-800">{r.label}</td>
+              <tr key={r.name} className="transition hover:bg-neutral-100">
+                <td className="px-4 py-3 font-mono text-xs text-neutral-700">{r.name}</td>
+                <td className="px-4 py-3 text-neutral-800">{r.label}</td>
                 <td className="px-4 py-3">
-                  <button onClick={() => toggle(r)} aria-pressed={r.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${r.is_active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                  <button onClick={() => toggle(r)} aria-pressed={r.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${r.is_active ? "badge-pass" : "badge-neutral"}`}>
                     {r.is_active ? "Aktif" : "Nonaktif"}
                   </button>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => remove(r)} className="action-link text-red-600">Hapus</button>
+                  <button onClick={() => remove(r)} className="action-link text-neutral-950">Hapus</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
         {roles.length === 0 && (
-          <div className="empty-state border-t border-slate-100">
+          <div className="empty-state border-t border-neutral-200">
             <span className="empty-icon" aria-hidden>👥</span>
             <p className="empty-title">Belum ada peran</p>
             <p className="empty-hint">Tambahkan peran pertama lewat form di atas.</p>

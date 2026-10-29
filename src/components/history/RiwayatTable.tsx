@@ -10,10 +10,10 @@ type Feature = { id: number; name: string };
 
 const badge = (r: string) =>
   r === "pass"
-    ? "bg-green-100 text-green-700"
+    ? "badge-pass"
     : r === "fail"
-      ? "bg-red-100 text-red-700"
-      : "bg-orange-100 text-orange-700";
+      ? "badge-fail"
+      : "badge-bug";
 
 function evidenceHref(path: string | null): string | null {
   if (!path) return null;
@@ -159,7 +159,7 @@ export default function RiwayatTable({
           </div>
           <div className="flex items-end gap-3">
             <button onClick={() => void apply(0)} className="btn-dark" disabled={isLoading}>Filter</button>
-            <button onClick={reset} className="action-link text-slate-600">Atur ulang</button>
+            <button onClick={reset} className="action-link">Atur ulang</button>
           </div>
         </div>
       </div>
@@ -188,7 +188,7 @@ export default function RiwayatTable({
                 <th scope="col" className="table-th">Catatan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-neutral-200">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} aria-hidden>
@@ -199,54 +199,54 @@ export default function RiwayatTable({
                 ))
               ) : (
               sessions.map((s) => (
-                <tr key={s.id} className="transition hover:bg-slate-50">
-                  <td className="whitespace-nowrap px-4 py-3">{new Date(s.tested_at).toLocaleDateString("id-ID")}</td>
+                <tr key={s.id} className="transition hover:bg-neutral-100">
+                  <td className="whitespace-nowrap px-4 py-3 tabular-nums">{new Date(s.tested_at).toLocaleDateString("id-ID")}</td>
                   {isKetua && <td className="px-4 py-3">{s.user_name}</td>}
-                  <td className="px-4 py-3 text-slate-600">{s.tested_as_role}</td>
-                  <td className="px-4 py-3 text-slate-600">{s.test_cycle ?? "—"}</td>
-                  <td className="px-4 py-3 font-medium text-slate-800">{s.feature_name}</td>
+                  <td className="px-4 py-3 text-neutral-600">{s.tested_as_role}</td>
+                  <td className="px-4 py-3 text-neutral-600">{s.test_cycle ?? "—"}</td>
+                  <td className="px-4 py-3 font-medium text-neutral-900">{s.feature_name}</td>
                   <td className="px-4 py-3">
                     <span className={`badge ${badge(s.result)}`}>{s.result.toUpperCase()}</span>
                   </td>
                   <td className="px-4 py-3">
                     {s.severity ? (
-                      <span className="badge bg-amber-100 text-amber-800">{s.severity.toUpperCase()}</span>
+                      <span className="badge badge-outline">{s.severity.toUpperCase()}</span>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-neutral-400">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {s.is_retest ? (
-                      <span className="badge bg-indigo-100 text-indigo-700">Ya</span>
+                      <span className="badge badge-neutral">Ya</span>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-neutral-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{s.approver_name ?? "—"}</td>
+                  <td className="px-4 py-3 text-neutral-600">{s.approver_name ?? "—"}</td>
                   <td className="space-x-2 px-4 py-3">
                     {(() => {
                       const href = evidenceHref(s.evidence_path);
                       return (
                         <>
                           {href && (
-                            <a href={href} target="_blank" rel="noreferrer" className="action-link min-h-9 px-1 text-xs text-indigo-600">Lihat</a>
+                            <a href={href} target="_blank" rel="noreferrer" className="action-link min-h-9 px-1 text-xs text-neutral-950">Lihat</a>
                           )}
                           {s.evidence_url && (
-                            <a href={s.evidence_url} target="_blank" rel="noreferrer" className="action-link min-h-9 px-1 text-xs text-indigo-600">Tautan</a>
+                            <a href={s.evidence_url} target="_blank" rel="noreferrer" className="action-link min-h-9 px-1 text-xs text-neutral-950">Tautan</a>
                           )}
-                          {!href && !s.evidence_url && <span className="text-slate-400">—</span>}
+                          {!href && !s.evidence_url && <span className="text-neutral-400">—</span>}
                         </>
                       );
                     })()}
                   </td>
-                  <td className="max-w-md truncate px-4 py-3 text-slate-600" title={s.notes ?? ""}>{s.notes ?? "—"}</td>
+                  <td className="max-w-md truncate px-4 py-3 text-neutral-600" title={s.notes ?? ""}>{s.notes ?? "—"}</td>
                 </tr>
               ))
               )}
             </tbody>
           </table>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 p-4 text-sm">
-            <p className="text-slate-500" role="status">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 p-4 text-sm print:hidden">
+            <p className="text-neutral-500" role="status">
               Menampilkan {from}–{to} dari {total} hasil
             </p>
             <div className="flex items-center gap-2">
@@ -258,7 +258,7 @@ export default function RiwayatTable({
               >
                 ← Sebelumnya
               </button>
-              <span className="text-slate-500" aria-live="polite">
+              <span className="text-neutral-500" aria-live="polite">
                 Halaman {page + 1} dari {pageCount}
               </span>
               <button
@@ -272,8 +272,8 @@ export default function RiwayatTable({
             </div>
           </div>
           {!isLoading && sessions.length === 0 && (
-            <div className="empty-state border-t border-slate-100">
-              <span className="empty-icon" aria-hidden>📋</span>
+            <div className="empty-state border-t border-neutral-200">
+              <span className="empty-icon" aria-hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6M9 16h6" /></svg></span>
               <p className="empty-title">Belum ada data pengujian</p>
               <p className="empty-hint">Coba ubah filter, atau catat hasil pengujian pertama Anda.</p>
               <a href="/pengujian-baru" className="btn-primary mt-2">Catat Pengujian</a>

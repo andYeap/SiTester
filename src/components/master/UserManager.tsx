@@ -110,19 +110,19 @@ export default function UserManager({ selfId, initialUsers }: { selfId: string; 
           <thead className="table-head">
             <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Email</th><th scope="col" className="table-th">Peran</th><th scope="col" className="table-th">Uji</th><th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th></tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-neutral-200">
             {users.map((u) => (
-              <tr key={u.id} className="transition hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium text-slate-800">{u.name}{u.id === selfId ? " (Anda)" : ""}</td>
-                <td className="px-4 py-3 text-slate-600">{u.email}</td>
+              <tr key={u.id} className="transition hover:bg-neutral-100">
+                <td className="px-4 py-3 font-medium text-neutral-800">{u.name}{u.id === selfId ? " (Anda)" : ""}</td>
+                <td className="px-4 py-3 text-neutral-600">{u.email}</td>
                 <td className="px-4 py-3">
-                  <button onClick={() => toggleRole(u)} title="Ubah peran" aria-pressed={u.role === "ketua_tim"} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${u.role === "ketua_tim" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"}`}>
+                  <button onClick={() => toggleRole(u)} title="Ubah peran" aria-pressed={u.role === "ketua_tim"} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${u.role === "ketua_tim" ? "bg-neutral-100 text-neutral-700" : "bg-neutral-100 text-neutral-600"}`}>
                     {u.role === "ketua_tim" ? "Ketua Tim" : "Tester"}
                   </button>
                 </td>
-                <td className="px-4 py-3 text-slate-600">{u.test_count}</td>
+                <td className="px-4 py-3 text-neutral-600">{u.test_count}</td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => remove(u)} disabled={u.id === selfId} title={u.id === selfId ? "Anda tidak dapat menghapus akun sendiri" : `Hapus pengguna ${u.name}`} className="action-link text-red-600 disabled:text-slate-300 disabled:no-underline">Hapus</button>
+                  <button onClick={() => remove(u)} disabled={u.id === selfId} title={u.id === selfId ? "Anda tidak dapat menghapus akun sendiri" : `Hapus pengguna ${u.name}`} className="action-link disabled:text-neutral-300 disabled:no-underline">Hapus</button>
                 </td>
               </tr>
             ))}

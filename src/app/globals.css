@@ -2,49 +2,51 @@
 
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-900: #1e1b4b;
+  --color-ink: #09090b;
+  --color-paper: #fafafa;
 }
 
 body {
-  background: #eef2f7;
-  color: #0f172a;
+  background: #fafafa;
+  color: #09090b;
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* ===== Komponen UI bersama ===== */
+::selection {
+  background: #09090b;
+  color: #fafafa;
+}
+
+/* ===== Komponen UI bersama — monokrom hitam/putih ===== */
 @layer components {
   .card {
-    @apply rounded-2xl border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05),0_8px_24px_-12px_rgba(15,23,42,0.12)];
+    @apply rounded-2xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06),0_16px_40px_-24px_rgba(0,0,0,0.25)];
   }
   .card-pad {
-    @apply rounded-2xl border border-slate-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_8px_24px_-12px_rgba(15,23,42,0.12)] sm:p-6;
+    @apply rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_16px_40px_-24px_rgba(0,0,0,0.25)] sm:p-6;
   }
   .page-title {
-    @apply text-xl font-bold tracking-tight text-slate-900 sm:text-2xl;
+    @apply text-xl font-bold tracking-tight text-neutral-950 sm:text-2xl;
   }
   .page-subtitle {
-    @apply mt-1 text-sm text-slate-500;
+    @apply mt-1 text-sm text-neutral-600;
   }
   .btn-primary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-indigo-700 hover:to-violet-700 hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-dark {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-soft {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 transition hover:border-neutral-950 hover:bg-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-danger-soft {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-neutral-950 bg-white px-4 py-2 text-sm font-semibold text-neutral-950 transition hover:bg-neutral-950 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-success-solid {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
   }
   /* Tombol ikon (mis. bel notifikasi): target sentuh ≥44px */
   .icon-btn {
@@ -52,59 +54,84 @@ body {
   }
   /* Tautan aksi di tabel (Edit/Hapus/Verifikasi): target sentuh + fokus jelas */
   .action-link {
-    @apply inline-flex min-h-11 items-center rounded-lg px-2 py-1 text-sm font-medium transition hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1;
+    @apply inline-flex min-h-11 items-center rounded-lg px-2 py-1 text-sm font-medium text-neutral-950 underline-offset-4 transition hover:bg-neutral-100 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-1;
   }
   .label {
-    @apply block text-sm font-semibold text-slate-700;
+    @apply block text-sm font-semibold text-neutral-800;
   }
   .hint {
-    @apply mt-1 text-xs text-slate-400;
+    @apply mt-1 text-xs text-neutral-500;
   }
   .input {
-    @apply mt-1 block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-400 focus:border-indigo-500 focus:ring-indigo-500;
+    @apply mt-1 block w-full rounded-xl border-neutral-300 bg-white text-sm text-neutral-950 shadow-sm transition placeholder:text-neutral-400 hover:border-neutral-500 focus:border-neutral-950 focus:ring-neutral-950;
   }
   .input-file {
-    @apply mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2;
+    @apply mt-1 block w-full text-sm text-neutral-600 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2;
   }
   /* Status kosong: ikon + pesan + arahan langkah berikutnya */
   .empty-state {
     @apply flex flex-col items-center gap-2 px-4 py-10 text-center;
   }
   .empty-icon {
-    @apply flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-xl text-indigo-400;
+    @apply flex h-12 w-12 items-center justify-center rounded-2xl border border-neutral-300 bg-neutral-100 text-neutral-900;
   }
   .empty-title {
-    @apply text-sm font-semibold text-slate-700;
+    @apply text-sm font-semibold text-neutral-800;
   }
   .empty-hint {
-    @apply max-w-sm text-sm text-slate-500;
+    @apply max-w-sm text-sm text-neutral-500;
   }
   .table-head {
-    @apply bg-slate-50/80 text-slate-500;
+    @apply bg-neutral-100 text-neutral-600;
   }
   .table-th {
     @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide;
   }
   .badge {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide;
+  }
+  .badge-pass {
+    @apply bg-neutral-950 text-white;
+  }
+  .badge-fail {
+    @apply border-2 border-neutral-950 bg-white text-neutral-950;
+  }
+  .badge-bug {
+    @apply border border-dashed border-neutral-950 bg-white text-neutral-950;
+  }
+  .badge-neutral {
+    @apply border border-neutral-200 bg-neutral-100 text-neutral-700;
+  }
+  .badge-outline {
+    @apply border border-neutral-950 bg-white text-neutral-950;
   }
   .alert-ok {
-    @apply rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800;
+    @apply rounded-xl border border-neutral-950 bg-neutral-950 p-4 text-sm font-medium text-white;
   }
   .alert-err {
-    @apply rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700;
+    @apply rounded-xl border-2 border-neutral-950 bg-white p-4 text-sm font-medium text-neutral-950;
   }
   .alert-warn {
-    @apply rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800;
+    @apply rounded-xl border border-neutral-300 bg-neutral-100 p-4 text-sm text-neutral-900;
   }
   .alert-info {
-    @apply rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800;
+    @apply rounded-xl border border-neutral-300 bg-white p-4 text-sm text-neutral-900;
   }
+}
+
+input[type="radio"],
+input[type="checkbox"] {
+  accent-color: #09090b;
+}
+
+:focus-visible {
+  outline: 2px solid #09090b;
+  outline-offset: 2px;
 }
 
 /* Kerangka muat (skeleton): kilau CSS murni, nonaktif bila reduced-motion */
 .skeleton {
-  @apply relative overflow-hidden rounded-xl bg-slate-200/70;
+  @apply relative overflow-hidden rounded-xl bg-neutral-200/70;
 }
 .skeleton::after {
   content: "";

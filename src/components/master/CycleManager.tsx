@@ -93,12 +93,12 @@ export default function CycleManager({ initialCycles }: { initialCycles: Cycle[]
           <input id="siklus-nama" value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} placeholder="Lensa-ASN R3" className="input" />
         </div>
         <div>
-          <label htmlFor="siklus-deskripsi" className="label">Deskripsi <span className="font-normal text-slate-400">(opsional)</span></label>
+          <label htmlFor="siklus-deskripsi" className="label">Deskripsi <span className="font-normal text-neutral-400">(opsional)</span></label>
           <textarea id="siklus-deskripsi" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="input" />
         </div>
         <div className="flex items-center gap-2">
           <button className="btn-dark">{editing ? "Simpan" : "+ Tambah"}</button>
-          {editing && <button type="button" onClick={() => { setEditing(null); setName(""); setDescription(""); }} className="action-link text-slate-600">Batal</button>}
+          {editing && <button type="button" onClick={() => { setEditing(null); setName(""); setDescription(""); }} className="action-link">Batal</button>}
         </div>
       </form>
       <div className="card overflow-hidden">
@@ -108,21 +108,21 @@ export default function CycleManager({ initialCycles }: { initialCycles: Cycle[]
           <thead className="table-head">
             <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Deskripsi</th><th scope="col" className="table-th">Status</th><th scope="col" className="table-th">Jumlah Uji</th><th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th></tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-neutral-200">
             {cycles.map((c) => (
-              <tr key={c.id} className="transition hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium text-slate-800">{c.name}</td>
-                <td className="px-4 py-3 text-slate-600">{c.description ?? "—"}</td>
+              <tr key={c.id} className="transition hover:bg-neutral-100">
+                <td className="px-4 py-3 font-medium text-neutral-800">{c.name}</td>
+                <td className="px-4 py-3 text-neutral-600">{c.description ?? "—"}</td>
                 <td className="px-4 py-3">
-                  <button onClick={() => toggle(c)} aria-pressed={c.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${c.is_active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                  <button onClick={() => toggle(c)} aria-pressed={c.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${c.is_active ? "badge-pass" : "badge-neutral"}`}>
                     {c.is_active ? "Aktif" : "Nonaktif"}
                   </button>
                 </td>
-                <td className="px-4 py-3 text-slate-600">{c.test_count}</td>
+                <td className="px-4 py-3 text-neutral-600">{c.test_count}</td>
                 <td className="px-4 py-3 text-right">
                   <span className="inline-flex flex-wrap justify-end gap-1">
-                    <button onClick={() => { setEditing(c); setName(c.name); setDescription(c.description ?? ""); }} className="action-link text-indigo-600">Edit</button>
-                    <button onClick={() => remove(c)} className="action-link text-red-600">Hapus</button>
+                    <button onClick={() => { setEditing(c); setName(c.name); setDescription(c.description ?? ""); }} className="action-link text-neutral-950">Edit</button>
+                    <button onClick={() => remove(c)} className="action-link text-neutral-950">Hapus</button>
                   </span>
                 </td>
               </tr>
@@ -130,7 +130,7 @@ export default function CycleManager({ initialCycles }: { initialCycles: Cycle[]
           </tbody>
         </table>
         {cycles.length === 0 && (
-          <div className="empty-state border-t border-slate-100">
+          <div className="empty-state border-t border-neutral-200">
             <span className="empty-icon" aria-hidden>🔄</span>
             <p className="empty-title">Belum ada siklus</p>
             <p className="empty-hint">Tambahkan siklus pertama lewat form di atas.</p>

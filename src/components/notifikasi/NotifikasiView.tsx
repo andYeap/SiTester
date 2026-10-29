@@ -53,27 +53,27 @@ export default function NotifikasiView({ initialItems }: { initialItems: Notif[]
         )}
       </div>
       {error && <div className="alert-err" role="alert">{error}</div>}
-      <div className="card divide-y divide-slate-100 overflow-hidden">
+      <div className="card divide-y divide-neutral-200 overflow-hidden">
         {items.length === 0 && (
           <div className="empty-state">
-            <span className="empty-icon" aria-hidden>🔔</span>
+            <span className="empty-icon" aria-hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg></span>
             <p className="empty-title">Tidak ada notifikasi</p>
             <p className="empty-hint">Keputusan atas permohonan Anda dan permohonan baru akan muncul di sini.</p>
           </div>
         )}
         {items.map((n) => (
-          <div key={n.id} className={`flex gap-3 p-4 text-sm transition hover:bg-slate-50 ${n.read_at ? "text-slate-500" : "bg-indigo-50/50 text-slate-900"}`}>
-            {!n.read_at && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-indigo-500" aria-hidden />}
+          <div key={n.id} className={`flex gap-3 p-4 text-sm transition hover:bg-neutral-100 ${n.read_at ? "text-neutral-500" : "bg-neutral-100 text-neutral-950"}`}>
+            {!n.read_at && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-neutral-950" aria-hidden />}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 font-semibold">
                 {n.title}
-                {!n.read_at && <span className="badge bg-indigo-100 text-indigo-700">Baru</span>}
+                {!n.read_at && <span className="badge badge-pass">Baru</span>}
               </div>
               {n.body && <div className="mt-1 font-normal">{n.body}</div>}
-              <div className="mt-1 flex gap-3 text-xs text-slate-400">
+              <div className="mt-1 flex gap-3 text-xs text-neutral-400">
                 <span>{new Date(n.created_at).toLocaleString("id-ID")}</span>
                 {n.link && (
-                  <a href={n.link} className="action-link min-h-9 px-1 py-0 text-xs text-indigo-600">
+                  <a href={n.link} className="action-link min-h-9 px-1 py-0 text-xs text-neutral-600">
                     Buka
                   </a>
                 )}
