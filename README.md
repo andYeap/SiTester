@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TestLab Web — pencatatan pengujian tim tester (Next.js + Postgres, siap Vercel)
 
-## Getting Started
+Rewrite dari Laravel TestLab (`../testlab`). Paritas fitur penuh + deploy gratis.
+Lihat `PRD.md` (spesifikasi v2) dan `PLAN.md` (rencana implementasi).
 
-First, run the development server:
+## Stack
+
+| Lapisan | Pilihan |
+|---|---|
+| Framework | Next.js 16 (App Router) + React 19 + Tailwind v4 |
+| Bahasa | TypeScript |
+| DB | PostgreSQL 16 (`pg` + SQL langsung, tanpa ORM) |
+| Auth | Sesi opak di cookie httpOnly, hash scrypt |
+| Grafik | recharts (client) |
+| Upload bukti | Vercel Blob (bila token ada) / disk lokal (dev) |
+| Deploy | Vercel (Node runtime), gratis |
+
+## Menjalankan lokal
 
 ```bash
+# 1. Postgres lokal (pakai container lensa yang sudah ada)
+docker start lensa-pg
+docker exec lensa-pg psql -U lensa -d lensa -c "CREATE DATABASE testlab;"
+
+# 2. Konfigurasi
+cp .env.example .env.local   # sesuaikan DATABASE_URL
+
+# 3. Migrasi + seed
+npm install
+npm run db:migrate
+npm run db:seed    # opsional: 1 ketua + 3 tester (password: password), 10 fitur, 2 siklus
+
+# 4. Jalankan
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka `http://localhost:3000`, masuk dengan `ketua@testlab.test` /
+`tester1@testlab.test` (password: `password`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy ke Vercel (gratis, tanpa kartu kredit)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Database**: buat Postgres gratis (Neon direkomendasikan). Simpan dua URL:
+   - pooled (`...-pooler...`) → `DATABASE_URL` untuk runtime serverless
+   - direct → dipakai sekali saat migrasi/seed
+2. **Environment variables** di Vercel:
+   - `DATABASE_URL` (pooled), `PG_POOL_MAX=5`
+   - `BLOB_READ_WRITE_TOKEN` (wajib untuk unggah bukti di Vercel; tanpa ini upload gagal dengan pesan jelas — bukan cuma di dev)
+3. **Migrasi & seed** dari mesin lokal, arahkan ke direct URL:
+   ```bash
+   DATABASE_URL='postgres://...direct...' npm run db:migrate
+   DATABASE_URL='postgres://...direct...' npm run db:seed   # opsional
+   ```
+4. **Deploy**: hubungkan repo ke Vercel (framework terdeteksi otomatis). Tidak perlu `vercel.json`.
 
-## Learn More
+Catatan produksi:
+- Cookie otomatis `Secure` karena `NODE_ENV=production`.
+- Sesi disimpan di database, logout benar-benar mencabut akses.
+- Jangan set `PG_POOL_MAX` tinggi di serverless.
 
-To learn more about Next.js, take a look at the following resources:
+## Skrip
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Skrip | Fungsi |
+|---|---|
+| `npm run dev` | Dev server |
+| `npm run build` / `npm start` | Build + production server |
+| `npm test` | Unit test aturan retest (vitest) |
+| `npm run db:migrate` | Terapkan skema (idempoten) |
+| `npm run db:seed` | Data demo (idempoten) |
+| `npm run lint` | ESLint |

@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  // Every route depends on the session cookie and the database, so there is
+  // nothing useful to prerender. Keep rendering dynamic instead of opting every
+  // page into Suspense boundaries.
+  cacheComponents: false,
   turbopack: {
     rules: {
       "*.css": {
