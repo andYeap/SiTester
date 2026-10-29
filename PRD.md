@@ -1,4 +1,4 @@
-# PRD: Sistem Pengujian Tim Tester (TestLab Web) — v2
+# PRD: SITester (Sistem Pengujian Tim Tester) — v2
 
 **Versi:** 2.0 · **Tanggal:** 29 Oktober 2026 · **Stack:** Next.js 16 + Postgres + Vercel
 **Status implementasi:** selesai di repo ini (7/7 task PLAN.md) · **Supersedes:** `../testlab/PRD-sistem-pengujian-tim.md` (Laravel 12 + MySQL — tetap jalan, tidak dihapus)

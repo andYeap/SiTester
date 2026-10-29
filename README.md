@@ -1,6 +1,6 @@
-# TestLab Web — pencatatan pengujian tim tester (Next.js + Postgres, siap Vercel)
+# SITester — pencatatan pengujian tim tester (Next.js + Postgres, siap Vercel)
 
-Rewrite dari Laravel TestLab (`../testlab`). Paritas fitur penuh + deploy gratis.
+Rewrite dari aplikasi TestLab versi Laravel (`../testlab`). Paritas fitur penuh + deploy gratis.
 Lihat `PRD.md` (spesifikasi v2) dan `PLAN.md` (rencana implementasi).
 
 ## Stack

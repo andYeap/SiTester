@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TestLab",
+  title: "SITester",
   description: "Pencatatan pengujian tim tester",
 };
 

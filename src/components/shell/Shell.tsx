@@ -38,7 +38,7 @@ export default function Shell({
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="font-semibold text-gray-800">
-              TestLab
+              SITester
             </Link>
             <div className="hidden gap-4 sm:flex">
               {LINKS.filter((l) => !l.ketua || isKetua).map((l) => (

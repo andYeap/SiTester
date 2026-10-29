@@ -42,7 +42,7 @@ function LoginForm() {
         className="w-full max-w-sm space-y-4 rounded-lg bg-white p-6 shadow"
       >
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">TestLab</h1>
+          <h1 className="text-xl font-semibold text-gray-900">SITester</h1>
           <p className="text-sm text-gray-500">Masuk untuk mencatat pengujian.</p>
         </div>
         {error && (
