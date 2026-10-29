@@ -129,7 +129,8 @@ export default function CycleManager({ initialCycles, initialFeatures }: { initi
       </div>
       {error && <div className="alert-err" role="alert">{error}</div>}
       {info && <div className="alert-ok" role="status">{info}</div>}
-      <form onSubmit={submit} className="card-pad max-w-xl space-y-4">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+      <form onSubmit={submit} className="card-pad space-y-4 xl:sticky xl:top-24">
         <div>
           <label htmlFor="siklus-nama" className="label">Nama Siklus</label>
           <input id="siklus-nama" value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} placeholder="Lensa-ASN R3" className="input" />
@@ -183,7 +184,7 @@ export default function CycleManager({ initialCycles, initialFeatures }: { initi
           {editing && <button type="button" onClick={resetForm} className="action-link">Batal</button>}
         </div>
       </form>
-      <div className="card overflow-hidden">
+      <div className="card min-w-0 overflow-hidden">
         <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <caption className="sr-only">Daftar siklus pengujian</caption>
@@ -216,10 +217,11 @@ export default function CycleManager({ initialCycles, initialFeatures }: { initi
           <div className="empty-state border-t border-neutral-200">
             <span className="empty-icon" aria-hidden>🔄</span>
             <p className="empty-title">Belum ada siklus</p>
-            <p className="empty-hint">Tambahkan siklus pertama lewat form di atas.</p>
+            <p className="empty-hint">Tambahkan siklus pertama lewat form di samping.</p>
           </div>
         )}
         </div>
+      </div>
       </div>
     </div>
   );
