@@ -63,7 +63,7 @@ body {
     @apply mt-1 text-xs text-neutral-500;
   }
   .input {
-    @apply mt-1 block w-full rounded-xl border-neutral-300 bg-white text-sm text-neutral-950 shadow-sm transition placeholder:text-neutral-400 hover:border-neutral-500 focus:border-neutral-950 focus:ring-neutral-950;
+    @apply mt-1 block min-h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-950 shadow-sm transition placeholder:text-neutral-400 hover:border-neutral-500 focus:border-neutral-950 focus:ring-neutral-950;
   }
   .input-file {
     @apply mt-1 block w-full text-sm text-neutral-600 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-black focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2;
