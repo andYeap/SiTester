@@ -229,13 +229,13 @@ export default function PengujianForm({
           </div>
           <div>
             <label className="label" htmlFor="uji-severity">Tingkat Keparahan</label>
-            <p className="hint" id="uji-severity-hint">Wajib diisi bila hasil Fail atau Bug.</p>
             <select id="uji-severity" aria-describedby="uji-severity-hint" value={severity} onChange={(e) => setSeverity(e.target.value)} className="input">
               <option value="">— Pilih tingkat keparahan —</option>
               {SEVERITIES.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
+            <p className="hint" id="uji-severity-hint">Wajib diisi bila hasil Fail atau Bug.</p>
           </div>
           <div className="sm:col-span-2">
             <label className="label" htmlFor="uji-env">Lingkungan <span className="font-normal text-neutral-400">(opsional)</span></label>
