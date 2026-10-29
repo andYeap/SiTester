@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 
-import { projectNames } from "@/lib/features";
 import { todayString } from "@/lib/time";
 import FeatureCombobox from "./FeatureCombobox";
 
@@ -38,10 +37,12 @@ export default function PengujianForm({
   initialFeatures,
   initialRoles,
   initialCycles,
+  initialProjects,
 }: {
   initialFeatures: Feature[];
   initialRoles: Role[];
   initialCycles: Cycle[];
+  initialProjects: { id: number; name: string }[];
 }) {
   const [features] = useState<Feature[]>(initialFeatures);
   const [roles] = useState<Role[]>(initialRoles);
@@ -49,7 +50,13 @@ export default function PengujianForm({
   const [projectFilter, setProjectFilter] = useState("");
   const [cycleBrief, setCycleBrief] = useState<string | null>(null);
   const [scopeIds, setScopeIds] = useState<number[] | null>(null);
-  const projects = useMemo(() => projectNames(features.map((f) => ({ project: f.project_name }))), [features]);
+  const projects = useMemo(() => {
+    const names = new Set(initialProjects.map((p) => p.name));
+    for (const f of features) {
+      if (f.project_name && f.project_name.trim() !== "") names.add(f.project_name);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, "id"));
+  }, [initialProjects, features]);
   const scopedFeatures = useMemo(
     () => (scopeIds === null ? features : features.filter((f) => scopeIds.includes(f.id))),
     [features, scopeIds],

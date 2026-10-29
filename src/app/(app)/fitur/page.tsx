@@ -8,7 +8,11 @@ export default async function FiturPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const features = await query<{
+  const [projects, features] = await Promise.all([
+    query<{ id: number; name: string }>(
+      `SELECT id, name FROM projects WHERE is_active = true ORDER BY name`,
+    ),
+    query<{
     id: number;
     name: string;
     description: string | null;
@@ -23,7 +27,8 @@ export default async function FiturPage() {
             (SELECT count(*)::int FROM test_sessions s WHERE s.feature_id = f.id) AS test_count
        FROM features f LEFT JOIN users u ON u.id = f.created_by
       ORDER BY f.name`,
-  );
+    ),
+  ]);
 
-  return <FeatureManager isKetua={user.role === "ketua_tim"} initialFeatures={features} />;
+  return <FeatureManager isKetua={user.role === "ketua_tim"} initialFeatures={features} initialProjects={projects} />;
 }

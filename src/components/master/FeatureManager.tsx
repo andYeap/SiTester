@@ -26,8 +26,9 @@ type Feature = {
   test_count: number;
 };
 
-export default function FeatureManager({ isKetua, initialFeatures }: { isKetua: boolean; initialFeatures: Feature[] }) {
+export default function FeatureManager({ isKetua, initialFeatures, initialProjects }: { isKetua: boolean; initialFeatures: Feature[]; initialProjects: { id: number; name: string }[] }) {
   const [features, setFeatures] = useState<Feature[]>(initialFeatures);
+  const [projects] = useState<{ id: number; name: string }[]>(initialProjects);
   const [name, setName] = useState("");
   const [project, setProject] = useState("");
   const [editing, setEditing] = useState<Feature | null>(null);
@@ -119,8 +120,13 @@ export default function FeatureManager({ isKetua, initialFeatures }: { isKetua: 
           <input id="fitur-nama" value={name} onChange={(e) => setName(e.target.value)} required maxLength={255} placeholder="cth: Login admin" className="input" />
         </div>
         <div>
-          <label htmlFor="fitur-proyek" className="label text-xs">Proyek / Sprint</label>
-          <input id="fitur-proyek" value={project} onChange={(e) => setProject(e.target.value)} maxLength={255} placeholder="cth: Lensa-ASN" className="input" />
+          <label htmlFor="fitur-proyek" className="label text-xs">Proyek</label>
+          <select id="fitur-proyek" value={project} onChange={(e) => setProject(e.target.value)} className="input">
+            <option value="">— Tanpa proyek —</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.name}>{p.name}</option>
+            ))}
+          </select>
         </div>
         <button className="btn-dark">
           {editing ? "Simpan" : "+ Tambah"}

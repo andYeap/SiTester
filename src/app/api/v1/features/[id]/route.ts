@@ -38,12 +38,21 @@ async function updateFeature(request: Request, id: string, ketua: SessionUser) {
     );
   }
   if (body && "project_name" in body) {
-    fields.push(`project_name=$${i++}`);
-    values.push(
+    const pName =
       typeof body.project_name === "string" && body.project_name.trim() !== ""
         ? body.project_name.trim()
-        : null,
-    );
+        : null;
+    if (pName !== null) {
+      const ok = await query<{ n: string }>(
+        `SELECT count(*)::text AS n FROM projects WHERE name = $1 AND is_active = true`,
+        [pName],
+      );
+      if (ok[0].n !== "1") {
+        return err("Proyek tidak terdaftar atau nonaktif. Pilih dari daftar Proyek.", 422);
+      }
+    }
+    fields.push(`project_name=$${i++}`);
+    values.push(pName);
   }
   if (body && "is_active" in body) {
     fields.push(`is_active=$${i++}`);

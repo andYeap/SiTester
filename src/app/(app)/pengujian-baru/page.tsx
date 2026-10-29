@@ -8,7 +8,7 @@ export default async function PengujianBaruPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const [features, roles, cycles] = await Promise.all([
+  const [features, roles, cycles, projects] = await Promise.all([
     query<{ id: number; name: string; project_name: string | null; description: string | null }>(
       `SELECT id, name, project_name, description FROM features WHERE is_active = true ORDER BY name`,
     ),
@@ -18,6 +18,9 @@ export default async function PengujianBaruPage() {
     query<{ name: string }>(
       `SELECT name FROM test_cycles WHERE is_active = true ORDER BY name`,
     ),
+    query<{ id: number; name: string }>(
+      `SELECT id, name FROM projects WHERE is_active = true ORDER BY name`,
+    ),
   ]);
 
   return (
@@ -25,6 +28,7 @@ export default async function PengujianBaruPage() {
       initialFeatures={features}
       initialRoles={roles.length > 0 ? roles : [{ name: "tester", label: "Tester" }]}
       initialCycles={cycles}
+      initialProjects={projects}
     />
   );
 }

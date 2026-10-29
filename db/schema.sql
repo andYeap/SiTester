@@ -28,6 +28,13 @@ CREATE TABLE IF NOT EXISTS testing_roles (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS projects (
+  id         bigserial PRIMARY KEY,
+  name       text NOT NULL UNIQUE,
+  is_active  boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS test_cycles (
   id          bigserial PRIMARY KEY,
   name        text NOT NULL UNIQUE,
@@ -163,6 +170,13 @@ ON CONFLICT (name) DO NOTHING;
 INSERT INTO test_cycles (name, description, is_active) VALUES
   ('Lensa-ASN R1','Putaran pengujian pertama',true),
   ('Lensa-ASN R2','Putaran pengujian kedua',true)
+ON CONFLICT (name) DO NOTHING;
+
+-- Seed master Proyek dari project_name fitur yang sudah ada (sekali jalan, idempotent).
+INSERT INTO projects (name, is_active)
+SELECT DISTINCT f.project_name, true FROM features f
+WHERE f.project_name IS NOT NULL AND btrim(f.project_name) <> ''
+  AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.name = f.project_name)
 ON CONFLICT (name) DO NOTHING;
 
 -- Approval kedaluwarsa: single-use + TTL 7 hari.

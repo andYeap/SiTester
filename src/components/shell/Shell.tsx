@@ -8,9 +8,11 @@ const LINKS = [
   { href: "/pengujian-baru", label: "Pengujian Baru", ketua: false },
   { href: "/riwayat", label: "Riwayat", ketua: false },
   { href: "/fitur", label: "Fitur", ketua: false },
+  { href: "/proyek", label: "Proyek", ketua: true },
   { href: "/permohonan", label: "Permohonan", ketua: true },
   { href: "/pengguna", label: "Pengguna", ketua: true },
   { href: "/peran", label: "Peran Uji", ketua: true },
+  { href: "/proyek", label: "Proyek", ketua: true },
   { href: "/siklus", label: "Siklus", ketua: true },
   { href: "/aktivitas", label: "Aktivitas", ketua: true },
 ] as const;

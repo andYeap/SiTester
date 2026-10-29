@@ -62,6 +62,16 @@ export async function POST(request: Request) {
     return err("Nama fitur wajib diisi (maks 255).", 422);
   }
 
+  if (projectName !== null) {
+    const ok = await query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM projects WHERE name = $1 AND is_active = true`,
+      [projectName],
+    );
+    if (ok[0].n !== "1") {
+      return err("Proyek tidak terdaftar atau nonaktif. Pilih dari daftar Proyek.", 422);
+    }
+  }
+
   const dup = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM features WHERE LOWER(name) = LOWER($1)`,
     [name],

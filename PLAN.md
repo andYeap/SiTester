@@ -139,6 +139,9 @@ API `limit` (default 50, maks 5000 untuk ekspor) + `offset`, respons `{sessions,
 ### Task 15: Lingkup + instruksi per siklus — DONE
 Tabel `cycle_features` (lingkup fitur per siklus; kosong = semua fitur) + kolom `brief` di `test_cycles`. API: CRUD lingkup + validasi submit di luar lingkup (422), daftar fitur tersaring per siklus, `fitur_belum_diuji` + `scope`/`brief` di statistik dashboard. UI: checklist lingkup + textarea brief di master Siklus, banner instruksi + progress "X dari Y" + daftar belum diuji di dashboard & form. Test `cycle-scope` (5).
 
+### Task 16: Master Proyek — DONE
+Tabel `projects` + seed otomatis dari `project_name` fitur yang sudah ada. CRUD ketua (rename ikut mengubah fitur terkait, transaksional; hapus diblokir bila masih dipakai). Validasi: `project_name` fitur harus terdaftar & aktif. Dropdown filter pengujian + dropdown form fitur mengambil dari master (bukan turunan data). Test `projects` (4).
+
 ## Self-Review
 
 - Spec coverage: auth+roles (T2), retest inti+scope (T3+T5), master 4 entitas (T4), form 14 field (T5), riwayat+filter (T6), dashboard+grafik (T6), export CSV/PDF (T7), notifikasi (T5), seed (T1). Semua BR + perluasan tercakup.

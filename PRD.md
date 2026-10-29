@@ -69,6 +69,7 @@ CSV via API (ikut filter aktif). PDF satu-klik client-side (jspdf + autotable) d
 ### F7 — Master Data
 - **Fitur**: semua auth boleh usul (langsung aktif + `verified=false` + tercatat pembuat); ketua verifikasi/edit/hapus. Duplikat ditolak case-insensitive. Hapus ditolak bila dipakai riwayat.
 - **Peran Uji**: penuh ketua. Hapus ditolak bila dipakai riwayat.
+- **Proyek**: penuh ketua. Daftar master tunggal sumber kebenaran nama proyek; dropdown di form pengujian + form fitur mengambil dari sini (menggantikan teks bebas). Ganti nama ikut mengubah fitur terkait (transaksional). Hapus ditolak bila masih dipakai fitur (nonaktifkan atau pindahkan dulu).
 - **Siklus**: penuh ketua. Setiap siklus punya **lingkup fitur** (opsional; kosong = semua fitur aktif) dan **instruksi untuk tester** (tampil mencolok di form + dashboard saat siklus dipilih). Siklus nonaktif hilang dari dropdown tapi riwayat tetap. Tes pertama di siklus baru selalu boleh (ronde fresh). Form pengujian otomatis menyaring daftar fitur ke lingkup bila ada; dashboard menampilkan progress lingkup + daftar yang belum diuji.
 - **Pengguna**: penuh ketua; tidak bisa hapus diri sendiri.
 
