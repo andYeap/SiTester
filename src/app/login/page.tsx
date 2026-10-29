@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
+import { fetchJson } from "@/lib/client-api";
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -16,20 +18,15 @@ function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
+      await fetchJson<{ user: unknown }>("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        setError(data.error ?? "Gagal masuk.");
-        return;
-      }
       router.push(searchParams.get("next") ?? "/dashboard");
       router.refresh();
-    } catch {
-      setError("Tidak dapat menghubungi server.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal masuk.");
     } finally {
       setLoading(false);
     }
