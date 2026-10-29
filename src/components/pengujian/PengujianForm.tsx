@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
+import { projectNames } from "@/lib/features";
 import { todayString } from "@/lib/time";
+import FeatureCombobox from "./FeatureCombobox";
 
-type Feature = { id: number; name: string; project_name: string | null };
+type Feature = { id: number; name: string; project_name: string | null; description: string | null };
 type Role = { name: string; label: string };
 type Cycle = { name: string };
 type Check = {
@@ -44,6 +46,8 @@ export default function PengujianForm({
   const [features] = useState<Feature[]>(initialFeatures);
   const [roles] = useState<Role[]>(initialRoles);
   const [cycles] = useState<Cycle[]>(initialCycles);
+  const [projectFilter, setProjectFilter] = useState("");
+  const projects = useMemo(() => projectNames(features.map((f) => ({ project: f.project_name }))), [features]);
 
   const [testedAt, setTestedAt] = useState(today());
   const [isRetest, setIsRetest] = useState(false);
@@ -94,6 +98,10 @@ export default function PengujianForm({
     setError(null);
     setOk(null);
     setWarn(null);
+    if (featureId === "") {
+      setError("Pilih dulu fitur yang diuji.");
+      return;
+    }
     setSaving(true);
     try {
       const fd = new FormData();
@@ -197,14 +205,31 @@ export default function PengujianForm({
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="uji-fitur">Fitur yang Diuji</label>
-          <select id="uji-fitur" value={featureId} onChange={(e) => { setFeatureId(e.target.value); checkNow(e.target.value, isRetest, role, cycle); }} required className="input">
-            <option value="">— Pilih fitur —</option>
-            {features.map((f) => (
-              <option key={f.id} value={f.id}>{f.name}</option>
+          <label className="label" htmlFor="uji-proyek">Filter proyek</label>
+          <select id="uji-proyek" value={projectFilter} onChange={(e) => {
+            const p = e.target.value;
+            setProjectFilter(p);
+            const cur = features.find((f) => String(f.id) === featureId);
+            if (p !== "" && (!cur || (cur.project_name ?? "") !== p)) {
+              setFeatureId("");
+              checkNow("", isRetest, role, cycle);
+            }
+          }} className="input">
+            <option value="">Semua proyek</option>
+            {projects.map((n) => (
+              <option key={n} value={n}>{n}</option>
             ))}
           </select>
+          <p className="hint">Batasi daftar bila fitur sudah banyak.</p>
         </div>
+        <FeatureCombobox
+          id="uji-fitur"
+          label="Fitur yang Diuji"
+          features={features.map((f) => ({ id: f.id, name: f.name, project: f.project_name, description: f.description }))}
+          value={featureId}
+          project={projectFilter}
+          onChange={(id) => { setFeatureId(id); checkNow(id, isRetest, role, cycle); }}
+        />
 
         <div aria-live="polite">
         {check && messages.length > 0 && (

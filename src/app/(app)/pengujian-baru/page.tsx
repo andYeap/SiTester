@@ -9,8 +9,8 @@ export default async function PengujianBaruPage() {
   if (!user) redirect("/login");
 
   const [features, roles, cycles] = await Promise.all([
-    query<{ id: number; name: string; project_name: string | null }>(
-      `SELECT id, name, project_name FROM features WHERE is_active = true ORDER BY name`,
+    query<{ id: number; name: string; project_name: string | null; description: string | null }>(
+      `SELECT id, name, project_name, description FROM features WHERE is_active = true ORDER BY name`,
     ),
     query<{ name: string; label: string }>(
       `SELECT name, label FROM testing_roles WHERE is_active = true ORDER BY label`,
