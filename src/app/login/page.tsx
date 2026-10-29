@@ -47,13 +47,14 @@ function LoginForm() {
           <p className="mt-1 text-sm text-slate-500">Masuk untuk mencatat pengujian.</p>
         </div>
         {error && (
-          <div className="alert-err">
+          <div className="alert-err" role="alert">
             {error}
           </div>
         )}
         <div>
-          <label className="label">Email</label>
+          <label className="label" htmlFor="login-email">Email</label>
           <input
+            id="login-email"
             type="email"
             required
             value={email}
@@ -63,8 +64,9 @@ function LoginForm() {
           />
         </div>
         <div>
-          <label className="label">Password</label>
+          <label className="label" htmlFor="login-password">Kata sandi</label>
           <input
+            id="login-password"
             type="password"
             required
             value={password}

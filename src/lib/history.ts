@@ -33,7 +33,10 @@ export async function getSessions(
   viewerId: string,
   isKetua: boolean,
   f: SessionFilters,
-): Promise<SessionRow[]> {
+  paging: { limit?: number; offset?: number } = {},
+): Promise<{ rows: SessionRow[]; total: number }> {
+  const limit = Math.min(Math.max(paging.limit ?? 50, 1), 5000);
+  const offset = Math.max(paging.offset ?? 0, 0);
   const conds: string[] = [];
   const vals: unknown[] = [];
   let i = 1;
@@ -72,20 +75,30 @@ export async function getSessions(
   }
 
   const where = conds.length > 0 ? `WHERE ${conds.join(" AND ")}` : "";
-  return query<SessionRow>(
-    `SELECT s.id, s.tested_at::text AS tested_at, s.result, s.severity, s.environment,
-            s.expected, s.actual, s.notes, s.is_retest, s.tested_as_role,
-            s.test_cycle, s.evidence_path, s.evidence_url,
-            u.name AS user_name, f.name AS feature_name,
-            ap.name AS approver_name
-       FROM test_sessions s
-       JOIN users u ON u.id = s.user_id
-       JOIN features f ON f.id = s.feature_id
-       LEFT JOIN retest_approvals ra ON ra.id = s.retest_approval_id
-       LEFT JOIN users ap ON ap.id = ra.approved_by
-      ${where}
-      ORDER BY s.tested_at DESC, s.id DESC
-      LIMIT 200`,
-    vals,
-  );
+  const [rows, counted] = await Promise.all([
+    query<SessionRow>(
+      `SELECT s.id, s.tested_at::text AS tested_at, s.result, s.severity, s.environment,
+              s.expected, s.actual, s.notes, s.is_retest, s.tested_as_role,
+              s.test_cycle, s.evidence_path, s.evidence_url,
+              u.name AS user_name, f.name AS feature_name,
+              ap.name AS approver_name
+         FROM test_sessions s
+         JOIN users u ON u.id = s.user_id
+         JOIN features f ON f.id = s.feature_id
+         LEFT JOIN retest_approvals ra ON ra.id = s.retest_approval_id
+         LEFT JOIN users ap ON ap.id = ra.approved_by
+        ${where}
+        ORDER BY s.tested_at DESC, s.id DESC
+        LIMIT ${limit} OFFSET ${offset}`,
+      vals,
+    ),
+    query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM test_sessions s
+         JOIN users u ON u.id = s.user_id
+         JOIN features f ON f.id = s.feature_id
+        ${where}`,
+      vals,
+    ),
+  ]);
+  return { rows, total: Number(counted[0].n) };
 }

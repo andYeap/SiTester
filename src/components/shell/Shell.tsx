@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/pengguna", label: "Pengguna", ketua: true },
   { href: "/peran", label: "Peran Uji", ketua: true },
   { href: "/siklus", label: "Siklus", ketua: true },
+  { href: "/aktivitas", label: "Aktivitas", ketua: true },
 ] as const;
 
 export default function Shell({
@@ -46,12 +47,12 @@ export default function Shell({
                 SITester
               </span>
             </Link>
-            <nav className="hidden gap-1 md:flex">
+            <nav className="hidden gap-1 md:flex" aria-label="Navigasi utama">
               {items.map((l) => (
                 <Link
                   key={l.href}
                   href={l.href}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-indigo-100/80 transition hover:bg-white/10 hover:text-white"
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-indigo-100/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 >
                   {l.label}
                 </Link>
@@ -61,8 +62,8 @@ export default function Shell({
           <div className="flex items-center gap-3">
             <Link
               href="/notifikasi"
-              className="relative rounded-lg p-2 text-indigo-100/80 transition hover:bg-white/10 hover:text-white"
-              title="Notifikasi"
+              className="icon-btn text-indigo-100/80 hover:bg-white/10 hover:text-white"
+              aria-label={unread > 0 ? `Notifikasi, ${unread} belum dibaca` : "Notifikasi"}
             >
               <span aria-hidden>🔔</span>
               {unread > 0 && (
@@ -78,25 +79,25 @@ export default function Shell({
               </div>
             </div>
             <form action={logout}>
-              <button className="rounded-lg bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20">
+              <button className="inline-flex min-h-11 items-center rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
                 Keluar
               </button>
             </form>
           </div>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-4 pb-3 md:hidden">
+        <nav className="flex gap-1 overflow-x-auto px-4 pb-3 md:hidden" aria-label="Navigasi utama">
           {items.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-indigo-100/80 hover:bg-white/10 hover:text-white"
+              className="inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-indigo-100/80 hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               {l.label}
             </Link>
           ))}
           <Link
             href="/notifikasi"
-            className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-indigo-100/80 hover:bg-white/10 hover:text-white"
+            className="inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-indigo-100/80 hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
             Notifikasi{unread > 0 ? ` (${unread})` : ""}
           </Link>

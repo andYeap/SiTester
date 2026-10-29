@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { err, needUser } from "@/lib/api";
+import { audit, clientIp } from "@/lib/audit";
 import { query } from "@/lib/db";
 
 export async function GET(request: Request) {
@@ -62,6 +63,15 @@ export async function POST(request: Request) {
      VALUES ($1,$2,$3,$4,$5,$6)`,
     [name, description, projectName, isActive, isKetua, user.id],
   );
+  await audit({
+    actorId: user.id,
+    actorName: user.name,
+    actorRole: user.role,
+    action: "features.create",
+    target: name,
+    changes: { project_name: projectName, is_active: isActive },
+    ip: clientIp(request),
+  });
 
   return NextResponse.json(
     {

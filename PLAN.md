@@ -110,6 +110,24 @@
 - Create: API `export/csv` (kolom: Tanggal, Tester, Peran, Siklus, Fitur, Hasil, Severity, Lingkungan, Retest, Catatan), unduh PDF client (`jspdf`+autotable), upload bukti (Blob bila token ada else disk lokal + route penyaji), `README.md` (deploy Vercel + Neon), `.env.example`; Modify: `PRD.md` finalisasi status
 - Test: manual (CSV cocok filter; PDF terunduh; upload tampil) — DONE 29 Okt: CSV+stats terverifikasi curl, upload file OK, `npm run build` hijau, lint+tsc bersih, vitest 7/7.
 
+### Task 8: Uji API otomatis (vitest + DB terpisah) — DONE
+vitest.config + tests/api (auth, retest-flow, masters, rate-limit, approval-expiry, audit-log, pagination) + unit lib (retest, pdf). `npm test` (default DB testlab_test, bisa override via TEST_DATABASE_URL).
+
+### Task 9: Rate limit login — DONE
+Maks 10x gagal / 15 menit per email → 429 + pesan Indonesia; sukses menghapus hitungan. Tabel `login_attempts`.
+
+### Task 10: Approval kedaluwarsa — DONE
+`retest_approvals.expires_at`, TTL 7 hari sejak approve; lookup abaikan yang kedaluwarsa (NULL = dianggap belum kedaluwarsa, backfill saat migrasi).
+
+### Task 11: Audit log master — DONE
+Tabel `audit_logs`; catat create/update/delete fitur, peran, siklus, pengguna (+verify fitur); tanpa password. Halaman `/aktivitas` (ketua) + API filter.
+
+### Task 12: Paginasi riwayat — DONE
+API `limit` (default 50, maks 5000 untuk ekspor) + `offset`, respons `{sessions,total,limit,offset}`; UI prev/next + "Menampilkan X–Y dari Z".
+
+### Task 13: PDF satu-klik — DONE
+`jspdf`+`autotable` client-side dari data terfilter (di RiwayatTable), nama file `laporan-pengujian-YYYYMMDDHHmmss.pdf`; unit test builder baris + nama file.
+
 ## Self-Review
 
 - Spec coverage: auth+roles (T2), retest inti+scope (T3+T5), master 4 entitas (T4), form 14 field (T5), riwayat+filter (T6), dashboard+grafik (T6), export CSV/PDF (T7), notifikasi (T5), seed (T1). Semua BR + perluasan tercakup.

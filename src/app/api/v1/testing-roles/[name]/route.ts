@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { err, needKetua } from "@/lib/api";
+import { audit, clientIp } from "@/lib/audit";
 import { query } from "@/lib/db";
 
 const NAME_RE = /^[a-z0-9_]+$/;
@@ -9,7 +10,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ name: string }> },
 ) {
-  if (!(await needKetua())) return err("Forbidden", 403);
+  const ketua = await needKetua();
+  if (!ketua) return err("Forbidden", 403);
   const { name } = await params;
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
@@ -41,14 +43,25 @@ export async function PUT(
     return err("Nama peran sudah dipakai.", 422);
   }
 
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "testing_roles.update",
+    target: newName,
+    changes: { from: name, label, is_active: isActive },
+    ip: clientIp(request),
+  });
+
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ name: string }> },
 ) {
-  if (!(await needKetua())) return err("Forbidden", 403);
+  const ketua = await needKetua();
+  if (!ketua) return err("Forbidden", 403);
   const { name } = await params;
 
   const used = await query<{ n: string }>(
@@ -68,5 +81,13 @@ export async function DELETE(
     [name],
   );
   if (rows.length === 0) return err("Peran tidak ditemukan.", 404);
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "testing_roles.delete",
+    target: name,
+    ip: clientIp(request),
+  });
   return NextResponse.json({ ok: true });
 }

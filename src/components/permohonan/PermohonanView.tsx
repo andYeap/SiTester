@@ -63,38 +63,51 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
 
   return (
     <div className="space-y-6">
-      <h1 className="page-title">Permohonan Pengujian Ulang</h1>
-      {error && <div className="alert-err">{error}</div>}
-      {info && <div className="alert-ok">{info}</div>}
+      <div>
+        <h1 className="page-title">Permohonan Pengujian Ulang</h1>
+        <p className="page-subtitle">Setujui atau tolak permohonan dari tester. Persetujuan hanya berlaku satu kali.</p>
+      </div>
+      {error && <div className="alert-err" role="alert">{error}</div>}
+      {info && <div className="alert-ok" role="status">{info}</div>}
 
       <div className="card overflow-hidden">
-        <div className="border-b border-gray-100 p-5">
-          <h3 className="font-medium text-gray-700">Menunggu Persetujuan ({pending.length})</h3>
+        <div className="border-b border-slate-100 p-5">
+          <h2 className="font-semibold text-slate-700">Menunggu Persetujuan ({pending.length})</h2>
         </div>
-        <div className="divide-y divide-gray-100">
-          {pending.length === 0 && <div className="p-5 text-sm text-gray-500">Tidak ada permohonan yang menunggu.</div>}
+        <div className="divide-y divide-slate-100">
+          {pending.length === 0 && (
+            <div className="empty-state">
+              <span className="empty-icon" aria-hidden>✅</span>
+              <p className="empty-title">Tidak ada permohonan menunggu</p>
+              <p className="empty-hint">Semua permohonan sudah ditindaklanjuti.</p>
+            </div>
+          )}
           {pending.map((r) => (
             <div key={r.id} className="flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between">
               <div className="space-y-1">
-                <div className="font-medium text-gray-900">{r.feature_name}</div>
-                <div className="text-sm text-gray-600">
+                <div className="font-semibold text-slate-900">{r.feature_name}</div>
+                <div className="text-sm text-slate-600">
                   Diminta oleh {r.user_name} · peran {r.tested_as_role} · {r.created_at ? new Date(r.created_at).toLocaleString("id-ID") : ""}
                 </div>
-                {r.reason && <div className="text-sm text-gray-600">Alasan: {r.reason}</div>}
+                {r.reason && <div className="text-sm text-slate-600">Alasan: {r.reason}</div>}
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <button onClick={() => act(r.id, "approve")} className="btn-success-solid">
                   Setujui
                 </button>
-                <input
-                  value={rejectReason[r.id] ?? ""}
-                  onChange={(e) => setRejectReason({ ...rejectReason, [r.id]: e.target.value })}
-                  placeholder="Alasan penolakan"
-                  className="rounded-md border-gray-300 text-sm"
-                />
-                <button onClick={() => act(r.id, "reject")} className="btn-danger-soft">
-                  Tolak
-                </button>
+                <div className="flex min-w-0 flex-1 items-center gap-2 sm:min-w-52">
+                  <label htmlFor={`tolak-${r.id}`} className="sr-only">Alasan penolakan untuk {r.feature_name}</label>
+                  <input
+                    id={`tolak-${r.id}`}
+                    value={rejectReason[r.id] ?? ""}
+                    onChange={(e) => setRejectReason({ ...rejectReason, [r.id]: e.target.value })}
+                    placeholder="Alasan penolakan"
+                    className="input mt-0"
+                  />
+                  <button onClick={() => act(r.id, "reject")} className="btn-danger-soft shrink-0">
+                    Tolak
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -102,23 +115,29 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
       </div>
 
       <div className="card overflow-hidden">
-        <div className="border-b border-gray-100 p-5">
-          <h3 className="font-medium text-gray-700">Riwayat Permohonan</h3>
+        <div className="border-b border-slate-100 p-5">
+          <h2 className="font-semibold text-slate-700">Riwayat Permohonan</h2>
         </div>
-        <div className="divide-y divide-gray-100">
-          {reviewed.length === 0 && <div className="p-5 text-sm text-gray-500">Belum ada riwayat permohonan.</div>}
+        <div className="divide-y divide-slate-100">
+          {reviewed.length === 0 && (
+            <div className="empty-state">
+              <span className="empty-icon" aria-hidden>🗂️</span>
+              <p className="empty-title">Belum ada riwayat permohonan</p>
+              <p className="empty-hint">Permohonan yang sudah disetujui atau ditolak akan tampil di sini.</p>
+            </div>
+          )}
           {reviewed.map((r) => (
             <div key={r.id} className="flex flex-col gap-2 p-5 text-sm md:flex-row md:items-center md:justify-between">
               <div>
-                <span className="font-medium text-gray-900">{r.feature_name}</span>
-                <span className="text-gray-500"> · {r.user_name} · {r.tested_as_role}</span>
-                {r.rejection_reason && <div className="mt-1 text-gray-500">Alasan ditolak: {r.rejection_reason}</div>}
+                <span className="font-semibold text-slate-900">{r.feature_name}</span>
+                <span className="text-slate-500"> · {r.user_name} · {r.tested_as_role}</span>
+                {r.rejection_reason && <div className="mt-1 text-slate-500">Alasan ditolak: {r.rejection_reason}</div>}
               </div>
               <div className="flex items-center gap-3 text-xs">
-                <span className={`rounded px-2 py-0.5 font-medium ${r.status === "approved" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                <span className={`badge ${r.status === "approved" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                   {r.status === "approved" ? "Disetujui" : "Ditolak"}
                 </span>
-                <span className="text-gray-500">{r.reviewed_at ? new Date(r.reviewed_at).toLocaleString("id-ID") : ""}</span>
+                <span className="text-slate-500">{r.reviewed_at ? new Date(r.reviewed_at).toLocaleString("id-ID") : ""}</span>
               </div>
             </div>
           ))}

@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { err, needKetua } from "@/lib/api";
+import { audit, clientIp } from "@/lib/audit";
 import { query } from "@/lib/db";
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!(await needKetua())) return err("Forbidden", 403);
+  const ketua = await needKetua();
+  if (!ketua) return err("Forbidden", 403);
   const { id } = await params;
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
@@ -36,14 +38,25 @@ export async function PUT(
     return err("Nama siklus sudah dipakai.", 422);
   }
 
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "test_cycles.update",
+    target: name,
+    changes: { id, description, is_active: isActive },
+    ip: clientIp(request),
+  });
+
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!(await needKetua())) return err("Forbidden", 403);
+  const ketua = await needKetua();
+  if (!ketua) return err("Forbidden", 403);
   const { id } = await params;
 
   const row = await query<{ name: string }>(
@@ -64,5 +77,13 @@ export async function DELETE(
   }
 
   await query(`DELETE FROM test_cycles WHERE id=$1`, [Number(id)]);
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "test_cycles.delete",
+    target: row[0].name,
+    ip: clientIp(request),
+  });
   return NextResponse.json({ ok: true });
 }

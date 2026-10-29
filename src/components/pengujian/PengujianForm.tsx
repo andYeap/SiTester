@@ -157,37 +157,37 @@ export default function PengujianForm({
         <h1 className="page-title">Form Pengujian</h1>
         <p className="page-subtitle">Catat hasil uji manual — validasi retest berjalan otomatis.</p>
       </div>
-      {error && <div className="alert-err">{error}</div>}
-      {ok && <div className="alert-ok">{ok}</div>}
+      {error && <div className="alert-err" role="alert">{error}</div>}
+      {ok && <div className="alert-ok" role="status">{ok}</div>}
       {warn && <div className="alert-warn">{warn}</div>}
 
       <form onSubmit={submit} className="space-y-5 card-pad">
         <div>
-          <label className="label">Tanggal Pengujian</label>
-          <input type="date" value={testedAt} max={today()} onChange={(e) => setTestedAt(e.target.value)} required className="input" />
+          <label className="label" htmlFor="uji-tanggal">Tanggal Pengujian</label>
+          <input id="uji-tanggal" type="date" value={testedAt} max={today()} onChange={(e) => setTestedAt(e.target.value)} required className="input" />
         </div>
-        <div>
-          <label className="label">Apakah ini pengujian ulang?</label>
+        <fieldset>
+          <legend className="label">Apakah ini pengujian ulang?</legend>
           <div className="mt-2 flex gap-6">
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input type="radio" checked={!isRetest} onChange={() => { setIsRetest(false); checkNow(featureId, false, role, cycle); }} className="text-indigo-600" /> Tidak
+            <label className="inline-flex min-h-11 items-center gap-2 text-sm">
+              <input type="radio" name="uji-retest" checked={!isRetest} onChange={() => { setIsRetest(false); checkNow(featureId, false, role, cycle); }} className="h-4 w-4 text-indigo-600 focus:ring-indigo-500" /> Tidak
             </label>
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input type="radio" checked={isRetest} onChange={() => { setIsRetest(true); checkNow(featureId, true, role, cycle); }} className="text-indigo-600" /> Ya
+            <label className="inline-flex min-h-11 items-center gap-2 text-sm">
+              <input type="radio" name="uji-retest" checked={isRetest} onChange={() => { setIsRetest(true); checkNow(featureId, true, role, cycle); }} className="h-4 w-4 text-indigo-600 focus:ring-indigo-500" /> Ya
             </label>
           </div>
-        </div>
+        </fieldset>
         <div>
-          <label className="label">Diuji sebagai peran</label>
-          <select value={role} onChange={(e) => { setRole(e.target.value); checkNow(featureId, isRetest, e.target.value, cycle); }} required className="input">
+          <label className="label" htmlFor="uji-peran">Diuji sebagai peran</label>
+          <select id="uji-peran" value={role} onChange={(e) => { setRole(e.target.value); checkNow(featureId, isRetest, e.target.value, cycle); }} required className="input">
             {roles.map((r) => (
               <option key={r.name} value={r.name}>{r.label}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="label">Siklus</label>
-          <select value={cycle} onChange={(e) => { setCycle(e.target.value); checkNow(featureId, isRetest, role, e.target.value); }} className="input">
+          <label className="label" htmlFor="uji-siklus">Siklus</label>
+          <select id="uji-siklus" value={cycle} onChange={(e) => { setCycle(e.target.value); checkNow(featureId, isRetest, role, e.target.value); }} className="input">
             <option value="">— Tanpa siklus —</option>
             {cycles.map((c) => (
               <option key={c.name} value={c.name}>{c.name}</option>
@@ -195,8 +195,8 @@ export default function PengujianForm({
           </select>
         </div>
         <div>
-          <label className="label">Fitur yang Diuji</label>
-          <select value={featureId} onChange={(e) => { setFeatureId(e.target.value); checkNow(e.target.value, isRetest, role, cycle); }} required className="input">
+          <label className="label" htmlFor="uji-fitur">Fitur yang Diuji</label>
+          <select id="uji-fitur" value={featureId} onChange={(e) => { setFeatureId(e.target.value); checkNow(e.target.value, isRetest, role, cycle); }} required className="input">
             <option value="">— Pilih fitur —</option>
             {features.map((f) => (
               <option key={f.id} value={f.id}>{f.name}</option>
@@ -204,8 +204,9 @@ export default function PengujianForm({
           </select>
         </div>
 
+        <div aria-live="polite">
         {check && messages.length > 0 && (
-          <div className={`rounded-lg p-4 text-sm ${!check.allowed ? "bg-red-50 text-red-700" : "bg-yellow-50 text-yellow-800"}`}>
+          <div className={!check.allowed ? "alert-err" : "alert-warn"}>
             {messages.map((m, i) => (
               <p key={i}>{m}</p>
             ))}
@@ -214,11 +215,12 @@ export default function PengujianForm({
         {check && messages.length === 0 && featureId && (
           <div className="alert-ok">Fitur ini siap diuji.</div>
         )}
+        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label">Status Hasil</label>
-            <select value={result} onChange={(e) => setResult(e.target.value)} required className="input">
+            <label className="label" htmlFor="uji-hasil">Status Hasil</label>
+            <select id="uji-hasil" value={result} onChange={(e) => setResult(e.target.value)} required className="input">
               <option value="">— Pilih hasil —</option>
               {RESULTS.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
@@ -226,39 +228,41 @@ export default function PengujianForm({
             </select>
           </div>
           <div>
-            <label className="label">Severity (wajib bila Fail/Bug)</label>
-            <select value={severity} onChange={(e) => setSeverity(e.target.value)} className="input">
-              <option value="">— Pilih severity —</option>
+            <label className="label" htmlFor="uji-severity">Tingkat Keparahan</label>
+            <p className="hint" id="uji-severity-hint">Wajib diisi bila hasil Fail atau Bug.</p>
+            <select id="uji-severity" aria-describedby="uji-severity-hint" value={severity} onChange={(e) => setSeverity(e.target.value)} className="input">
+              <option value="">— Pilih tingkat keparahan —</option>
               {SEVERITIES.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="label">Lingkungan (opsional)</label>
-            <input value={environment} onChange={(e) => setEnvironment(e.target.value)} placeholder="cth: Chrome 126 / Windows 11" className="input" />
+            <label className="label" htmlFor="uji-env">Lingkungan <span className="font-normal text-slate-400">(opsional)</span></label>
+            <input id="uji-env" value={environment} onChange={(e) => setEnvironment(e.target.value)} placeholder="cth: Chrome 126 / Windows 11" className="input" />
           </div>
           <div>
-            <label className="label">Yang diharapkan (opsional)</label>
-            <textarea value={expected} onChange={(e) => setExpected(e.target.value)} rows={2} className="input" />
+            <label className="label" htmlFor="uji-expected">Yang diharapkan <span className="font-normal text-slate-400">(opsional)</span></label>
+            <textarea id="uji-expected" value={expected} onChange={(e) => setExpected(e.target.value)} rows={2} className="input" />
           </div>
           <div>
-            <label className="label">Yang terjadi (opsional)</label>
-            <textarea value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="input" />
+            <label className="label" htmlFor="uji-actual">Yang terjadi <span className="font-normal text-slate-400">(opsional)</span></label>
+            <textarea id="uji-actual" value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="input" />
           </div>
           <div>
-            <label className="label">Bukti gambar (opsional, maks 2MB)</label>
-            <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)} className="mt-1 block w-full text-sm" />
+            <label className="label" htmlFor="uji-file">Bukti gambar <span className="font-normal text-slate-400">(opsional, maks 2MB)</span></label>
+            <input id="uji-file" type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)} className="input-file" />
           </div>
           <div>
-            <label className="label">atau tautan bukti (opsional)</label>
-            <input type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://..." className="input" />
+            <label className="label" htmlFor="uji-url">atau tautan bukti <span className="font-normal text-slate-400">(opsional)</span></label>
+            <input id="uji-url" type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://..." className="input" />
           </div>
         </div>
 
         <div>
-          <label className="label">Catatan</label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Wajib diisi minimal 10 karakter jika hasil Fail/Bug" className="input" />
+          <label className="label" htmlFor="uji-notes">Catatan</label>
+          <p className="hint" id="uji-notes-hint">Wajib minimal 10 karakter bila hasil Fail atau Bug.</p>
+          <textarea id="uji-notes" aria-describedby="uji-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Jelaskan langkah dan hasil yang ditemui…" className="input" />
         </div>
 
         <button type="submit" disabled={saving || (check !== null && !check.allowed)} className="btn-dark">
@@ -267,11 +271,14 @@ export default function PengujianForm({
       </form>
 
       {check && !check.allowed && check.requiresApproval && (
-        <form onSubmit={requestRetest} className="space-y-4 rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
-          <h3 className="font-medium text-yellow-900">Ajukan Permohonan Pengujian Ulang</h3>
-          <p className="text-sm text-yellow-800">Permohonan akan dikirim ke ketua tim untuk disetujui.</p>
-          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Alasan (opsional)" className="input border-amber-300" />
-          <button className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600">
+        <form onSubmit={requestRetest} className="card-pad space-y-4 border-amber-200 bg-amber-50">
+          <h3 className="font-semibold text-amber-900">Ajukan Permohonan Pengujian Ulang</h3>
+          <p className="text-sm text-amber-800">Hasil terakhir untuk kombinasi ini sudah Pass. Permohonan akan dikirim ke ketua tim untuk disetujui sebelum Anda bisa menguji ulang.</p>
+          <div>
+            <label className="label" htmlFor="uji-reason">Alasan <span className="font-normal text-slate-400">(opsional)</span></label>
+            <textarea id="uji-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="cth: verifikasi perbaikan dari developer…" className="input border-amber-300" />
+          </div>
+          <button className="inline-flex min-h-11 items-center justify-center rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2">
             Kirim Permohonan
           </button>
         </form>

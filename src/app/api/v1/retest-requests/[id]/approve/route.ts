@@ -37,8 +37,8 @@ export async function PATCH(
         [ketua.id, req.id],
       );
       await client.query(
-        `INSERT INTO retest_approvals (feature_id, requested_by, approved_by, scope_role)
-         VALUES ($1,$2,$3,$4)`,
+        `INSERT INTO retest_approvals (feature_id, requested_by, approved_by, scope_role, expires_at)
+         VALUES ($1,$2,$3,$4, now() + make_interval(days => 7))`,
         [req.feature_id, req.user_id, ketua.id, req.tested_as_role],
       );
 

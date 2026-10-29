@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { err, needKetua } from "@/lib/api";
+import { audit, clientIp } from "@/lib/audit";
 import { query } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 
@@ -15,7 +16,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await needKetua())) return err("Forbidden", 403);
+  const ketua = await needKetua();
+  if (!ketua) return err("Forbidden", 403);
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
     email?: unknown;
@@ -43,6 +45,16 @@ export async function POST(request: Request) {
   } catch {
     return err("Email sudah dipakai.", 422);
   }
+
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "users.create",
+    target: email,
+    changes: { name, role },
+    ip: clientIp(request),
+  });
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

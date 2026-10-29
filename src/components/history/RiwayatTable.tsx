@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import type { SessionRow } from "@/lib/history";
 
+import DownloadPdfButton from "./DownloadPdfButton";
+
 type Feature = { id: number; name: string };
 
 const badge = (r: string) =>
@@ -22,15 +24,20 @@ function evidenceHref(path: string | null): string | null {
 export default function RiwayatTable({
   isKetua,
   initialSessions,
+  initialTotal,
   features,
   cycles,
 }: {
   isKetua: boolean;
   initialSessions: SessionRow[];
+  initialTotal: number;
   features: Feature[];
   cycles: string[];
 }) {
+  const PAGE_SIZE = 50;
   const [sessions, setSessions] = useState<SessionRow[]>(initialSessions);
+  const [total, setTotal] = useState(initialTotal);
+  const [page, setPage] = useState(0);
   const [status, setStatus] = useState<string | null>(null);
 
   const [dari, setDari] = useState("");
@@ -40,8 +47,13 @@ export default function RiwayatTable({
   const [q, setQ] = useState("");
   const [cycle, setCycle] = useState("");
 
-  async function apply() {
-    setStatus(null);
+  const isLoading = status === "Memuat…";
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const from = total === 0 ? 0 : page * PAGE_SIZE + 1;
+  const to = Math.min(total, (page + 1) * PAGE_SIZE);
+
+  async function apply(nextPage = 0) {
+    setStatus("Memuat…");
     const sp = new URLSearchParams();
     if (dari) sp.set("dari", dari);
     if (sampai) sp.set("sampai", sampai);
@@ -49,14 +61,19 @@ export default function RiwayatTable({
     if (result) sp.set("result", result);
     if (q) sp.set("q", q);
     if (cycle) sp.set("cycle", cycle);
+    sp.set("limit", String(PAGE_SIZE));
+    sp.set("offset", String(nextPage * PAGE_SIZE));
     try {
       const res = await fetch(`/api/v1/test-sessions?${sp}`);
       if (!res.ok) {
         setStatus("Gagal memuat riwayat.");
         return;
       }
-      const data = (await res.json()) as { sessions: SessionRow[] };
+      const data = (await res.json()) as { sessions: SessionRow[]; total: number };
       setSessions(data.sessions);
+      setTotal(data.total);
+      setPage(nextPage);
+      setStatus(null);
     } catch {
       setStatus("Gagal memuat riwayat.");
     }
@@ -69,7 +86,9 @@ export default function RiwayatTable({
     setResult("");
     setQ("");
     setCycle("");
+    setPage(0);
     setSessions(initialSessions);
+    setTotal(initialTotal);
   }
 
   function exportHref(): string {
@@ -85,32 +104,35 @@ export default function RiwayatTable({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title">Riwayat Pengujian</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <div>
+          <h1 className="page-title">Riwayat Pengujian</h1>
+          <p className="page-subtitle">Semua hasil yang tercatat — tidak dapat diubah atau dihapus.</p>
+        </div>
         <a href="/pengujian-baru" className="btn-dark">
           + Pengujian Baru
         </a>
       </div>
 
-      {status && <div className="rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800">{status}</div>}
+      {status && <div className="alert-warn" role="status" aria-live="polite">{status}</div>}
 
-      <div className="card p-5">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-slate-500">Cari (catatan / fitur / tester)</label>
-            <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void apply(); }} placeholder="cth: login, bug checkout..." className="input" />
+      <div className="card p-5 print:hidden">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="sm:col-span-2 lg:col-span-2">
+            <label htmlFor="riw-q" className="label text-xs">Cari (catatan / fitur / tester)</label>
+            <input id="riw-q" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void apply(0); }} placeholder="cth: login, bug checkout..." className="input" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500">Dari</label>
-            <input type="date" value={dari} onChange={(e) => setDari(e.target.value)} className="input" />
+            <label htmlFor="riw-dari" className="label text-xs">Dari tanggal</label>
+            <input id="riw-dari" type="date" value={dari} onChange={(e) => setDari(e.target.value)} className="input" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500">Sampai</label>
-            <input type="date" value={sampai} onChange={(e) => setSampai(e.target.value)} className="input" />
+            <label htmlFor="riw-sampai" className="label text-xs">Sampai tanggal</label>
+            <input id="riw-sampai" type="date" value={sampai} onChange={(e) => setSampai(e.target.value)} className="input" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500">Fitur</label>
-            <select value={featureId} onChange={(e) => setFeatureId(e.target.value)} className="input">
+            <label htmlFor="riw-fitur" className="label text-xs">Fitur</label>
+            <select id="riw-fitur" value={featureId} onChange={(e) => setFeatureId(e.target.value)} className="input">
               <option value="">Semua</option>
               {features.map((f) => (
                 <option key={f.id} value={f.id}>{f.name}</option>
@@ -118,8 +140,8 @@ export default function RiwayatTable({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500">Hasil</label>
-            <select value={result} onChange={(e) => setResult(e.target.value)} className="input">
+            <label htmlFor="riw-hasil" className="label text-xs">Hasil</label>
+            <select id="riw-hasil" value={result} onChange={(e) => setResult(e.target.value)} className="input">
               <option value="">Semua</option>
               <option value="pass">Pass</option>
               <option value="fail">Fail</option>
@@ -127,8 +149,8 @@ export default function RiwayatTable({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500">Siklus</label>
-            <select value={cycle} onChange={(e) => setCycle(e.target.value)} className="input">
+            <label htmlFor="riw-siklus" className="label text-xs">Siklus</label>
+            <select id="riw-siklus" value={cycle} onChange={(e) => setCycle(e.target.value)} className="input">
               <option value="">Semua</option>
               {cycles.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -136,87 +158,127 @@ export default function RiwayatTable({
             </select>
           </div>
           <div className="flex items-end gap-3">
-            <button onClick={() => void apply()} className="btn-dark">Filter</button>
-            <button onClick={reset} className="text-sm text-gray-600 hover:underline">Reset</button>
+            <button onClick={() => void apply(0)} className="btn-dark" disabled={isLoading}>Filter</button>
+            <button onClick={reset} className="action-link text-slate-600">Atur ulang</button>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <a href={exportHref()} className="btn-success-solid">Export CSV</a>
-        <button onClick={() => window.print()} className="btn-danger-soft">Export PDF</button>
+      <div className="flex flex-wrap gap-3 print:hidden">
+        <a href={exportHref()} className="btn-success-solid">Unduh CSV</a>
+        <DownloadPdfButton sessions={sessions} />
       </div>
 
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
+            <caption className="sr-only">Riwayat hasil pengujian</caption>
             <thead className="table-head">
               <tr>
-                <th className="table-th">Tanggal</th>
-                {isKetua && <th className="table-th">Tester</th>}
-                <th className="table-th">Peran</th>
-                <th className="table-th">Siklus</th>
-                <th className="table-th">Fitur</th>
-                <th className="table-th">Hasil</th>
-                <th className="table-th">Severity</th>
-                <th className="table-th">Ulang</th>
-                <th className="table-th">Disetujui oleh</th>
-                <th className="table-th">Bukti</th>
-                <th className="table-th">Catatan</th>
+                <th scope="col" className="table-th">Tanggal</th>
+                {isKetua && <th scope="col" className="table-th">Tester</th>}
+                <th scope="col" className="table-th">Peran</th>
+                <th scope="col" className="table-th">Siklus</th>
+                <th scope="col" className="table-th">Fitur</th>
+                <th scope="col" className="table-th">Hasil</th>
+                <th scope="col" className="table-th">Tingkat Keparahan</th>
+                <th scope="col" className="table-th">Ulang</th>
+                <th scope="col" className="table-th">Disetujui oleh</th>
+                <th scope="col" className="table-th">Bukti</th>
+                <th scope="col" className="table-th">Catatan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {sessions.map((s) => (
-                <tr key={s.id}>
+            <tbody className="divide-y divide-slate-100">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} aria-hidden>
+                    <td colSpan={11} className="px-4 py-3">
+                      <div className="skeleton h-6" />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+              sessions.map((s) => (
+                <tr key={s.id} className="transition hover:bg-slate-50">
                   <td className="whitespace-nowrap px-4 py-3">{new Date(s.tested_at).toLocaleDateString("id-ID")}</td>
                   {isKetua && <td className="px-4 py-3">{s.user_name}</td>}
-                  <td className="px-4 py-3 text-gray-600">{s.tested_as_role}</td>
-                  <td className="px-4 py-3 text-gray-600">{s.test_cycle ?? "—"}</td>
-                  <td className="px-4 py-3">{s.feature_name}</td>
+                  <td className="px-4 py-3 text-slate-600">{s.tested_as_role}</td>
+                  <td className="px-4 py-3 text-slate-600">{s.test_cycle ?? "—"}</td>
+                  <td className="px-4 py-3 font-medium text-slate-800">{s.feature_name}</td>
                   <td className="px-4 py-3">
-                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${badge(s.result)}`}>{s.result.toUpperCase()}</span>
+                    <span className={`badge ${badge(s.result)}`}>{s.result.toUpperCase()}</span>
                   </td>
                   <td className="px-4 py-3">
                     {s.severity ? (
-                      <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">{s.severity.toUpperCase()}</span>
+                      <span className="badge bg-amber-100 text-amber-800">{s.severity.toUpperCase()}</span>
                     ) : (
-                      <span className="text-gray-400">—</span>
+                      <span className="text-slate-400">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {s.is_retest ? (
-                      <span className="rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">Ya</span>
+                      <span className="badge bg-indigo-100 text-indigo-700">Ya</span>
                     ) : (
-                      <span className="text-gray-400">—</span>
+                      <span className="text-slate-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{s.approver_name ?? "—"}</td>
+                  <td className="px-4 py-3 text-slate-600">{s.approver_name ?? "—"}</td>
                   <td className="space-x-2 px-4 py-3">
                     {(() => {
                       const href = evidenceHref(s.evidence_path);
                       return (
                         <>
                           {href && (
-                            <a href={href} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:underline">Lihat</a>
+                            <a href={href} target="_blank" rel="noreferrer" className="action-link min-h-9 px-1 text-xs text-indigo-600">Lihat</a>
                           )}
                           {s.evidence_url && (
-                            <a href={s.evidence_url} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:underline">Link</a>
+                            <a href={s.evidence_url} target="_blank" rel="noreferrer" className="action-link min-h-9 px-1 text-xs text-indigo-600">Tautan</a>
                           )}
-                          {!href && !s.evidence_url && <span className="text-gray-400">—</span>}
+                          {!href && !s.evidence_url && <span className="text-slate-400">—</span>}
                         </>
                       );
                     })()}
                   </td>
-                  <td className="max-w-md truncate px-4 py-3 text-gray-600" title={s.notes ?? ""}>{s.notes ?? "—"}</td>
+                  <td className="max-w-md truncate px-4 py-3 text-slate-600" title={s.notes ?? ""}>{s.notes ?? "—"}</td>
                 </tr>
-              ))}
-              {sessions.length === 0 && (
-                <tr>
-                  <td colSpan={11} className="px-4 py-6 text-center text-gray-500">Belum ada data pengujian.</td>
-                </tr>
+              ))
               )}
             </tbody>
           </table>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 p-4 text-sm">
+            <p className="text-slate-500" role="status">
+              Menampilkan {from}–{to} dari {total} hasil
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => void apply(page - 1)}
+                disabled={isLoading || page === 0}
+                className="btn-soft px-3 py-1.5 disabled:opacity-50"
+                aria-label="Halaman sebelumnya"
+              >
+                ← Sebelumnya
+              </button>
+              <span className="text-slate-500" aria-live="polite">
+                Halaman {page + 1} dari {pageCount}
+              </span>
+              <button
+                onClick={() => void apply(page + 1)}
+                disabled={isLoading || page + 1 >= pageCount}
+                className="btn-soft px-3 py-1.5 disabled:opacity-50"
+                aria-label="Halaman berikutnya"
+              >
+                Berikutnya →
+              </button>
+            </div>
+          </div>
+          {!isLoading && sessions.length === 0 && (
+            <div className="empty-state border-t border-slate-100">
+              <span className="empty-icon" aria-hidden>📋</span>
+              <p className="empty-title">Belum ada data pengujian</p>
+              <p className="empty-hint">Coba ubah filter, atau catat hasil pengujian pertama Anda.</p>
+              <a href="/pengujian-baru" className="btn-primary mt-2">Catat Pengujian</a>
+            </div>
+          )}
         </div>
       </div>
     </div>

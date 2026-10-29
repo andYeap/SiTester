@@ -17,6 +17,7 @@ export default function proxy(request: NextRequest) {
     pathname.startsWith("/pengguna") ||
     pathname.startsWith("/peran") ||
     pathname.startsWith("/siklus") ||
+    pathname.startsWith("/aktivitas") ||
     pathname.startsWith("/notifikasi") ||
     pathname.startsWith("/profil");
 

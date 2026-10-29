@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { err, needKetua, needUser } from "@/lib/api";
+import { audit, clientIp } from "@/lib/audit";
 import { query } from "@/lib/db";
 
 const NAME_RE = /^[a-z0-9_]+$/;
@@ -18,7 +19,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await needKetua())) return err("Forbidden", 403);
+  const ketua = await needKetua();
+  if (!ketua) return err("Forbidden", 403);
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
     label?: unknown;
@@ -47,6 +49,16 @@ export async function POST(request: Request) {
   } catch {
     return err("Nama peran sudah dipakai.", 422);
   }
+
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "testing_roles.create",
+    target: name,
+    changes: { label, is_active: isActive },
+    ip: clientIp(request),
+  });
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

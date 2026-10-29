@@ -74,42 +74,55 @@ export default function RoleManager({ initialRoles }: { initialRoles: Role[] }) 
 
   return (
     <div className="space-y-6">
-      <h1 className="page-title">Peran Pengujian</h1>
-      {error && <div className="alert-err">{error}</div>}
-      {info && <div className="alert-ok">{info}</div>}
+      <div>
+        <h1 className="page-title">Peran Pengujian</h1>
+        <p className="page-subtitle">Peran di aplikasi yang diuji (cth: Admin, Tester). Dipakai di form pengujian.</p>
+      </div>
+      {error && <div className="alert-err" role="alert">{error}</div>}
+      {info && <div className="alert-ok" role="status">{info}</div>}
       <form onSubmit={create} className="card flex flex-wrap items-end gap-3 p-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-500">Nama (kode)</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={50} placeholder="kepala_bidang" className="mt-1 rounded-md border-gray-300 font-mono text-sm" />
+          <label htmlFor="peran-nama" className="label text-xs">Nama (kode)</label>
+          <input id="peran-nama" value={name} onChange={(e) => setName(e.target.value)} required maxLength={50} placeholder="kepala_bidang" className="input font-mono" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-500">Label tampil</label>
-          <input value={label} onChange={(e) => setLabel(e.target.value)} required maxLength={100} placeholder="Kepala Bidang" className="input" />
+          <label htmlFor="peran-label" className="label text-xs">Label tampil</label>
+          <input id="peran-label" value={label} onChange={(e) => setLabel(e.target.value)} required maxLength={100} placeholder="Kepala Bidang" className="input" />
         </div>
         <button className="btn-dark">+ Tambah</button>
       </form>
       <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
+          <caption className="sr-only">Daftar peran pengujian</caption>
           <thead className="table-head">
-            <tr><th className="table-th">Nama</th><th className="table-th">Label</th><th className="table-th">Status</th><th className="px-4 py-3 text-right font-medium">Aksi</th></tr>
+            <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Label</th><th scope="col" className="table-th">Status</th><th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th></tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {roles.map((r) => (
-              <tr key={r.name}>
-                <td className="px-4 py-3 font-mono text-xs">{r.name}</td>
-                <td className="px-4 py-3">{r.label}</td>
+              <tr key={r.name} className="transition hover:bg-slate-50">
+                <td className="px-4 py-3 font-mono text-xs text-slate-700">{r.name}</td>
+                <td className="px-4 py-3 text-slate-800">{r.label}</td>
                 <td className="px-4 py-3">
-                  <button onClick={() => toggle(r)} className={`rounded px-2 py-0.5 text-xs ${r.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                  <button onClick={() => toggle(r)} aria-pressed={r.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${r.is_active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
                     {r.is_active ? "Aktif" : "Nonaktif"}
                   </button>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => remove(r)} className="text-sm text-red-600 hover:underline">Hapus</button>
+                  <button onClick={() => remove(r)} className="action-link text-red-600">Hapus</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        {roles.length === 0 && (
+          <div className="empty-state border-t border-slate-100">
+            <span className="empty-icon" aria-hidden>👥</span>
+            <p className="empty-title">Belum ada peran</p>
+            <p className="empty-hint">Tambahkan peran pertama lewat form di atas.</p>
+          </div>
+        )}
+        </div>
       </div>
     </div>
   );

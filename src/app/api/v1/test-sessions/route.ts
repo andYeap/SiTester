@@ -11,7 +11,9 @@ export async function GET(request: Request) {
   if (!user) return err("Unauthorized", 401);
 
   const sp = new URL(request.url).searchParams;
-  const sessions = await getSessions(user.id, user.role === "ketua_tim", {
+  const limit = Math.min(Math.max(Number(sp.get("limit") ?? 50) || 50, 1), 5000);
+  const offset = Math.max(Number(sp.get("offset") ?? 0) || 0, 0);
+  const { rows, total } = await getSessions(user.id, user.role === "ketua_tim", {
     dari: sp.get("dari") ?? undefined,
     sampai: sp.get("sampai") ?? undefined,
     userId: sp.get("user_id") ?? undefined,
@@ -19,9 +21,9 @@ export async function GET(request: Request) {
     result: sp.get("result") ?? undefined,
     q: sp.get("q")?.trim() || undefined,
     cycle: sp.get("cycle")?.trim() || undefined,
-  });
+  }, { limit, offset });
 
-  return NextResponse.json({ sessions });
+  return NextResponse.json({ sessions: rows, total, limit, offset });
 }
 
 const RESULTS = ["pass", "fail", "bug"] as const;
@@ -123,7 +125,7 @@ export async function POST(request: Request) {
 
   const approval = await queryOne<{ id: number }>(
     `SELECT id FROM retest_approvals
-      WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND used_at IS NULL
+      WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
       ORDER BY id DESC LIMIT 1`,
     [featureId, user.id, role],
   );
@@ -147,7 +149,7 @@ export async function POST(request: Request) {
       if (needsApproval) {
         const locked = await client.query<{ id: number }>(
           `SELECT id FROM retest_approvals
-            WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND used_at IS NULL
+            WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
             ORDER BY id DESC LIMIT 1 FOR UPDATE`,
           [featureId, user.id, role],
         );

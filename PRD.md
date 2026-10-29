@@ -64,13 +64,16 @@ Kartu (total/Pass/Fail-Bug bulan ini, fitur belum diuji dalam filter), bar masa 
 Filter: tanggal range, tester (ketua), fitur, hasil, teks, siklus. Kolom: tanggal, tester, peran, siklus, fitur, hasil, severity, ulang, disetujui-oleh, bukti, catatan. Append-only.
 
 ### F6 — Ekspor
-CSV via API (ikut filter aktif). PDF satu-klik client-side dari data filter. Tombol di Riwayat.
+CSV via API (ikut filter aktif). PDF satu-klik client-side (jspdf + autotable) dari data terfilter. Riwayat paginasi (50/halaman). Tombol di Riwayat.
 
 ### F7 — Master Data
 - **Fitur**: semua auth boleh usul (langsung aktif + `verified=false` + tercatat pembuat); ketua verifikasi/edit/hapus. Duplikat ditolak case-insensitive. Hapus ditolak bila dipakai riwayat.
 - **Peran Uji**: penuh ketua. Hapus ditolak bila dipakai riwayat.
 - **Siklus**: penuh ketua. Siklus nonaktif hilang dari dropdown tapi riwayat tetap. Tes pertama di siklus baru selalu boleh (ronde fresh).
 - **Pengguna**: penuh ketua; tidak bisa hapus diri sendiri.
+
+### F8 — Audit Aktivitas Master
+Semua create/update/delete (dan verifikasi) fitur, peran, siklus, pengguna tercatat (siapa, kapan, aksi, target, perubahan — tanpa password). Halaman `/aktivitas` khusus ketua + filter teks/aksi.
 
 ---
 
@@ -80,12 +83,13 @@ CSV via API (ikut filter aktif). PDF satu-klik client-side dari data filter. Tom
 |---|---|
 | BR-1 | Fitur Pass dalam scope tidak bisa diuji ulang tanpa approval aktif |
 | BR-2 | Hasil terakhir Fail/Bug boleh diuji ulang otomatis |
-| BR-3 | Approval single-use per (fitur, peminta, peran), konsumsi atomik |
-| BR-4 | Submit retest tanpa approval aktif → ditolak |
+| BR-3 | Approval single-use per (fitur, peminta, peran), konsumsi atomik, kedaluwarsa 7 hari |
+| BR-4 | Submit retest tanpa approval aktif → ditolak (422) |
 | BR-5 | Tanggal tidak boleh > hari ini |
 | BR-6 | Fail/Bug wajib catatan ≥10 karakter + severity |
 | BR-7 | Permohonan pending ganda (fitur + peran) ditolak |
 | BR-8 | Riwayat append-only |
+| BR-9 | Login dibatasi: 10x gagal / 15 menit per email → 429 |
 
 ---
 

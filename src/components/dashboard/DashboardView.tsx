@@ -28,16 +28,24 @@ export default function DashboardView({
   const [range, setRange] = useState<7 | 30>(initialStats.range);
   const [cycle, setCycle] = useState(initialStats.cycle ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function reload(nextRange: 7 | 30, nextCycle: string) {
-    const sp = new URLSearchParams({ range: String(nextRange) });
-    if (nextCycle) sp.set("cycle", nextCycle);
-    const res = await fetch(`/api/v1/dashboard/stats?${sp}`);
-    if (!res.ok) {
+    setLoading(true);
+    try {
+      const sp = new URLSearchParams({ range: String(nextRange) });
+      if (nextCycle) sp.set("cycle", nextCycle);
+      const res = await fetch(`/api/v1/dashboard/stats?${sp}`);
+      if (!res.ok) {
+        setError("Gagal memuat statistik.");
+        return;
+      }
+      setStats((await res.json()) as Stats);
+    } catch {
       setError("Gagal memuat statistik.");
-      return;
+    } finally {
+      setLoading(false);
     }
-    setStats((await res.json()) as Stats);
   }
 
   function changeRange(next: 7 | 30) {
@@ -77,7 +85,7 @@ export default function DashboardView({
           Ringkasan masa dan hasil pengujian tim{stats?.cycle ? ` · Siklus ${stats.cycle}` : ""}.
         </p>
       </div>
-      {error && <div className="alert-err">{error}</div>}
+      {error && <div className="alert-err" role="alert">{error}</div>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
@@ -97,24 +105,38 @@ export default function DashboardView({
       )}
 
       <div className="card flex flex-wrap items-center gap-3 p-4">
-        <label className="text-sm font-medium text-slate-600">Siklus</label>
-        <select value={cycle} onChange={(e) => changeCycle(e.target.value)} className="rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+        <label htmlFor="dash-siklus" className="text-sm font-medium text-slate-600">Siklus</label>
+        <select id="dash-siklus" value={cycle} onChange={(e) => changeCycle(e.target.value)} disabled={loading} className="input mt-0 w-auto rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
           <option value="">Semua siklus</option>
           {initialCycles.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
+        <span aria-live="polite" className="text-sm text-slate-400">{loading ? "Memuat…" : ""}</span>
       </div>
 
+      {loading ? (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3" aria-hidden>
+          <div className="card space-y-3 p-5 lg:col-span-2">
+            <div className="skeleton h-5 w-48" />
+            <div className="skeleton h-64" />
+          </div>
+          <div className="card space-y-3 p-5">
+            <div className="skeleton h-5 w-40" />
+            <div className="skeleton mx-auto h-48 w-48 !rounded-full" />
+            <div className="skeleton h-4 w-32" />
+          </div>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="card p-5 lg:col-span-2">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-semibold text-slate-700">
               Masa Pengujian ({range} hari terakhir){cycle ? ` — ${cycle}` : ""}
             </h3>
-            <div className="flex gap-2 text-xs">
-              <button onClick={() => changeRange(7)} className={`rounded-full px-3 py-1 font-semibold transition ${range === 7 ? "bg-slate-900 text-white shadow" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>7 hari</button>
-              <button onClick={() => changeRange(30)} className={`rounded-full px-3 py-1 font-semibold transition ${range === 30 ? "bg-slate-900 text-white shadow" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>30 hari</button>
+            <div className="flex gap-2 text-xs" role="group" aria-label="Rentang masa pengujian">
+              <button onClick={() => changeRange(7)} disabled={loading} aria-pressed={range === 7} className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:opacity-50 ${range === 7 ? "bg-slate-900 text-white shadow" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>7 hari</button>
+              <button onClick={() => changeRange(30)} disabled={loading} aria-pressed={range === 30} className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:opacity-50 ${range === 30 ? "bg-slate-900 text-white shadow" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>30 hari</button>
             </div>
           </div>
           <div className="h-64">
@@ -123,13 +145,15 @@ export default function DashboardView({
                 <XAxis dataKey="label" fontSize={10} interval={2} />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="total" fill="#6366f1" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
         <div className="card p-5">
-          <h3 className="mb-4 font-semibold text-slate-700">Hasil Pengujian Bulan Ini</h3>
+          <h3 className="font-semibold text-slate-700">
+                Hasil Pengujian Bulan Ini
+              </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -142,34 +166,49 @@ export default function DashboardView({
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-2 flex justify-center gap-4 text-xs text-gray-600">
+          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-slate-600">
             {pieData.map((d) => (
-              <span key={d.name}><span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: d.color }} />{d.name}: {d.value}</span>
+              <span key={d.name}><span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: d.color }} aria-hidden />{d.name}: {d.value}</span>
             ))}
           </div>
         </div>
       </div>
+      )}
 
       <div className="card p-5">
         <h3 className="mb-4 font-semibold text-slate-700">Fitur Paling Sering Diuji</h3>
+        {loading ? (
+          <div className="space-y-3" aria-hidden>
+            <div className="skeleton h-8" />
+            <div className="skeleton h-8" />
+            <div className="skeleton h-8" />
+          </div>
+        ) : (stats?.perFeature.length ?? 0) === 0 ? (
+          <div className="empty-state">
+            <span className="empty-icon" aria-hidden>📋</span>
+            <p className="empty-title">Belum ada data pengujian</p>
+            <p className="empty-hint">Catat hasil pengujian pertama agar grafik dan daftar ini terisi.</p>
+            <a href="/pengujian-baru" className="btn-primary mt-2">Catat Pengujian</a>
+          </div>
+        ) : (
         <div className="space-y-3">
           {(stats?.perFeature ?? []).map((f) => (
-            <div key={f.name} className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-800">{f.name}</span>
+            <div key={f.name} className="flex items-center justify-between gap-3 rounded-xl px-2 py-1.5 text-sm transition hover:bg-slate-50">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="font-medium text-slate-800">{f.name}</span>
                 {f.last_result ? (
-                  <span className={`rounded px-2 py-0.5 text-xs font-medium ${f.last_result === "pass" ? "bg-green-100 text-green-700" : f.last_result === "fail" ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>
+                  <span className={`badge ${f.last_result === "pass" ? "bg-green-100 text-green-700" : f.last_result === "fail" ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>
                     {f.last_result.toUpperCase()}
                   </span>
                 ) : (
-                  <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">Belum diuji</span>
+                  <span className="badge bg-slate-100 text-slate-500">Belum diuji</span>
                 )}
               </div>
-              <span className="text-gray-500">{f.count}x</span>
+              <span className="shrink-0 text-slate-500">{f.count}x</span>
             </div>
           ))}
-          {(stats?.perFeature.length ?? 0) === 0 && <p className="text-sm text-gray-500">Belum ada data fitur.</p>}
         </div>
+        )}
       </div>
     </div>
   );

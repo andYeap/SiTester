@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { err, needKetua } from "@/lib/api";
+import { err, needKetua, type SessionUser } from "@/lib/api";
+import { audit, clientIp } from "@/lib/audit";
 import { query } from "@/lib/db";
 
-async function updateFeature(request: Request, id: string) {
+async function updateFeature(request: Request, id: string, ketua: SessionUser) {
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
     description?: unknown;
@@ -56,11 +57,20 @@ async function updateFeature(request: Request, id: string) {
 
   fields.push(`updated_at=now()`);
   values.push(Number(id));
-  const rows = await query<{ id: number }>(
-    `UPDATE features SET ${fields.join(", ")} WHERE id=$${i} RETURNING id`,
+  const rows = await query<{ id: number; name: string }>(
+    `UPDATE features SET ${fields.join(", ")} WHERE id=$${i} RETURNING id, name`,
     values,
   );
   if (rows.length === 0) return err("Fitur tidak ditemukan.", 404);
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "features.update",
+    target: rows[0].name,
+    changes: body ?? undefined,
+    ip: clientIp(request),
+  });
   return NextResponse.json({ ok: true });
 }
 
@@ -68,23 +78,26 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!(await needKetua())) return err("Forbidden", 403);
-  return updateFeature(request, (await params).id);
+  const ketua = await needKetua();
+  if (!ketua) return err("Forbidden", 403);
+  return updateFeature(request, (await params).id, ketua);
 }
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!(await needKetua())) return err("Forbidden", 403);
-  return updateFeature(request, (await params).id);
+  const ketua = await needKetua();
+  if (!ketua) return err("Forbidden", 403);
+  return updateFeature(request, (await params).id, ketua);
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!(await needKetua())) return err("Forbidden", 403);
+  const ketua = await needKetua();
+  if (!ketua) return err("Forbidden", 403);
   const { id } = await params;
 
   const used = await query<{ n: string }>(
@@ -100,10 +113,18 @@ export async function DELETE(
     );
   }
 
-  const rows = await query<{ id: number }>(
-    `DELETE FROM features WHERE id=$1 RETURNING id`,
+  const rows = await query<{ id: number; name: string }>(
+    `DELETE FROM features WHERE id=$1 RETURNING id, name`,
     [Number(id)],
   );
   if (rows.length === 0) return err("Fitur tidak ditemukan.", 404);
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "features.delete",
+    target: rows[0].name,
+    ip: clientIp(request),
+  });
   return NextResponse.json({ ok: true });
 }

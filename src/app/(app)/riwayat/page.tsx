@@ -10,8 +10,8 @@ export default async function RiwayatPage() {
   if (!user) redirect("/login");
   const isKetua = user.role === "ketua_tim";
 
-  const [initialSessions, features, cycles] = await Promise.all([
-    getSessions(user.id, isKetua, {}),
+  const [initial, features, cycles] = await Promise.all([
+    getSessions(user.id, isKetua, {}, { limit: 50, offset: 0 }),
     query<{ id: number; name: string }>(
       `SELECT id, name FROM features WHERE is_active = true ORDER BY name`,
     ),
@@ -23,7 +23,8 @@ export default async function RiwayatPage() {
   return (
     <RiwayatTable
       isKetua={isKetua}
-      initialSessions={initialSessions}
+      initialSessions={initial.rows}
+      initialTotal={initial.total}
       features={features}
       cycles={cycles.map((c) => c.name)}
     />

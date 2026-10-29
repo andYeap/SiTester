@@ -75,25 +75,28 @@ export default function UserManager({ selfId, initialUsers }: { selfId: string; 
 
   return (
     <div className="space-y-6">
-      <h1 className="page-title">Pengguna</h1>
-      {error && <div className="alert-err">{error}</div>}
-      {info && <div className="alert-ok">{info}</div>}
+      <div>
+        <h1 className="page-title">Pengguna</h1>
+        <p className="page-subtitle">Kelola akun tester dan ketua tim.</p>
+      </div>
+      {error && <div className="alert-err" role="alert">{error}</div>}
+      {info && <div className="alert-ok" role="status">{info}</div>}
       <form onSubmit={create} className="card flex flex-wrap items-end gap-3 p-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-500">Nama</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={255} className="input" />
+          <label htmlFor="user-nama" className="label text-xs">Nama</label>
+          <input id="user-nama" value={name} onChange={(e) => setName(e.target.value)} required maxLength={255} autoComplete="name" className="input" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-500">Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="input" />
+          <label htmlFor="user-email" className="label text-xs">Email</label>
+          <input id="user-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className="input" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-500">Password (min 8)</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="input" />
+          <label htmlFor="user-pass" className="label text-xs">Kata sandi (min. 8 karakter)</label>
+          <input id="user-pass" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" className="input" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-500">Role</label>
-          <select value={role} onChange={(e) => setRole(e.target.value)} className="input">
+          <label htmlFor="user-role" className="label text-xs">Peran pengguna</label>
+          <select id="user-role" value={role} onChange={(e) => setRole(e.target.value)} className="input">
             <option value="tester">Tester</option>
             <option value="ketua_tim">Ketua Tim</option>
           </select>
@@ -101,28 +104,31 @@ export default function UserManager({ selfId, initialUsers }: { selfId: string; 
         <button className="btn-dark">+ Tambah</button>
       </form>
       <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
+          <caption className="sr-only">Daftar pengguna</caption>
           <thead className="table-head">
-            <tr><th className="table-th">Nama</th><th className="table-th">Email</th><th className="table-th">Role</th><th className="table-th">Uji</th><th className="px-4 py-3 text-right font-medium">Aksi</th></tr>
+            <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Email</th><th scope="col" className="table-th">Peran</th><th scope="col" className="table-th">Uji</th><th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th></tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {users.map((u) => (
-              <tr key={u.id}>
-                <td className="px-4 py-3">{u.name}{u.id === selfId ? " (Anda)" : ""}</td>
-                <td className="px-4 py-3 text-gray-600">{u.email}</td>
+              <tr key={u.id} className="transition hover:bg-slate-50">
+                <td className="px-4 py-3 font-medium text-slate-800">{u.name}{u.id === selfId ? " (Anda)" : ""}</td>
+                <td className="px-4 py-3 text-slate-600">{u.email}</td>
                 <td className="px-4 py-3">
-                  <button onClick={() => toggleRole(u)} className={`rounded px-2 py-0.5 text-xs ${u.role === "ketua_tim" ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"}`}>
+                  <button onClick={() => toggleRole(u)} title="Ubah peran" aria-pressed={u.role === "ketua_tim"} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${u.role === "ketua_tim" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"}`}>
                     {u.role === "ketua_tim" ? "Ketua Tim" : "Tester"}
                   </button>
                 </td>
-                <td className="px-4 py-3">{u.test_count}</td>
+                <td className="px-4 py-3 text-slate-600">{u.test_count}</td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => remove(u)} disabled={u.id === selfId} className="text-sm text-red-600 hover:underline disabled:text-gray-300">Hapus</button>
+                  <button onClick={() => remove(u)} disabled={u.id === selfId} title={u.id === selfId ? "Anda tidak dapat menghapus akun sendiri" : `Hapus pengguna ${u.name}`} className="action-link text-red-600 disabled:text-slate-300 disabled:no-underline">Hapus</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

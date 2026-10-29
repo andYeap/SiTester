@@ -118,6 +118,32 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 CREATE INDEX IF NOT EXISTS notifications_user_idx ON notifications (user_id, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id             bigserial PRIMARY KEY,
+  actor_user_id  uuid REFERENCES users(id) ON DELETE SET NULL,
+  actor_name     text,
+  actor_role     text,
+  action         text NOT NULL,
+  target         text,
+  changes        jsonb,
+  ip             text,
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS audit_logs_created_idx ON audit_logs (created_at DESC);
+CREATE INDEX IF NOT EXISTS audit_logs_actor_idx ON audit_logs (actor_user_id);
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id           bigserial PRIMARY KEY,
+  email        text NOT NULL,
+  ip           text,
+  success      boolean NOT NULL DEFAULT false,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS login_attempts_email_created_idx ON login_attempts (email, created_at DESC);
+CREATE INDEX IF NOT EXISTS login_attempts_ip_created_idx ON login_attempts (ip, created_at DESC);
+
 -- Seed (idempotent)
 INSERT INTO testing_roles (name, label, is_active) VALUES
   ('super_admin','Super Admin',true),
@@ -129,3 +155,11 @@ INSERT INTO test_cycles (name, description, is_active) VALUES
   ('Lensa-ASN R1','Putaran pengujian pertama',true),
   ('Lensa-ASN R2','Putaran pengujian kedua',true)
 ON CONFLICT (name) DO NOTHING;
+
+-- Approval kedaluwarsa: single-use + TTL 7 hari.
+ALTER TABLE retest_approvals
+  ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+
+UPDATE retest_approvals
+   SET expires_at = created_at + make_interval(days => 7)
+ WHERE expires_at IS NULL;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { err, needKetua } from "@/lib/api";
+import { audit, clientIp } from "@/lib/audit";
 import { query } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 
@@ -71,16 +72,30 @@ async function updateUser(request: Request, id: string) {
 
   fields.push(`updated_at=now()`);
   values.push(id);
-  const rows = await query<{ id: string }>(
-    `UPDATE users SET ${fields.join(", ")} WHERE id=$${i} RETURNING id`,
+  const rows = await query<{ id: string; email: string }>(
+    `UPDATE users SET ${fields.join(", ")} WHERE id=$${i} RETURNING id, email`,
     values,
   );
   if (rows.length === 0) return err("Pengguna tidak ditemukan.", 404);
+    const safeChanges: Record<string, unknown> = { ...(body ?? {}) };
+    if ("password" in safeChanges) {
+      safeChanges.password_changed = safeChanges.password !== "";
+      delete safeChanges.password;
+    }
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "users.update",
+    target: rows[0].email,
+    changes: { ...safeChanges, password_changed: "password" in (body ?? {}) },
+    ip: clientIp(request),
+  });
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ketua = await needKetua();
@@ -105,10 +120,18 @@ export async function DELETE(
     );
   }
 
-  const rows = await query<{ id: string }>(
-    `DELETE FROM users WHERE id=$1 RETURNING id`,
+  const rows = await query<{ id: string; email: string }>(
+    `DELETE FROM users WHERE id=$1 RETURNING id, email`,
     [id],
   );
   if (rows.length === 0) return err("Pengguna tidak ditemukan.", 404);
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "users.delete",
+    target: rows[0].email,
+    ip: clientIp(request),
+  });
   return NextResponse.json({ ok: true });
 }

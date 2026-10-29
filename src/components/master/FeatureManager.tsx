@@ -107,23 +107,26 @@ export default function FeatureManager({ isKetua, initialFeatures }: { isKetua: 
 
   return (
     <div className="space-y-6">
-      <h1 className="page-title">Master Fitur</h1>
-      {error && <div className="alert-err">{error}</div>}
-      {info && <div className="alert-ok">{info}</div>}
+      <div>
+        <h1 className="page-title">Master Fitur</h1>
+        <p className="page-subtitle">Daftar fitur yang bisa diuji. Tester boleh mengusulkan fitur baru.</p>
+      </div>
+      {error && <div className="alert-err" role="alert">{error}</div>}
+      {info && <div className="alert-ok" role="status">{info}</div>}
       <form onSubmit={submit} className="card flex flex-wrap items-end gap-3 p-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-500">Nama Fitur</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={255} className="input" />
+          <label htmlFor="fitur-nama" className="label text-xs">Nama Fitur</label>
+          <input id="fitur-nama" value={name} onChange={(e) => setName(e.target.value)} required maxLength={255} placeholder="cth: Login admin" className="input" />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-500">Proyek / Sprint</label>
-          <input value={project} onChange={(e) => setProject(e.target.value)} maxLength={255} className="input" />
+          <label htmlFor="fitur-proyek" className="label text-xs">Proyek / Sprint</label>
+          <input id="fitur-proyek" value={project} onChange={(e) => setProject(e.target.value)} maxLength={255} placeholder="cth: Lensa-ASN" className="input" />
         </div>
         <button className="btn-dark">
           {editing ? "Simpan" : "+ Tambah"}
         </button>
         {editing && (
-          <button type="button" onClick={() => { setEditing(null); setName(""); setProject(""); }} className="text-sm text-gray-600 hover:underline">
+          <button type="button" onClick={() => { setEditing(null); setName(""); setProject(""); }} className="action-link text-slate-600">
             Batal
           </button>
         )}
@@ -131,57 +134,65 @@ export default function FeatureManager({ isKetua, initialFeatures }: { isKetua: 
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
+            <caption className="sr-only">Daftar fitur</caption>
             <thead className="table-head">
               <tr>
-                <th className="table-th">Nama</th>
-                <th className="table-th">Proyek</th>
-                <th className="table-th">Status</th>
-                <th className="table-th">Verifikasi</th>
-                <th className="table-th">Uji</th>
-                <th className="px-4 py-3 text-right font-medium">Aksi</th>
+                <th scope="col" className="table-th">Nama</th>
+                <th scope="col" className="table-th">Proyek</th>
+                <th scope="col" className="table-th">Status</th>
+                <th scope="col" className="table-th">Verifikasi</th>
+                <th scope="col" className="table-th">Uji</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-100">
               {features.map((f) => (
-                <tr key={f.id}>
-                  <td className="px-4 py-3">{f.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{f.project_name ?? "—"}</td>
+                <tr key={f.id} className="transition hover:bg-slate-50">
+                  <td className="px-4 py-3 font-medium text-slate-800">{f.name}</td>
+                  <td className="px-4 py-3 text-slate-600">{f.project_name ?? "—"}</td>
                   <td className="px-4 py-3">
                     {isKetua ? (
-                      <button onClick={() => toggle(f)} className={`rounded px-2 py-0.5 text-xs ${f.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                      <button onClick={() => toggle(f)} aria-pressed={f.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${f.is_active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
                         {f.is_active ? "Aktif" : "Nonaktif"}
                       </button>
                     ) : (
-                      <span className={`rounded px-2 py-0.5 text-xs ${f.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                      <span className={`badge ${f.is_active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
                         {f.is_active ? "Aktif" : "Nonaktif"}
                       </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {f.verified ? (
-                      <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">Terverifikasi</span>
+                      <span className="badge bg-green-100 text-green-700">Terverifikasi</span>
                     ) : (
-                      <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800" title={`Diusulkan oleh ${f.creator_name ?? "?"}`}>Usulan baru</span>
+                      <span className="badge bg-amber-100 text-amber-800" title={`Diusulkan oleh ${f.creator_name ?? "?"}`}>Usulan baru</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">{f.test_count}</td>
-                  <td className="px-4 py-3 text-right space-x-3">
+                  <td className="px-4 py-3 text-slate-600">{f.test_count}</td>
+                  <td className="px-4 py-3 text-right">
                     {isKetua ? (
-                      <>
+                      <span className="inline-flex flex-wrap justify-end gap-1">
                         {!f.verified && (
-                          <button onClick={() => verify(f)} className="text-green-600 hover:underline">Verifikasi</button>
+                          <button onClick={() => verify(f)} className="action-link text-green-700">Verifikasi</button>
                         )}
-                        <button onClick={() => { setEditing(f); setName(f.name); setProject(f.project_name ?? ""); }} className="text-indigo-600 hover:underline">Edit</button>
-                        <button onClick={() => remove(f)} className="text-red-600 hover:underline">Hapus</button>
-                      </>
+                        <button onClick={() => { setEditing(f); setName(f.name); setProject(f.project_name ?? ""); }} className="action-link text-indigo-600">Edit</button>
+                        <button onClick={() => remove(f)} className="action-link text-red-600">Hapus</button>
+                      </span>
                     ) : (
-                      <span className="text-gray-400">—</span>
+                      <span className="text-slate-400">—</span>
                     )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {features.length === 0 && (
+            <div className="empty-state border-t border-slate-100">
+              <span className="empty-icon" aria-hidden>✨</span>
+              <p className="empty-title">Belum ada fitur</p>
+              <p className="empty-hint">Tambahkan fitur pertama lewat form di atas.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

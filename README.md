@@ -63,7 +63,8 @@ Catatan produksi:
 |---|---|
 | `npm run dev` | Dev server |
 | `npm run build` / `npm start` | Build + production server |
-| `npm test` | Unit test aturan retest (vitest) |
+| `npm test` | Semua test: unit + API (butuh Postgres; default DB `testlab_test` lokal, override via `TEST_DATABASE_URL`) |
+| `npm run test:api` | Hanya test API |
 | `npm run db:migrate` | Terapkan skema (idempoten) |
 | `npm run db:seed` | Data demo (idempoten) |
 | `npm run lint` | ESLint |

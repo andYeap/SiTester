@@ -16,3 +16,5 @@ export async function needKetua(): Promise<SessionUser | null> {
   if (user.role !== "ketua_tim") return null;
   return user;
 }
+
+export type { SessionUser };

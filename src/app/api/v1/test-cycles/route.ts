@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { err, needKetua, needUser } from "@/lib/api";
+import { audit, clientIp } from "@/lib/audit";
 import { query } from "@/lib/db";
 
 export async function GET() {
@@ -18,7 +19,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await needKetua())) return err("Forbidden", 403);
+  const ketua = await needKetua();
+  if (!ketua) return err("Forbidden", 403);
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
     description?: unknown;
@@ -44,6 +46,16 @@ export async function POST(request: Request) {
   } catch {
     return err("Nama siklus sudah dipakai.", 422);
   }
+
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "test_cycles.create",
+    target: name,
+    changes: { description, is_active: isActive },
+    ip: clientIp(request),
+  });
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }
