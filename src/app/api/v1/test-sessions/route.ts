@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { err, needUser } from "@/lib/api";
-import { pool, query, queryOne } from "@/lib/db";
+import { query, queryOne, withTransaction } from "@/lib/db";
 import { getSessions } from "@/lib/history";
 import { canTest, type TestResult } from "@/lib/retest";
 import { saveEvidence } from "@/lib/storage";
@@ -141,44 +141,40 @@ export async function POST(request: Request) {
     );
   }
 
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
-    let approvalId: number | null = null;
-    if (needsApproval) {
-      const locked = await client.query<{ id: number }>(
-        `SELECT id FROM retest_approvals
-          WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND used_at IS NULL
-          ORDER BY id DESC LIMIT 1 FOR UPDATE`,
-        [featureId, user.id, role],
-      );
-      if (locked.rows.length === 0) {
-        throw new Error(
-          "Pengujian ulang memerlukan persetujuan ketua tim yang masih berlaku.",
+    await withTransaction(async (client) => {
+      let approvalId: number | null = null;
+      if (needsApproval) {
+        const locked = await client.query<{ id: number }>(
+          `SELECT id FROM retest_approvals
+            WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND used_at IS NULL
+            ORDER BY id DESC LIMIT 1 FOR UPDATE`,
+          [featureId, user.id, role],
         );
+        if (locked.rows.length === 0) {
+          throw new Error(
+            "Pengujian ulang memerlukan persetujuan ketua tim yang masih berlaku.",
+          );
+        }
+        approvalId = locked.rows[0].id;
+        await client.query(`UPDATE retest_approvals SET used_at=now() WHERE id=$1`, [
+          approvalId,
+        ]);
       }
-      approvalId = locked.rows[0].id;
-      await client.query(`UPDATE retest_approvals SET used_at=now() WHERE id=$1`, [
-        approvalId,
-      ]);
-    }
 
-    await client.query(
-      `INSERT INTO test_sessions
-        (user_id, feature_id, tested_at, result, severity, environment, expected, actual,
-         notes, is_retest, tested_as_role, test_cycle, retest_approval_id, evidence_path, evidence_url)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
-      [
-        user.id, featureId, testedAt, result, severity, environment, expected,
-        actual, notes, isRetest, role, cycle, approvalId, evidencePath, evidenceUrl,
-      ],
-    );
-    await client.query("COMMIT");
+      await client.query(
+        `INSERT INTO test_sessions
+          (user_id, feature_id, tested_at, result, severity, environment, expected, actual,
+           notes, is_retest, tested_as_role, test_cycle, retest_approval_id, evidence_path, evidence_url)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+        [
+          user.id, featureId, testedAt, result, severity, environment, expected,
+          actual, notes, isRetest, role, cycle, approvalId, evidencePath, evidenceUrl,
+        ],
+      );
+    });
   } catch (e) {
-    await client.query("ROLLBACK");
     return err(e instanceof Error ? e.message : "Gagal menyimpan.", 422);
-  } finally {
-    client.release();
   }
 
   const recent = await query<{ n: string }>(
