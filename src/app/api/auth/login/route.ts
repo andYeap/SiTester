@@ -27,10 +27,12 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
     email?: unknown;
     password?: unknown;
+    remember?: unknown;
   } | null;
 
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body?.password === "string" ? body.password : "";
+  const remember = body?.remember === true;
 
   if (!email || !password) {
     return NextResponse.json(
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
 
   await createSession(user.id, {
     userAgent: request.headers.get("user-agent"),
-  });
+  }, { remember });
 
   return NextResponse.json({ user });
 }

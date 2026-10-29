@@ -10,6 +10,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +22,7 @@ function LoginForm() {
       await fetchJson<{ user: unknown }>("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, remember }),
       });
       router.push(searchParams.get("next") ?? "/dashboard");
       router.refresh();
@@ -74,6 +75,19 @@ function LoginForm() {
             autoComplete="current-password"
           />
         </div>
+        <label className="flex cursor-pointer items-center gap-2.5 text-sm text-neutral-700">
+          <input
+            id="login-remember"
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+            className="h-4 w-4 rounded border-neutral-300 accent-neutral-950"
+          />
+          <span>
+            Ingat saya di perangkat ini
+            <span className="block text-xs font-normal text-neutral-400">Tetap masuk 30 hari. Jangan aktifkan di komputer bersama.</span>
+          </span>
+        </label>
         <button
           type="submit"
           disabled={loading}

@@ -6,6 +6,7 @@ import { verifyPassword } from "@/lib/password";
 
 export const SESSION_COOKIE = "testlab_session";
 const SESSION_TTL_SECONDS = 8 * 60 * 60;
+const REMEMBER_ME_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 export type Role = "tester" | "ketua_tim";
 
@@ -26,9 +27,11 @@ const hashToken = (token: string) =>
 export async function createSession(
   userId: string,
   meta: { userAgent?: string | null; ip?: string | null } = {},
+  opts: { remember?: boolean } = {},
 ) {
   const token = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
+  const ttl = opts.remember ? REMEMBER_ME_TTL_SECONDS : SESSION_TTL_SECONDS;
+  const expiresAt = new Date(Date.now() + ttl * 1000);
 
   // Satu akun = satu sesi aktif. Login baru mencabut sesi lama.
   await query(`DELETE FROM sessions WHERE user_id = $1`, [userId]);

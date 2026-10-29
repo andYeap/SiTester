@@ -5,6 +5,7 @@ import { POST as login } from "@/app/api/auth/login/route";
 import { POST as logout } from "@/app/api/auth/logout/route";
 
 import { createUser, loginAs, resetDb, sessionCountFor, sessionToken } from "./helpers";
+import { query } from "@/lib/db";
 
 const req = (body: unknown) =>
   new Request("http://test/api/auth/login", {
@@ -42,6 +43,26 @@ describe("auth", () => {
     const res = await login(req({ email: testerEmail, password: "salah" }));
     expect(res.status).toBe(401);
     expect(await sessionCountFor(testerId)).toBe(0);
+  });
+
+  it("ingat saya: sesi 30 hari; default: 8 jam", async () => {
+    const hoursUntil = async (email: string) => {
+      const rows = await query<{ h: string }>(
+        `SELECT EXTRACT(EPOCH FROM (expires_at - now()))/3600 AS h FROM sessions s JOIN users u ON u.id = s.user_id WHERE u.email = $1 ORDER BY s.created_at DESC LIMIT 1`,
+        [email],
+      );
+      return Number(rows[0].h);
+    };
+
+    const r1 = await login(req({ email: testerEmail, password: "password123" }));
+    expect(r1.status).toBe(200);
+    expect(await hoursUntil(testerEmail)).toBeGreaterThan(7);
+    expect(await hoursUntil(testerEmail)).toBeLessThanOrEqual(8);
+
+    const r2 = await login(req({ email: ketuaEmail, password: "password123", remember: true }));
+    expect(r2.status).toBe(200);
+    expect(await hoursUntil(ketuaEmail)).toBeGreaterThan(24 * 29);
+    expect(await hoursUntil(ketuaEmail)).toBeLessThanOrEqual(24 * 30);
   });
 
   it("me + logout", async () => {
