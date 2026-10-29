@@ -3,9 +3,17 @@ import { addDays, dayMonthLabel, todayString } from "@/lib/time";
 
 export type StatsRange = 7 | 30;
 
+export type CycleScope = {
+  total: number;
+  tested: number;
+  untested: string[];
+};
+
 export type DashboardStats = {
   range: StatsRange;
   cycle: string | null;
+  brief: string | null;
+  scope: CycleScope | null;
   summary: {
     total_bulan_ini: number;
     fitur_belum_diuji: number;
@@ -19,6 +27,21 @@ export type DashboardStats = {
 };
 
 export type Stats = DashboardStats;
+
+async function cycleScope(cycle: string | null): Promise<{ featureIds: number[]; brief: string | null }> {
+  if (!cycle) return { featureIds: [], brief: null };
+  const briefRow = await queryOne<{ brief: string | null }>(
+    `SELECT brief FROM test_cycles WHERE name = $1`,
+    [cycle],
+  );
+  const rows = await query<{ feature_id: number }>(
+    `SELECT cf.feature_id FROM cycle_features cf
+      JOIN test_cycles c ON c.id = cf.cycle_id WHERE c.name = $1`,
+    [cycle],
+  );
+  return { featureIds: rows.map((r) => r.feature_id), brief: briefRow?.brief ?? null };
+}
+
 
 function scoped(
   alias: string,
@@ -77,11 +100,38 @@ export async function getDashboardStats(
     ...f.vals,
   );
 
-  const untested = await queryOne<{ n: string }>(
-    `SELECT count(*)::text AS n FROM features f WHERE f.is_active = true
-      AND NOT EXISTS (SELECT 1 FROM test_sessions s WHERE s.feature_id = f.id ${cycle ? "AND s.test_cycle = $1" : ""})`,
-    cycle ? [cycle] : [],
-  );
+  const scopeInfo = await cycleScope(cycle);
+  const scopeIds = scopeInfo.featureIds;
+  const untested = cycle
+    ? await queryOne<{ n: string }>(
+        scopeIds.length > 0
+          ? `SELECT count(*)::text AS n FROM features f WHERE f.is_active = true
+               AND f.id = ANY($2)
+               AND NOT EXISTS (SELECT 1 FROM test_sessions s WHERE s.feature_id = f.id AND s.test_cycle = $1)`
+          : `SELECT count(*)::text AS n FROM features f WHERE f.is_active = true
+               AND NOT EXISTS (SELECT 1 FROM test_sessions s WHERE s.feature_id = f.id AND s.test_cycle = $1)`,
+        scopeIds.length > 0 ? [cycle, scopeIds] : [cycle],
+      )
+    : await queryOne<{ n: string }>(
+        `SELECT count(*)::text AS n FROM features f WHERE f.is_active = true
+           AND NOT EXISTS (SELECT 1 FROM test_sessions s WHERE s.feature_id = f.id)`,
+        [],
+      );
+
+  const scope: CycleScope | null = !cycle
+    ? null
+    : scopeIds.length === 0
+      ? { total: 0, tested: 0, untested: [] }
+      : await (async () => {
+          const names = await query<{ name: string }>(
+            `SELECT f.name FROM features f WHERE f.is_active = true AND f.id = ANY($2)
+               AND NOT EXISTS (SELECT 1 FROM test_sessions s WHERE s.feature_id = f.id AND s.test_cycle = $1)
+             ORDER BY f.name`,
+            [cycle, scopeIds],
+          );
+          const total = scopeIds.length;
+          return { total, tested: total - names.length, untested: names.map((r) => r.name) };
+        })();
 
   const pending = await queryOne<{ n: string }>(
     `SELECT count(*)::text AS n FROM retest_requests WHERE status='pending'`,
@@ -140,6 +190,8 @@ export async function getDashboardStats(
   return {
     range,
     cycle,
+    brief: scopeInfo.brief,
+    scope,
     summary: {
       total_bulan_ini: total,
       fitur_belum_diuji: Number(untested?.n ?? 0),

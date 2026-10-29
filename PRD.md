@@ -42,9 +42,9 @@ Autentikasi: login email + password, sesi opak di cookie httpOnly (hash scrypt, 
 ## 3. Fitur Utama
 
 ### F1 — Form Pengujian
-Field: **Tanggal Pengujian** (≤ hari ini), **Pengujian Ulang?** (ya/tidak), **Diuji sebagai peran** (dropdown master), **Siklus** (dropdown master, opsional), **Proyek** (filter dropdown, opsional), **Fitur** (combobox cari + grup per proyek; cocok nama/deskripsi/proyek), **Status Hasil** (`Pass`/`Fail`/`Bug`), **Severity** (wajib bila Fail/Bug), **Lingkungan**, **Diharapkan**, **Terjadi**, **Catatan** (wajib ≥10 karakter bila Fail/Bug), **Bukti** (file ≤2MB dan/atau URL).
+Field: **Tanggal Pengujian** (≤ hari ini), **Pengujian Ulang?** (ya/tidak), **Diuji sebagai peran** (dropdown master), **Siklus** (dropdown master, opsional; menampilkan instruksi + menyaring fitur ke lingkup bila ada), **Proyek** (filter dropdown, opsional), **Fitur** (combobox cari + grup per proyek; cocok nama/deskripsi/proyek), **Status Hasil** (`Pass`/`Fail`/`Bug`), **Severity** (wajib bila Fail/Bug), **Lingkungan**, **Diharapkan**, **Terjadi**, **Catatan** (wajib ≥10 karakter bila Fail/Bug), **Bukti** (file ≤2MB dan/atau URL).
 
-Aturan: Pass tanpa retest → blokir bila sudah Pass dalam scope; Pass + retest → butuh approval aktif; Fail/Bug → otomatis boleh.
+Aturan: Pass tanpa retest → blokir bila sudah Pass dalam scope; Pass + retest → butuh approval aktif; Fail/Bug → otomatis boleh. Bila siklus punya lingkup fitur, submit di luar lingkup ditolak (422) dengan arahan.
 
 ### F2 — Kontrol Pengujian Ulang (sumber kebenaran)
 Scope = **(fitur, peran, siklus)**. Siklus kosong = scope legacy (fitur, peran).
@@ -58,7 +58,7 @@ Scope = **(fitur, peran, siklus)**. Siklus kosong = scope legacy (fitur, peran).
 Ketua: permohonan baru. Tester: keputusan + alasan. Bell navbar + halaman `/notifikasi`.
 
 ### F4 — Dashboard & Grafik
-Kartu (total/Pass/Fail-Bug bulan ini, fitur belum diuji dalam filter), bar masa pengujian (7/30 hari + filter siklus), donut distribusi, top fitur + status terakhir. Data dari `GET /api/dashboard/stats?range&cycle`.
+Kartu (total/Pass/Fail-Bug bulan ini, fitur belum diuji dalam filter), bar masa pengujian (7/30 hari + filter siklus), donut distribusi, top fitur + status terakhir. Bila siklus dipilih: banner instruksi siklus, progress "X dari Y fitur teruji", dan daftar fitur lingkup yang belum diuji. Data dari `GET /api/dashboard/stats?range&cycle` (termasuk `brief` + `scope`).
 
 ### F5 — Riwayat
 Filter: tanggal range, tester (ketua), fitur, hasil, teks, siklus. Kolom: tanggal, tester, peran, siklus, fitur, hasil, severity, ulang, disetujui-oleh, bukti, catatan. Append-only.
@@ -69,7 +69,7 @@ CSV via API (ikut filter aktif). PDF satu-klik client-side (jspdf + autotable) d
 ### F7 — Master Data
 - **Fitur**: semua auth boleh usul (langsung aktif + `verified=false` + tercatat pembuat); ketua verifikasi/edit/hapus. Duplikat ditolak case-insensitive. Hapus ditolak bila dipakai riwayat.
 - **Peran Uji**: penuh ketua. Hapus ditolak bila dipakai riwayat.
-- **Siklus**: penuh ketua. Siklus nonaktif hilang dari dropdown tapi riwayat tetap. Tes pertama di siklus baru selalu boleh (ronde fresh).
+- **Siklus**: penuh ketua. Setiap siklus punya **lingkup fitur** (opsional; kosong = semua fitur aktif) dan **instruksi untuk tester** (tampil mencolok di form + dashboard saat siklus dipilih). Siklus nonaktif hilang dari dropdown tapi riwayat tetap. Tes pertama di siklus baru selalu boleh (ronde fresh). Form pengujian otomatis menyaring daftar fitur ke lingkup bila ada; dashboard menampilkan progress lingkup + daftar yang belum diuji.
 - **Pengguna**: penuh ketua; tidak bisa hapus diri sendiri.
 
 ### F8 — Audit Aktivitas Master

@@ -32,9 +32,11 @@ CREATE TABLE IF NOT EXISTS test_cycles (
   id          bigserial PRIMARY KEY,
   name        text NOT NULL UNIQUE,
   description text,
+  brief       text,
   is_active   boolean NOT NULL DEFAULT true,
   created_at  timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE test_cycles ADD COLUMN IF NOT EXISTS brief text;
 
 CREATE TABLE IF NOT EXISTS features (
   id          bigserial PRIMARY KEY,
@@ -47,6 +49,13 @@ CREATE TABLE IF NOT EXISTS features (
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS cycle_features (
+  cycle_id   bigint NOT NULL REFERENCES test_cycles(id) ON DELETE CASCADE,
+  feature_id bigint NOT NULL REFERENCES features(id) ON DELETE CASCADE,
+  PRIMARY KEY (cycle_id, feature_id)
+);
+
 
 CREATE TABLE IF NOT EXISTS test_sessions (
   id                bigserial PRIMARY KEY,

@@ -87,6 +87,26 @@ export async function POST(request: Request) {
       [cycle],
     );
     if (!cyc) return err("Siklus tidak valid.", 422);
+
+    const scoped = await queryOne<{ n: string }>(
+      `SELECT count(*)::text AS n FROM cycle_features cf
+        JOIN test_cycles c ON c.id = cf.cycle_id WHERE c.name=$1`,
+      [cycle],
+    );
+    if (Number(scoped?.n ?? 0) > 0) {
+      const inScope = await queryOne<{ n: string }>(
+        `SELECT count(*)::text AS n FROM cycle_features cf
+          JOIN test_cycles c ON c.id = cf.cycle_id
+         WHERE c.name=$1 AND cf.feature_id=$2`,
+        [cycle, featureId],
+      );
+      if (Number(inScope?.n ?? 0) === 0) {
+        return err(
+          `Fitur ini tidak termasuk dalam lingkup "${cycle}". Pilih fitur yang terdaftar di siklus tersebut, atau minta ketua tim menambahkannya.`,
+          422,
+        );
+      }
+    }
   }
 
   if ((result === "fail" || result === "bug") && (!notes || notes.length < 10)) {

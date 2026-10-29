@@ -9,13 +9,29 @@ export async function GET(request: Request) {
   if (!user) return err("Unauthorized", 401);
 
   const activeOnly = new URL(request.url).searchParams.get("active") === "1";
+  const cycleScope = new URL(request.url).searchParams.get("cycle")?.trim() || null;
+  let cycleFilter = "";
+  const cycleVals: unknown[] = [];
+  if (cycleScope) {
+    const scoped = await query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM cycle_features cf
+        JOIN test_cycles c ON c.id = cf.cycle_id WHERE c.name = $1`,
+      [cycleScope],
+    );
+    if (Number(scoped[0].n) > 0) {
+      cycleFilter = `AND f.id IN (SELECT cf.feature_id FROM cycle_features cf JOIN test_cycles c ON c.id = cf.cycle_id WHERE c.name = $1)`;
+      cycleVals.push(cycleScope);
+    }
+  }
   const rows = await query(
     `SELECT f.id, f.name, f.description, f.project_name, f.is_active, f.verified,
             u.name AS creator_name,
             (SELECT count(*)::int FROM test_sessions s WHERE s.feature_id = f.id) AS test_count
        FROM features f LEFT JOIN users u ON u.id = f.created_by
-      ${activeOnly ? "WHERE f.is_active = true" : ""}
+      ${activeOnly ? "WHERE f.is_active = true" : "WHERE true"}
+      ${cycleFilter}
       ORDER BY f.name`,
+    cycleVals,
   );
   return NextResponse.json({ features: rows });
 }

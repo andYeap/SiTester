@@ -115,6 +115,46 @@ export default function DashboardView({
         <span aria-live="polite" className="text-sm text-neutral-400">{loading ? "Memuat…" : ""}</span>
       </div>
 
+      {stats?.cycle && (
+        <div className="card space-y-3 p-5" role="region" aria-label={`Ringkasan lingkup ${stats.cycle}`}>
+          {stats.brief ? (
+            <div className="alert-info">
+              <p className="font-semibold">Instruksi {stats.cycle}</p>
+              <p className="whitespace-pre-wrap">{stats.brief}</p>
+            </div>
+          ) : null}
+          {stats.scope && stats.scope.total > 0 ? (
+            <div>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="font-semibold text-neutral-800">Cakupan siklus: {stats.scope.tested} dari {stats.scope.total} fitur teruji</h3>
+                <span className="text-sm tabular-nums text-neutral-500">
+                  {stats.scope.total === 0 ? 0 : Math.round((stats.scope.tested / stats.scope.total) * 100)}%
+                </span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200" role="progressbar" aria-valuenow={stats.scope.tested} aria-valuemin={0} aria-valuemax={stats.scope.total} aria-label={`Kemajuan ${stats.cycle}`}>
+                <div className="h-full bg-neutral-950 transition-all" style={{ width: `${stats.scope.total === 0 ? 0 : (stats.scope.tested / stats.scope.total) * 100}%` }} />
+              </div>
+              {stats.scope.untested.length > 0 ? (
+                <div className="mt-3">
+                  <p className="text-sm font-medium text-neutral-700">Belum diuji di siklus ini:</p>
+                  <ul className="mt-1 flex flex-wrap gap-2">
+                    {stats.scope.untested.map((n) => (
+                      <li key={n} className="badge badge-neutral">{n}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-neutral-600">Semua fitur dalam lingkup sudah diuji. 🎉</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-neutral-600">
+              Siklus ini mencakup semua fitur aktif — tidak ada daftar khusus.
+            </p>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3" aria-hidden>
           <div className="card space-y-3 p-5 lg:col-span-2">

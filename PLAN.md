@@ -136,6 +136,9 @@ API `limit` (default 50, maks 5000 untuk ekspor) + `offset`, respons `{sessions,
 - Backup mingguan: `scripts/backup.sh` (pg_dump via docker, format custom) + restore terverifikasi ke DB kosong; cron mingguan disarankan.
 - Satu akun = satu sesi aktif: login baru mencabut sesi lama (`createSession` hapus sesi lama dulu) + test.
 
+### Task 15: Lingkup + instruksi per siklus — DONE
+Tabel `cycle_features` (lingkup fitur per siklus; kosong = semua fitur) + kolom `brief` di `test_cycles`. API: CRUD lingkup + validasi submit di luar lingkup (422), daftar fitur tersaring per siklus, `fitur_belum_diuji` + `scope`/`brief` di statistik dashboard. UI: checklist lingkup + textarea brief di master Siklus, banner instruksi + progress "X dari Y" + daftar belum diuji di dashboard & form. Test `cycle-scope` (5).
+
 ## Self-Review
 
 - Spec coverage: auth+roles (T2), retest inti+scope (T3+T5), master 4 entitas (T4), form 14 field (T5), riwayat+filter (T6), dashboard+grafik (T6), export CSV/PDF (T7), notifikasi (T5), seed (T1). Semua BR + perluasan tercakup.

@@ -47,7 +47,32 @@ export default function PengujianForm({
   const [roles] = useState<Role[]>(initialRoles);
   const [cycles] = useState<Cycle[]>(initialCycles);
   const [projectFilter, setProjectFilter] = useState("");
+  const [cycleBrief, setCycleBrief] = useState<string | null>(null);
+  const [scopeIds, setScopeIds] = useState<number[] | null>(null);
   const projects = useMemo(() => projectNames(features.map((f) => ({ project: f.project_name }))), [features]);
+  const scopedFeatures = useMemo(
+    () => (scopeIds === null ? features : features.filter((f) => scopeIds.includes(f.id))),
+    [features, scopeIds],
+  );
+
+  async function loadCycleInfo(name: string) {
+    setCycleBrief(null);
+    setScopeIds(null);
+    if (!name) return;
+    try {
+      const res = await fetch("/api/v1/test-cycles");
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        cycles: { name: string; brief: string | null; feature_ids: number[] }[];
+      };
+      const found = (data.cycles ?? []).find((c) => c.name === name);
+      if (!found) return;
+      setCycleBrief(found.brief);
+      setScopeIds(found.feature_ids.length > 0 ? found.feature_ids.map(Number) : null);
+    } catch {
+      /* abaikan: form tetap bisa dipakai tanpa lingkup */
+    }
+  }
 
   const [testedAt, setTestedAt] = useState(today());
   const [isRetest, setIsRetest] = useState(false);
@@ -197,12 +222,27 @@ export default function PengujianForm({
         </div>
         <div>
           <label className="label" htmlFor="uji-siklus">Siklus</label>
-          <select id="uji-siklus" value={cycle} onChange={(e) => { setCycle(e.target.value); checkNow(featureId, isRetest, role, e.target.value); }} className="input">
+          <select id="uji-siklus" value={cycle} onChange={(e) => {
+            const v = e.target.value;
+            setCycle(v);
+            setFeatureId("");
+            setCheck(null);
+            void loadCycleInfo(v);
+          }} className="input">
             <option value="">— Tanpa siklus —</option>
             {cycles.map((c) => (
               <option key={c.name} value={c.name}>{c.name}</option>
             ))}
           </select>
+          {cycleBrief && (
+            <div className="alert-info mt-2" role="note">
+              <p className="font-semibold">Instruksi {cycle}</p>
+              <p className="whitespace-pre-wrap">{cycleBrief}</p>
+            </div>
+          )}
+          {scopeIds !== null && (
+            <p className="hint mt-1">Siklus ini mencakup {scopeIds.length} fitur — daftar di bawah sudah disaring.</p>
+          )}
         </div>
         <div>
           <label className="label" htmlFor="uji-proyek">Filter proyek</label>
@@ -225,7 +265,7 @@ export default function PengujianForm({
         <FeatureCombobox
           id="uji-fitur"
           label="Fitur yang Diuji"
-          features={features.map((f) => ({ id: f.id, name: f.name, project: f.project_name, description: f.description }))}
+          features={scopedFeatures.map((f) => ({ id: f.id, name: f.name, project: f.project_name, description: f.description }))}
           value={featureId}
           project={projectFilter}
           onChange={(id) => { setFeatureId(id); checkNow(id, isRetest, role, cycle); }}
