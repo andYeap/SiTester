@@ -81,27 +81,27 @@ export default function CycleManager({ initialCycles }: { initialCycles: Cycle[]
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-gray-900">Siklus Pengujian</h1>
-      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-      {info && <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">{info}</div>}
+      <h1 className="page-title">Siklus Pengujian</h1>
+      {error && <div className="alert-err">{error}</div>}
+      {info && <div className="alert-ok">{info}</div>}
       <form onSubmit={submit} className="space-y-3 rounded-lg bg-white p-4 shadow-sm">
         <div>
-          <label className="block text-xs font-medium text-gray-600">Nama Siklus</label>
+          <label className="block text-xs font-semibold text-slate-500">Nama Siklus</label>
           <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} placeholder="Lensa-ASN R3" className="mt-1 block w-full max-w-md rounded-md border-gray-300 text-sm" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600">Deskripsi (opsional)</label>
+          <label className="block text-xs font-semibold text-slate-500">Deskripsi (opsional)</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="mt-1 block w-full max-w-md rounded-md border-gray-300 text-sm" />
         </div>
         <div className="flex gap-2">
-          <button className="rounded-md bg-gray-800 px-4 py-2 text-sm text-white hover:bg-gray-700">{editing ? "Simpan" : "+ Tambah"}</button>
+          <button className="btn-dark">{editing ? "Simpan" : "+ Tambah"}</button>
           {editing && <button type="button" onClick={() => { setEditing(null); setName(""); setDescription(""); }} className="text-sm text-gray-600 hover:underline">Batal</button>}
         </div>
       </form>
-      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+      <div className="card overflow-hidden">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600">
-            <tr><th className="px-4 py-3 text-left font-medium">Nama</th><th className="px-4 py-3 text-left font-medium">Deskripsi</th><th className="px-4 py-3 text-left font-medium">Status</th><th className="px-4 py-3 text-left font-medium">Jumlah Uji</th><th className="px-4 py-3 text-right font-medium">Aksi</th></tr>
+          <thead className="table-head">
+            <tr><th className="table-th">Nama</th><th className="table-th">Deskripsi</th><th className="table-th">Status</th><th className="table-th">Jumlah Uji</th><th className="px-4 py-3 text-right font-medium">Aksi</th></tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {cycles.map((c) => (

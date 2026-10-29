@@ -74,24 +74,24 @@ export default function RoleManager({ initialRoles }: { initialRoles: Role[] }) 
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-gray-900">Peran Pengujian</h1>
-      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-      {info && <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">{info}</div>}
-      <form onSubmit={create} className="flex flex-wrap items-end gap-3 rounded-lg bg-white p-4 shadow-sm">
+      <h1 className="page-title">Peran Pengujian</h1>
+      {error && <div className="alert-err">{error}</div>}
+      {info && <div className="alert-ok">{info}</div>}
+      <form onSubmit={create} className="card flex flex-wrap items-end gap-3 p-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600">Nama (kode)</label>
+          <label className="block text-xs font-semibold text-slate-500">Nama (kode)</label>
           <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={50} placeholder="kepala_bidang" className="mt-1 rounded-md border-gray-300 font-mono text-sm" />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600">Label tampil</label>
-          <input value={label} onChange={(e) => setLabel(e.target.value)} required maxLength={100} placeholder="Kepala Bidang" className="mt-1 rounded-md border-gray-300 text-sm" />
+          <label className="block text-xs font-semibold text-slate-500">Label tampil</label>
+          <input value={label} onChange={(e) => setLabel(e.target.value)} required maxLength={100} placeholder="Kepala Bidang" className="input" />
         </div>
-        <button className="rounded-md bg-gray-800 px-4 py-2 text-sm text-white hover:bg-gray-700">+ Tambah</button>
+        <button className="btn-dark">+ Tambah</button>
       </form>
-      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+      <div className="card overflow-hidden">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600">
-            <tr><th className="px-4 py-3 text-left font-medium">Nama</th><th className="px-4 py-3 text-left font-medium">Label</th><th className="px-4 py-3 text-left font-medium">Status</th><th className="px-4 py-3 text-right font-medium">Aksi</th></tr>
+          <thead className="table-head">
+            <tr><th className="table-th">Nama</th><th className="table-th">Label</th><th className="table-th">Status</th><th className="px-4 py-3 text-right font-medium">Aksi</th></tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {roles.map((r) => (

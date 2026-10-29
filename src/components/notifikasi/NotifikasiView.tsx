@@ -42,12 +42,12 @@ export default function NotifikasiView({ initialItems }: { initialItems: Notif[]
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Notifikasi</h1>
+        <h1 className="page-title">Notifikasi</h1>
         <button onClick={markAll} className="text-sm text-indigo-600 hover:underline">
           Tandai semua dibaca
         </button>
       </div>
-      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="alert-err">{error}</div>}
       <div className="divide-y divide-gray-100 overflow-hidden rounded-lg bg-white shadow-sm">
         {items.length === 0 && <div className="p-5 text-sm text-gray-500">Tidak ada notifikasi.</div>}
         {items.map((n) => (

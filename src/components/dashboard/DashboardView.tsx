@@ -62,40 +62,43 @@ export default function DashboardView({
       ]
     : [];
 
+  const cards = [
+    { label: "Pengujian Bulan Ini", value: stats?.summary.total_bulan_ini ?? "—", accent: "from-indigo-500 to-violet-500", text: "text-slate-900" },
+    { label: "Pass Bulan Ini", value: stats?.summary.pass_bulan_ini ?? "—", accent: "from-emerald-500 to-teal-500", text: "text-emerald-600" },
+    { label: "Fail / Bug Bulan Ini", value: stats?.summary.fail_bulan_ini ?? "—", accent: "from-rose-500 to-orange-500", text: "text-rose-600" },
+    { label: "Fitur Belum Diuji", value: stats?.summary.fitur_belum_diuji ?? "—", accent: "from-slate-500 to-slate-700", text: "text-slate-900" },
+  ];
+
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
-      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+      <div>
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-subtitle">
+          Ringkasan masa dan hasil pengujian tim{stats?.cycle ? ` · Siklus ${stats.cycle}` : ""}.
+        </p>
+      </div>
+      {error && <div className="alert-err">{error}</div>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <div className="text-sm text-gray-500">Pengujian Bulan Ini</div>
-          <div className="mt-1 text-3xl font-semibold text-gray-900">{stats?.summary.total_bulan_ini ?? "—"}</div>
-        </div>
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <div className="text-sm text-gray-500">Pass Bulan Ini</div>
-          <div className="mt-1 text-3xl font-semibold text-green-600">{stats?.summary.pass_bulan_ini ?? "—"}</div>
-        </div>
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <div className="text-sm text-gray-500">Fail / Bug Bulan Ini</div>
-          <div className="mt-1 text-3xl font-semibold text-red-600">{stats?.summary.fail_bulan_ini ?? "—"}</div>
-        </div>
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <div className="text-sm text-gray-500">Fitur Belum Diuji</div>
-          <div className="mt-1 text-3xl font-semibold text-gray-900">{stats?.summary.fitur_belum_diuji ?? "—"}</div>
-        </div>
+        {cards.map((c) => (
+          <div key={c.label} className="card relative overflow-hidden p-5">
+            <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${c.accent}`} aria-hidden />
+            <div className="text-sm font-medium text-slate-500">{c.label}</div>
+            <div className={`mt-1 text-3xl font-extrabold tracking-tight ${c.text}`}>{c.value}</div>
+          </div>
+        ))}
       </div>
 
       {isKetua && (stats?.summary.permohonan_pending ?? 0) > 0 && (
-        <div className="flex items-center justify-between rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
+        <div className="alert-warn flex items-center justify-between">
           <span>{stats?.summary.permohonan_pending} permohonan pengujian ulang menunggu persetujuan Anda.</span>
-          <a href="/permohonan" className="text-sm font-medium underline">Lihat permohonan</a>
+          <a href="/permohonan" className="text-sm font-semibold underline underline-offset-2">Lihat permohonan</a>
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 rounded-lg bg-white p-4 text-sm shadow-sm">
-        <label className="text-gray-600">Siklus</label>
-        <select value={cycle} onChange={(e) => changeCycle(e.target.value)} className="rounded-md border-gray-300 text-sm">
+      <div className="card flex flex-wrap items-center gap-3 p-4">
+        <label className="text-sm font-medium text-slate-600">Siklus</label>
+        <select value={cycle} onChange={(e) => changeCycle(e.target.value)} className="rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
           <option value="">Semua siklus</option>
           {initialCycles.map((c) => (
             <option key={c} value={c}>{c}</option>
@@ -104,14 +107,14 @@ export default function DashboardView({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-lg bg-white p-5 shadow-sm lg:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-medium text-gray-700">
+        <div className="card p-5 lg:col-span-2">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="font-semibold text-slate-700">
               Masa Pengujian ({range} hari terakhir){cycle ? ` — ${cycle}` : ""}
             </h3>
             <div className="flex gap-2 text-xs">
-              <button onClick={() => changeRange(7)} className={`rounded-full px-3 py-1 ${range === 7 ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>7 hari</button>
-              <button onClick={() => changeRange(30)} className={`rounded-full px-3 py-1 ${range === 30 ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>30 hari</button>
+              <button onClick={() => changeRange(7)} className={`rounded-full px-3 py-1 font-semibold transition ${range === 7 ? "bg-slate-900 text-white shadow" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>7 hari</button>
+              <button onClick={() => changeRange(30)} className={`rounded-full px-3 py-1 font-semibold transition ${range === 30 ? "bg-slate-900 text-white shadow" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>30 hari</button>
             </div>
           </div>
           <div className="h-64">
@@ -125,8 +128,8 @@ export default function DashboardView({
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <h3 className="mb-4 font-medium text-gray-700">Hasil Pengujian Bulan Ini</h3>
+        <div className="card p-5">
+          <h3 className="mb-4 font-semibold text-slate-700">Hasil Pengujian Bulan Ini</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -147,8 +150,8 @@ export default function DashboardView({
         </div>
       </div>
 
-      <div className="rounded-lg bg-white p-5 shadow-sm">
-        <h3 className="mb-4 font-medium text-gray-700">Fitur Paling Sering Diuji</h3>
+      <div className="card p-5">
+        <h3 className="mb-4 font-semibold text-slate-700">Fitur Paling Sering Diuji</h3>
         <div className="space-y-3">
           {(stats?.perFeature ?? []).map((f) => (
             <div key={f.name} className="flex items-center justify-between text-sm">

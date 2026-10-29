@@ -153,18 +153,21 @@ export default function PengujianForm({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-xl font-semibold text-gray-900">Form Pengujian</h1>
-      {error && <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-      {ok && <div className="rounded-lg bg-green-50 p-4 text-sm text-green-700">{ok}</div>}
-      {warn && <div className="rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800">{warn}</div>}
+      <div>
+        <h1 className="page-title">Form Pengujian</h1>
+        <p className="page-subtitle">Catat hasil uji manual — validasi retest berjalan otomatis.</p>
+      </div>
+      {error && <div className="alert-err">{error}</div>}
+      {ok && <div className="alert-ok">{ok}</div>}
+      {warn && <div className="alert-warn">{warn}</div>}
 
-      <form onSubmit={submit} className="space-y-5 rounded-lg bg-white p-6 shadow-sm">
+      <form onSubmit={submit} className="space-y-5 card-pad">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Tanggal Pengujian</label>
-          <input type="date" value={testedAt} max={today()} onChange={(e) => setTestedAt(e.target.value)} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+          <label className="label">Tanggal Pengujian</label>
+          <input type="date" value={testedAt} max={today()} onChange={(e) => setTestedAt(e.target.value)} required className="input" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Apakah ini pengujian ulang?</label>
+          <label className="label">Apakah ini pengujian ulang?</label>
           <div className="mt-2 flex gap-6">
             <label className="inline-flex items-center gap-2 text-sm">
               <input type="radio" checked={!isRetest} onChange={() => { setIsRetest(false); checkNow(featureId, false, role, cycle); }} className="text-indigo-600" /> Tidak
@@ -175,16 +178,16 @@ export default function PengujianForm({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Diuji sebagai peran</label>
-          <select value={role} onChange={(e) => { setRole(e.target.value); checkNow(featureId, isRetest, e.target.value, cycle); }} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+          <label className="label">Diuji sebagai peran</label>
+          <select value={role} onChange={(e) => { setRole(e.target.value); checkNow(featureId, isRetest, e.target.value, cycle); }} required className="input">
             {roles.map((r) => (
               <option key={r.name} value={r.name}>{r.label}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Siklus</label>
-          <select value={cycle} onChange={(e) => { setCycle(e.target.value); checkNow(featureId, isRetest, role, e.target.value); }} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+          <label className="label">Siklus</label>
+          <select value={cycle} onChange={(e) => { setCycle(e.target.value); checkNow(featureId, isRetest, role, e.target.value); }} className="input">
             <option value="">— Tanpa siklus —</option>
             {cycles.map((c) => (
               <option key={c.name} value={c.name}>{c.name}</option>
@@ -192,8 +195,8 @@ export default function PengujianForm({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Fitur yang Diuji</label>
-          <select value={featureId} onChange={(e) => { setFeatureId(e.target.value); checkNow(e.target.value, isRetest, role, cycle); }} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+          <label className="label">Fitur yang Diuji</label>
+          <select value={featureId} onChange={(e) => { setFeatureId(e.target.value); checkNow(e.target.value, isRetest, role, cycle); }} required className="input">
             <option value="">— Pilih fitur —</option>
             {features.map((f) => (
               <option key={f.id} value={f.id}>{f.name}</option>
@@ -209,13 +212,13 @@ export default function PengujianForm({
           </div>
         )}
         {check && messages.length === 0 && featureId && (
-          <div className="rounded-lg bg-green-50 p-4 text-sm text-green-700">Fitur ini siap diuji.</div>
+          <div className="alert-ok">Fitur ini siap diuji.</div>
         )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Status Hasil</label>
-            <select value={result} onChange={(e) => setResult(e.target.value)} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            <label className="label">Status Hasil</label>
+            <select value={result} onChange={(e) => setResult(e.target.value)} required className="input">
               <option value="">— Pilih hasil —</option>
               {RESULTS.map((r) => (
                 <option key={r.value} value={r.value}>{r.label}</option>
@@ -223,8 +226,8 @@ export default function PengujianForm({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Severity (wajib bila Fail/Bug)</label>
-            <select value={severity} onChange={(e) => setSeverity(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            <label className="label">Severity (wajib bila Fail/Bug)</label>
+            <select value={severity} onChange={(e) => setSeverity(e.target.value)} className="input">
               <option value="">— Pilih severity —</option>
               {SEVERITIES.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
@@ -232,43 +235,43 @@ export default function PengujianForm({
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">Lingkungan (opsional)</label>
-            <input value={environment} onChange={(e) => setEnvironment(e.target.value)} placeholder="cth: Chrome 126 / Windows 11" className="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm" />
+            <label className="label">Lingkungan (opsional)</label>
+            <input value={environment} onChange={(e) => setEnvironment(e.target.value)} placeholder="cth: Chrome 126 / Windows 11" className="input" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Yang diharapkan (opsional)</label>
-            <textarea value={expected} onChange={(e) => setExpected(e.target.value)} rows={2} className="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm" />
+            <label className="label">Yang diharapkan (opsional)</label>
+            <textarea value={expected} onChange={(e) => setExpected(e.target.value)} rows={2} className="input" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Yang terjadi (opsional)</label>
-            <textarea value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm" />
+            <label className="label">Yang terjadi (opsional)</label>
+            <textarea value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="input" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Bukti gambar (opsional, maks 2MB)</label>
+            <label className="label">Bukti gambar (opsional, maks 2MB)</label>
             <input type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)} className="mt-1 block w-full text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">atau tautan bukti (opsional)</label>
-            <input type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://..." className="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm" />
+            <label className="label">atau tautan bukti (opsional)</label>
+            <input type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://..." className="input" />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Catatan</label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Wajib diisi minimal 10 karakter jika hasil Fail/Bug" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+          <label className="label">Catatan</label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Wajib diisi minimal 10 karakter jika hasil Fail/Bug" className="input" />
         </div>
 
-        <button type="submit" disabled={saving || (check !== null && !check.allowed)} className="rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="submit" disabled={saving || (check !== null && !check.allowed)} className="btn-dark">
           {saving ? "Menyimpan..." : "Simpan Hasil Pengujian"}
         </button>
       </form>
 
       {check && !check.allowed && check.requiresApproval && (
-        <form onSubmit={requestRetest} className="space-y-4 rounded-lg border border-yellow-200 bg-yellow-50 p-6">
+        <form onSubmit={requestRetest} className="space-y-4 rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
           <h3 className="font-medium text-yellow-900">Ajukan Permohonan Pengujian Ulang</h3>
           <p className="text-sm text-yellow-800">Permohonan akan dikirim ke ketua tim untuk disetujui.</p>
-          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Alasan (opsional)" className="block w-full rounded-md border-yellow-300 text-sm shadow-sm" />
-          <button className="rounded-md bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-700">
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Alasan (opsional)" className="input border-amber-300" />
+          <button className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600">
             Kirim Permohonan
           </button>
         </form>

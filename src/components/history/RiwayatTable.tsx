@@ -86,31 +86,31 @@ export default function RiwayatTable({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Riwayat Pengujian</h1>
-        <a href="/pengujian-baru" className="rounded-md bg-gray-800 px-4 py-2 text-sm text-white hover:bg-gray-700">
+        <h1 className="page-title">Riwayat Pengujian</h1>
+        <a href="/pengujian-baru" className="btn-dark">
           + Pengujian Baru
         </a>
       </div>
 
       {status && <div className="rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800">{status}</div>}
 
-      <div className="rounded-lg bg-white p-5 shadow-sm">
+      <div className="card p-5">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-gray-600">Cari (catatan / fitur / tester)</label>
-            <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void apply(); }} placeholder="cth: login, bug checkout..." className="mt-1 block w-full rounded-md border-gray-300 text-sm" />
+            <label className="block text-xs font-semibold text-slate-500">Cari (catatan / fitur / tester)</label>
+            <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void apply(); }} placeholder="cth: login, bug checkout..." className="input" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600">Dari</label>
-            <input type="date" value={dari} onChange={(e) => setDari(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 text-sm" />
+            <label className="block text-xs font-semibold text-slate-500">Dari</label>
+            <input type="date" value={dari} onChange={(e) => setDari(e.target.value)} className="input" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600">Sampai</label>
-            <input type="date" value={sampai} onChange={(e) => setSampai(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 text-sm" />
+            <label className="block text-xs font-semibold text-slate-500">Sampai</label>
+            <input type="date" value={sampai} onChange={(e) => setSampai(e.target.value)} className="input" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600">Fitur</label>
-            <select value={featureId} onChange={(e) => setFeatureId(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 text-sm">
+            <label className="block text-xs font-semibold text-slate-500">Fitur</label>
+            <select value={featureId} onChange={(e) => setFeatureId(e.target.value)} className="input">
               <option value="">Semua</option>
               {features.map((f) => (
                 <option key={f.id} value={f.id}>{f.name}</option>
@@ -118,8 +118,8 @@ export default function RiwayatTable({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600">Hasil</label>
-            <select value={result} onChange={(e) => setResult(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 text-sm">
+            <label className="block text-xs font-semibold text-slate-500">Hasil</label>
+            <select value={result} onChange={(e) => setResult(e.target.value)} className="input">
               <option value="">Semua</option>
               <option value="pass">Pass</option>
               <option value="fail">Fail</option>
@@ -127,8 +127,8 @@ export default function RiwayatTable({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600">Siklus</label>
-            <select value={cycle} onChange={(e) => setCycle(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 text-sm">
+            <label className="block text-xs font-semibold text-slate-500">Siklus</label>
+            <select value={cycle} onChange={(e) => setCycle(e.target.value)} className="input">
               <option value="">Semua</option>
               {cycles.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -136,33 +136,33 @@ export default function RiwayatTable({
             </select>
           </div>
           <div className="flex items-end gap-3">
-            <button onClick={() => void apply()} className="rounded-md bg-gray-800 px-4 py-2 text-sm text-white hover:bg-gray-700">Filter</button>
+            <button onClick={() => void apply()} className="btn-dark">Filter</button>
             <button onClick={reset} className="text-sm text-gray-600 hover:underline">Reset</button>
           </div>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <a href={exportHref()} className="rounded-md bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700">Export CSV</a>
-        <button onClick={() => window.print()} className="rounded-md bg-rose-600 px-4 py-2 text-sm text-white hover:bg-rose-700">Export PDF</button>
+        <a href={exportHref()} className="btn-success-solid">Export CSV</a>
+        <button onClick={() => window.print()} className="btn-danger-soft">Export PDF</button>
       </div>
 
-      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+      <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600">
+            <thead className="table-head">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">Tanggal</th>
-                {isKetua && <th className="px-4 py-3 text-left font-medium">Tester</th>}
-                <th className="px-4 py-3 text-left font-medium">Peran</th>
-                <th className="px-4 py-3 text-left font-medium">Siklus</th>
-                <th className="px-4 py-3 text-left font-medium">Fitur</th>
-                <th className="px-4 py-3 text-left font-medium">Hasil</th>
-                <th className="px-4 py-3 text-left font-medium">Severity</th>
-                <th className="px-4 py-3 text-left font-medium">Ulang</th>
-                <th className="px-4 py-3 text-left font-medium">Disetujui oleh</th>
-                <th className="px-4 py-3 text-left font-medium">Bukti</th>
-                <th className="px-4 py-3 text-left font-medium">Catatan</th>
+                <th className="table-th">Tanggal</th>
+                {isKetua && <th className="table-th">Tester</th>}
+                <th className="table-th">Peran</th>
+                <th className="table-th">Siklus</th>
+                <th className="table-th">Fitur</th>
+                <th className="table-th">Hasil</th>
+                <th className="table-th">Severity</th>
+                <th className="table-th">Ulang</th>
+                <th className="table-th">Disetujui oleh</th>
+                <th className="table-th">Bukti</th>
+                <th className="table-th">Catatan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

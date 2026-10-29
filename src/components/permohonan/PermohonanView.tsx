@@ -63,11 +63,11 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-gray-900">Permohonan Pengujian Ulang</h1>
-      {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-      {info && <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">{info}</div>}
+      <h1 className="page-title">Permohonan Pengujian Ulang</h1>
+      {error && <div className="alert-err">{error}</div>}
+      {info && <div className="alert-ok">{info}</div>}
 
-      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+      <div className="card overflow-hidden">
         <div className="border-b border-gray-100 p-5">
           <h3 className="font-medium text-gray-700">Menunggu Persetujuan ({pending.length})</h3>
         </div>
@@ -83,7 +83,7 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
                 {r.reason && <div className="text-sm text-gray-600">Alasan: {r.reason}</div>}
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button onClick={() => act(r.id, "approve")} className="rounded-md bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700">
+                <button onClick={() => act(r.id, "approve")} className="btn-success-solid">
                   Setujui
                 </button>
                 <input
@@ -92,7 +92,7 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
                   placeholder="Alasan penolakan"
                   className="rounded-md border-gray-300 text-sm"
                 />
-                <button onClick={() => act(r.id, "reject")} className="rounded-md bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700">
+                <button onClick={() => act(r.id, "reject")} className="btn-danger-soft">
                   Tolak
                 </button>
               </div>
@@ -101,7 +101,7 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+      <div className="card overflow-hidden">
         <div className="border-b border-gray-100 p-5">
           <h3 className="font-medium text-gray-700">Riwayat Permohonan</h3>
         </div>
