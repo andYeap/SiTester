@@ -42,7 +42,7 @@ Autentikasi: login email + password, sesi opak di cookie httpOnly (hash scrypt, 
 ## 3. Fitur Utama
 
 ### F1 — Form Pengujian
-Field: **Tanggal Pengujian** (≤ hari ini), **Pengujian Ulang?** (ya/tidak), **Diuji sebagai peran** (dropdown master), **Siklus** (dropdown master, opsional), **Fitur** (dropdown aktif), **Status** (`Pass`/`Fail`/`Bug`), **Severity** (wajib bila Fail/Bug), **Lingkungan**, **Diharapkan**, **Terjadi**, **Catatan** (wajib ≥10 karakter bila Fail/Bug), **Bukti** (file gambar ≤2MB dan/atau URL).
+Field: **Tanggal Pengujian** (≤ hari ini), **Pengujian Ulang?** (ya/tidak), **Diuji sebagai peran** (dropdown master), **Siklus** (dropdown master, opsional), **Proyek** (filter dropdown, opsional), **Fitur** (combobox cari + grup per proyek; cocok nama/deskripsi/proyek), **Status Hasil** (`Pass`/`Fail`/`Bug`), **Severity** (wajib bila Fail/Bug), **Lingkungan**, **Diharapkan**, **Terjadi**, **Catatan** (wajib ≥10 karakter bila Fail/Bug), **Bukti** (file ≤2MB dan/atau URL).
 
 Aturan: Pass tanpa retest → blokir bila sudah Pass dalam scope; Pass + retest → butuh approval aktif; Fail/Bug → otomatis boleh.
 
