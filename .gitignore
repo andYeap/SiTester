@@ -36,6 +36,9 @@ yarn-error.log*
 # local uploads (dev only; prod uses Vercel Blob)
 /uploads/
 
+# local database backups
+/backups/
+
 # vercel
 .vercel
 

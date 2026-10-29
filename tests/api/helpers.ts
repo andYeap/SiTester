@@ -1,9 +1,10 @@
 import { createHash, randomBytes } from "node:crypto";
 
+import { cookieStore } from "./cookie-store";
 import { query } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 
-import { cookieStore } from "./cookie-store";
+export { cookieStore };
 
 export const uid = () => randomBytes(4).toString("hex");
 

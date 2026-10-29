@@ -85,29 +85,33 @@ Semua create/update/delete (dan verifikasi) fitur, peran, siklus, pengguna terca
 | BR-2 | Hasil terakhir Fail/Bug boleh diuji ulang otomatis |
 | BR-3 | Approval single-use per (fitur, peminta, peran), konsumsi atomik, kedaluwarsa 7 hari |
 | BR-4 | Submit retest tanpa approval aktif → ditolak (422) |
-| BR-5 | Tanggal tidak boleh > hari ini |
+| BR-5 | Tanggal tidak boleh > hari ini (zona waktu Asia/Jakarta) |
 | BR-6 | Fail/Bug wajib catatan ≥10 karakter + severity |
-| BR-7 | Permohonan pending ganda (fitur + peran) ditolak |
+| BR-7 | Permohonan pending ganda (fitur + peran) ditolak; permohonan kedaluwarsa 7 hari |
 | BR-8 | Riwayat append-only |
 | BR-9 | Login dibatasi: 10x gagal / 15 menit per email → 429 |
+| BR-10 | Satu akun hanya boleh punya 1 sesi aktif; login baru mencabut sesi lama |
 
 ---
 
 ## 5. Non-Fungsional
-- Guard server di setiap route/API: tester vs ketua; tester hanya data miliknya (kecuali agregat tim + daftar master untuk dropdown).
+- Guard server di setiap route/API: tester vs ketua; tester hanya data miliknya (kecuali agregat tim + daftar master untuk dropdown). Bukti upload hanya bisa diakses saat login.
+- Semua tanggal/logika harian memakai zona waktu Asia/Jakarta.
 - Indeks: `(feature_id, tested_as_role, tested_at)`, `(feature_id, tested_as_role, status)`, `(test_cycle, tested_at)`, `(severity)`.
 - Pool Postgres `PG_POOL_MAX=5` di serverless; SSL non-lokal.
 - Upload: Vercel Blob bila token ada, else disk lokal (dev).
+- Header keamanan: nosniff, same-origin referrer, DENY framing, HSTS, Permissions-Policy minimal.
+- Backup DB mingguan via `scripts/backup.sh` (pg_dump format custom; restore terverifikasi).
 
 ---
 
 ## 6. Out of Scope (v2)
-Multi-proyek multi-tim enterprise, SSO, notifikasi email, komentar diskusi, multi-file attachment (1 file + 1 URL), otomasi eksekusi test case, uji otomatis e2e (cukup unit aturan retest + verifikasi manual).
+Multi-proyek multi-tim enterprise, SSO, notifikasi email, komentar diskusi, multi-file attachment (1 file + 1 URL), otomasi eksekusi test case.
 
 ---
 
 ## 7. Rencana Implementasi
-Lihat `PLAN.md` (7 task: fondasi DB+seed → auth+shell → aturan retest+unit test → master → form+retest+notifikasi → riwayat+dashboard → export+bukti+deploy docs).
+Lihat `PLAN.md` (fondasi DB+seed → auth+shell → aturan retest+unit test → master → form+retest+notifikasi → riwayat+dashboard → export+bukti+deploy docs → hardening lanjutan).
 
 ## 8. Verifikasi
 - `npx vitest run` hijau (aturan retest).

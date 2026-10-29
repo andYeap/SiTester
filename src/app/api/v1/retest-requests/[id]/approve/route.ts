@@ -20,8 +20,9 @@ export async function PATCH(
         feature_id: number;
         tested_as_role: string;
         status: string;
+        expires_at: string;
       }>(
-        `SELECT id, user_id, feature_id, tested_as_role, status FROM retest_requests WHERE id=$1 FOR UPDATE`,
+        `SELECT id, user_id, feature_id, tested_as_role, status, expires_at FROM retest_requests WHERE id=$1 FOR UPDATE`,
         [Number(id)],
       );
       if (found.rows.length === 0) {
@@ -30,6 +31,9 @@ export async function PATCH(
       const req = found.rows[0];
       if (req.status !== "pending") {
         throw Object.assign(new Error("Permohonan ini sudah diproses."), { status: 422 });
+      }
+      if (new Date(req.expires_at).getTime() <= Date.now()) {
+        throw Object.assign(new Error("Permohonan ini sudah kedaluwarsa. Silakan ajukan permohonan baru."), { status: 410 });
       }
 
       await client.query(

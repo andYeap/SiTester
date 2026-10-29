@@ -69,12 +69,12 @@ export async function GET(
 
   const pending = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM retest_requests
-      WHERE feature_id=$1 AND status='pending'`,
+      WHERE feature_id=$1 AND status='pending' AND expires_at > now()`,
     [feature.id],
   );
   const ownPending = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM retest_requests
-      WHERE feature_id=$1 AND user_id=$2 AND status='pending'`,
+      WHERE feature_id=$1 AND user_id=$2 AND status='pending' AND expires_at > now()`,
     [feature.id, user.id],
   );
 

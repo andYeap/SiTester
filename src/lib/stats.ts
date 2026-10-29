@@ -1,4 +1,5 @@
 import { query, queryOne } from "@/lib/db";
+import { addDays, dayMonthLabel, todayString } from "@/lib/time";
 
 export type StatsRange = 7 | 30;
 
@@ -46,7 +47,8 @@ export async function getDashboardStats(
   range: StatsRange,
   cycle: string | null,
 ): Promise<DashboardStats> {
-  const month = new Date().toISOString().slice(0, 7) + "-01";
+  const today = todayString();
+  const month = today.slice(0, 7) + "-01";
   const count = (
     extra: string,
     ...params: unknown[]
@@ -86,22 +88,19 @@ export async function getDashboardStats(
   );
 
   const d = scoped("s", isKetua, userId, cycle, 2);
+  const startDate = addDays(today, -(range - 1));
   const daily = await query<{ day: string; n: string }>(
     `SELECT s.tested_at::text AS day, count(*)::text AS n FROM test_sessions s
-      WHERE s.tested_at >= CURRENT_DATE - make_interval(days => $1) ${d.cond}
+      WHERE s.tested_at >= $1::date ${d.cond}
       GROUP BY s.tested_at`,
-    [range - 1, ...d.vals],
+    [startDate, ...d.vals],
   );
   const byDate = new Map(daily.map((r) => [r.day, Number(r.n)]));
   const labels: string[] = [];
   const values: number[] = [];
   for (let i = range - 1; i >= 0; i--) {
-    const dt = new Date();
-    dt.setDate(dt.getDate() - i);
-    const iso = dt.toISOString().slice(0, 10);
-    labels.push(
-      `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}`,
-    );
+    const iso = addDays(today, -i);
+    labels.push(dayMonthLabel(iso));
     values.push(byDate.get(iso) ?? 0);
   }
 

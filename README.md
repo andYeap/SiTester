@@ -57,6 +57,22 @@ Catatan produksi:
 - Sesi disimpan di database, logout benar-benar mencabut akses.
 - Jangan set `PG_POOL_MAX` tinggi di serverless.
 
+## Backup mingguan (disarankan)
+
+Jadwalkan cron mingguan di mesin yang punya docker + akses DB:
+
+```cron
+0 2 * * 0 cd /path/ke/sitester && DATABASE_URL='postgres://...' ./scripts/backup.sh >> backups/backup.log 2>&1
+```
+
+Restore ke database kosong (sudah terverifikasi):
+
+```bash
+docker run --rm -i --add-host=host.docker.internal:host-gateway \
+  -v "$PWD/backups:/b:ro" postgres:16-alpine \
+  pg_restore --clean --if-exists -d "$DATABASE_URL" /b/<file-dump>
+```
+
 ## Skrip
 
 | Skrip | Fungsi |
@@ -65,6 +81,15 @@ Catatan produksi:
 | `npm run build` / `npm start` | Build + production server |
 | `npm test` | Semua test: unit + API (butuh Postgres; default DB `testlab_test` lokal, override via `TEST_DATABASE_URL`) |
 | `npm run test:api` | Hanya test API |
-| `npm run db:migrate` | Terapkan skema (idempoten) |
+| `npm run db:migrate` | Terapkan skema (idempoten, ke DB lokal) |
 | `npm run db:seed` | Data demo (idempoten) |
+| `DATABASE_URL=... ./scripts/backup.sh` | Backup DB (pg_dump via docker ke `backups/`) |
 | `npm run lint` | ESLint |
+
+> **Penting soal `.env`**: JANGAN membuat file bernama `.env` di folder ini.
+> Node `--env-file` dan Next.js menggabungkan `.env` + `.env.local` dengan
+> aturan prioritas BERBEDA per tool — akibatnya perintah migrate bisa lari
+> ke database production sementara web server lari ke lokal (atau sebaliknya).
+> Kredensial Neon disimpan di `.env.neon` (tidak pernah dibaca otomatis);
+> pakai eksplisit per perintah, contoh:
+> `DATABASE_URL="$(grep ^DATABASE_URL .env.neon | cut -d= -f2-)" npm run db:migrate`

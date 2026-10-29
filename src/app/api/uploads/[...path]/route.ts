@@ -1,12 +1,19 @@
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
+import { NextResponse } from "next/server";
 
+import { getSessionUser } from "@/lib/auth";
 import { localUploadPath } from "@/lib/storage";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ path: string[] }> },
 ) {
+  // Bukti uji hanya boleh dilihat pengguna yang sedang login.
+  if (!(await getSessionUser())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { path } = await params;
   if (!path || path.length !== 1 || path[0].includes("..")) {
     return new Response("Not found", { status: 404 });

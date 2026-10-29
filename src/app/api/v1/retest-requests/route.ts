@@ -12,7 +12,7 @@ export async function GET() {
        FROM retest_requests r
        JOIN features f ON f.id = r.feature_id
        JOIN users u ON u.id = r.user_id
-      WHERE r.status='pending' ORDER BY r.created_at DESC`,
+      WHERE r.status='pending' AND r.expires_at > now() ORDER BY r.created_at DESC`,
   );
   const reviewed = await query(
     `SELECT r.id, r.status, r.reason, r.rejection_reason, r.reviewed_at, r.tested_as_role,
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
   const dup = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM retest_requests
-      WHERE feature_id=$1 AND tested_as_role=$2 AND status='pending'`,
+      WHERE feature_id=$1 AND tested_as_role=$2 AND status='pending' AND expires_at > now()`,
     [featureId, role],
   );
   if (dup[0].n !== "0") {

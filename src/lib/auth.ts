@@ -30,6 +30,8 @@ export async function createSession(
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
 
+  // Satu akun = satu sesi aktif. Login baru mencabut sesi lama.
+  await query(`DELETE FROM sessions WHERE user_id = $1`, [userId]);
   await query(
     `INSERT INTO sessions (id, user_id, expires_at, user_agent, ip)
      VALUES ($1, $2, $3, $4, $5)`,

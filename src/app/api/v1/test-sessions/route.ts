@@ -5,6 +5,7 @@ import { query, queryOne, withTransaction } from "@/lib/db";
 import { getSessions } from "@/lib/history";
 import { canTest, type TestResult } from "@/lib/retest";
 import { saveEvidence } from "@/lib/storage";
+import { todayString } from "@/lib/time";
 
 export async function GET(request: Request) {
   const user = await needUser();
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
 
 const RESULTS = ["pass", "fail", "bug"] as const;
 const SEVERITIES = ["low", "medium", "high", "critical"] as const;
-const TODAY = () => new Date().toISOString().slice(0, 10);
+const TODAY = () => todayString();
 
 export async function POST(request: Request) {
   const user = await needUser();

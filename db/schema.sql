@@ -163,3 +163,11 @@ ALTER TABLE retest_approvals
 UPDATE retest_approvals
    SET expires_at = created_at + make_interval(days => 7)
  WHERE expires_at IS NULL;
+
+-- Permohonan pengujian ulang kedaluwarsa 7 hari agar tidak menggantung selamanya.
+ALTER TABLE retest_requests
+  ADD COLUMN IF NOT EXISTS expires_at timestamptz NOT NULL DEFAULT (now() + make_interval(days => 7));
+
+UPDATE retest_requests
+  SET expires_at = created_at + make_interval(days => 7)
+  WHERE expires_at IS NULL;

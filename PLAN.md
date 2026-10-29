@@ -128,6 +128,14 @@ API `limit` (default 50, maks 5000 untuk ekspor) + `offset`, respons `{sessions,
 ### Task 13: PDF satu-klik — DONE
 `jspdf`+`autotable` client-side dari data terfilter (di RiwayatTable), nama file `laporan-pengujian-YYYYMMDDHHmmss.pdf`; unit test builder baris + nama file.
 
+### Task 14: Hardening lanjutan — DONE
+- Zona waktu tunggal Asia/Jakarta (`lib/time.ts` + test): validasi tanggal, label & window grafik dashboard, default date-picker.
+- Permohonan kedaluwarsa 7 hari: kolom `expires_at` di `retest_requests`, diabaikan bila kedaluwarsa (daftar, can-test, ajukan ulang boleh lagi), approve/reject menolak yang kedaluwarsa (410).
+- Upload butuh login (`/api/uploads` 401 bila anon).
+- Header keamanan di `next.config.ts` (nosniff, referrer, DENY framing, Permissions-Policy, HSTS).
+- Backup mingguan: `scripts/backup.sh` (pg_dump via docker, format custom) + restore terverifikasi ke DB kosong; cron mingguan disarankan.
+- Satu akun = satu sesi aktif: login baru mencabut sesi lama (`createSession` hapus sesi lama dulu) + test.
+
 ## Self-Review
 
 - Spec coverage: auth+roles (T2), retest inti+scope (T3+T5), master 4 entitas (T4), form 14 field (T5), riwayat+filter (T6), dashboard+grafik (T6), export CSV/PDF (T7), notifikasi (T5), seed (T1). Semua BR + perluasan tercakup.

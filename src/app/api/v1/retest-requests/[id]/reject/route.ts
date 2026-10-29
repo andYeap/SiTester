@@ -21,13 +21,16 @@ export async function PATCH(
     return err("Alasan penolakan wajib diisi.", 422);
   }
 
-  const req = await queryOne<{ id: number; user_id: string; status: string }>(
-    `SELECT id, user_id, status FROM retest_requests WHERE id=$1`,
+  const req = await queryOne<{ id: number; user_id: string; status: string; expires_at: string }>(
+    `SELECT id, user_id, status, expires_at FROM retest_requests WHERE id=$1`,
     [Number(id)],
   );
   if (!req) return err("Permohonan tidak ditemukan.", 404);
   if (req.status !== "pending") {
     return err("Permohonan ini sudah diproses.", 422);
+  }
+  if (new Date(req.expires_at).getTime() <= Date.now()) {
+    return err("Permohonan ini sudah kedaluwarsa.", 410);
   }
 
   await query(

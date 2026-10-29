@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { todayString } from "@/lib/time";
+
 type Feature = { id: number; name: string; project_name: string | null };
 type Role = { name: string; label: string };
 type Cycle = { name: string };
@@ -28,7 +30,7 @@ const SEVERITIES = [
   { value: "critical", label: "Critical" },
 ];
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayString();
 
 export default function PengujianForm({
   initialFeatures,
