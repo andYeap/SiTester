@@ -35,7 +35,7 @@ Website internal untuk mencatat aktivitas pengujian fitur secara berkelompok, me
 | **Tester** | Isi form pengujian, lihat data miliknya + grafik, ajukan pengujian ulang, usul fitur baru |
 | **Ketua Tim** | Semua hak Tester + setujui/tolak permohonan, lihat semua data, kelola fitur/pengguna/peran/siklus, verifikasi usulan fitur |
 
-Autentikasi: login email + password, sesi opak di cookie httpOnly (hash scrypt, token SHA-256 di DB).
+Autentikasi: login email + password, sesi opak di cookie httpOnly (hash scrypt, token SHA-256 di DB). Sesi 8 jam; opsi "Ingat saya" 30 hari (tidak untuk komputer bersama). Satu akun satu sesi aktif (login baru mencabut sesi lama).
 
 ---
 
