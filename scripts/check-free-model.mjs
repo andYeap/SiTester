@@ -1,4 +1,8 @@
 // Cek model gratis: OpenRouter (vision/tools/uptime) atau Google Gemini free tier.
+import { existsSync } from "node:fs";
+
+if (existsSync(".env.local")) process.loadEnvFile(".env.local");
+
 const provider = process.env.E2E_PROVIDER ?? "openrouter";
 const id =
   process.env.E2E_MODEL ??

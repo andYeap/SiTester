@@ -37,6 +37,14 @@ export default function AiRunsView() {
   const [featureId, setFeatureId] = useState("");
   const [role, setRole] = useState("tester");
   const [cycle, setCycle] = useState("");
+  const [useLogin, setUseLogin] = useState(false);
+  const [loginUrl, setLoginUrl] = useState("");
+  const [loginGoal, setLoginGoal] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginEmailLabel, setLoginEmailLabel] = useState("Email");
+  const [loginPasswordLabel, setLoginPasswordLabel] = useState("Kata sandi");
+  const [loginSubmitLabel, setLoginSubmitLabel] = useState("Masuk");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -89,6 +97,18 @@ export default function AiRunsView() {
           feature_id: Number(featureId),
           tested_as_role: role,
           test_cycle: cycle || null,
+          use_login: useLogin,
+          ...(useLogin
+            ? {
+                login_url: loginUrl || null,
+                login_goal: loginGoal || null,
+                login_email: loginEmail || null,
+                login_password: loginPassword || null,
+                login_email_label: loginEmailLabel || null,
+                login_password_label: loginPasswordLabel || null,
+                login_submit_label: loginSubmitLabel || null,
+              }
+            : {}),
         }),
       });
       const data = (await res.json()) as { error?: string };
@@ -98,6 +118,8 @@ export default function AiRunsView() {
       );
       setGoal("");
       setCriteria("");
+      setLoginEmail("");
+      setLoginPassword("");
       await loadRuns();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal membuat AI test.");
@@ -163,6 +185,116 @@ export default function AiRunsView() {
             className="input"
           />
           <p className="hint">Dipakai agent untuk menentukan Pass/Fail.</p>
+        </div>
+
+        <div className="lg:col-span-2 rounded-lg border border-neutral-200 p-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={useLogin}
+              onChange={(e) => setUseLogin(e.target.checked)}
+              className="mt-1"
+            />
+            <span>
+              <span className="font-medium text-neutral-800">Perlu login ke target</span>
+              <span className="mt-1 block text-xs text-neutral-500">
+                Agen login dulu sebelum menjalankan tujuan pengujian. Kredensial
+                opsional; jika kosong, runner memakai AI_TARGET_EMAIL/PASSWORD.
+                Kredensial disimpan terenkripsi dan dihapus setelah run selesai.
+              </span>
+            </span>
+          </label>
+
+          {useLogin && (
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label htmlFor="ai-login-url" className="label">URL login (opsional)</label>
+                <input
+                  id="ai-login-url"
+                  type="url"
+                  value={loginUrl}
+                  onChange={(e) => setLoginUrl(e.target.value)}
+                  placeholder="https://target.test/login"
+                  className="input"
+                />
+                <p className="hint">Kosongkan jika login dilakukan di URL target.</p>
+              </div>
+              <div>
+                <label htmlFor="ai-login-email" className="label">Email target</label>
+                <input
+                  id="ai-login-email"
+                  type="email"
+                  autoComplete="off"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="akun-tester@contoh.test"
+                  className="input"
+                />
+              </div>
+              <div>
+                <label htmlFor="ai-login-password" className="label">Password target</label>
+                <input
+                  id="ai-login-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="input"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="ai-login-goal" className="label">Instruksi login (opsional)</label>
+                <input
+                  id="ai-login-goal"
+                  type="text"
+                  maxLength={1000}
+                  value={loginGoal}
+                  onChange={(e) => setLoginGoal(e.target.value)}
+                  placeholder="login dengan email {email} dan password {password} lalu klik Masuk"
+                  className="input"
+                />
+                <p className="hint">Dipakai jika selector di bawah tidak lengkap.</p>
+              </div>
+              <div>
+                <label htmlFor="ai-login-email-label" className="label">Label field email</label>
+                <input
+                  id="ai-login-email-label"
+                  type="text"
+                  maxLength={200}
+                  value={loginEmailLabel}
+                  onChange={(e) => setLoginEmailLabel(e.target.value)}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label htmlFor="ai-login-password-label" className="label">Label field password</label>
+                <input
+                  id="ai-login-password-label"
+                  type="text"
+                  maxLength={200}
+                  value={loginPasswordLabel}
+                  onChange={(e) => setLoginPasswordLabel(e.target.value)}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label htmlFor="ai-login-submit-label" className="label">Label tombol login</label>
+                <input
+                  id="ai-login-submit-label"
+                  type="text"
+                  maxLength={200}
+                  value={loginSubmitLabel}
+                  onChange={(e) => setLoginSubmitLabel(e.target.value)}
+                  className="input"
+                />
+              </div>
+              <p className="hint sm:col-span-2">
+                Isi ketiga label untuk login deterministik (lebih cepat dan stabil).
+                Kosongkan semuanya jika ingin agent AI mencari field login sendiri.
+              </p>
+            </div>
+          )}
         </div>
         <div>
           <label htmlFor="ai-feature" className="label">Fitur di SITester</label>

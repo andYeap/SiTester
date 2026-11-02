@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { err, needUser } from "@/lib/api";
+import {
+  credentialsConfigured,
+  encryptCredentials,
+} from "@/lib/ai-credentials";
 import { query, queryOne } from "@/lib/db";
 
 const MAX_PENDING = 3;
@@ -14,6 +18,17 @@ function validTarget(raw: string): string | null {
   } catch {
     return null;
   }
+}
+
+function text(
+  value: unknown,
+  max: number,
+  { trim = true }: { trim?: boolean } = {},
+): string | null {
+  if (typeof value !== "string") return null;
+  const out = trim ? value.trim() : value;
+  if (out.length === 0) return null;
+  return out.slice(0, max);
 }
 
 export async function GET() {
@@ -67,6 +82,14 @@ export async function POST(request: Request) {
     feature_id?: unknown;
     tested_as_role?: unknown;
     test_cycle?: unknown;
+    use_login?: unknown;
+    login_url?: unknown;
+    login_goal?: unknown;
+    login_email?: unknown;
+    login_password?: unknown;
+    login_email_label?: unknown;
+    login_password_label?: unknown;
+    login_submit_label?: unknown;
   } | null;
 
   const targetUrl = validTarget(
@@ -83,6 +106,46 @@ export async function POST(request: Request) {
     typeof body?.test_cycle === "string" && body.test_cycle.trim() !== ""
       ? body.test_cycle.trim()
       : null;
+
+  const useLogin = body?.use_login === true;
+  let loginUrl: string | null = null;
+  let loginGoal: string | null = null;
+  let loginEmailLabel: string | null = null;
+  let loginPasswordLabel: string | null = null;
+  let loginSubmitLabel: string | null = null;
+  let loginCredentials: string | null = null;
+
+  if (useLogin) {
+    const loginUrlRaw = text(body?.login_url, 2000);
+    if (loginUrlRaw) {
+      loginUrl = validTarget(loginUrlRaw);
+      if (!loginUrl) {
+        return err("URL login harus http(s) yang valid.", 422);
+      }
+    }
+    loginGoal = text(body?.login_goal, 1000);
+    loginEmailLabel = text(body?.login_email_label, 200);
+    loginPasswordLabel = text(body?.login_password_label, 200);
+    loginSubmitLabel = text(body?.login_submit_label, 200);
+
+    const email = text(body?.login_email, 320);
+    const password = text(body?.login_password, 500, { trim: false });
+    if (email || password) {
+      if (!email || !password) {
+        return err("Email dan password target harus diisi keduanya.", 422);
+      }
+      if (!credentialsConfigured()) {
+        return err(
+          "Penyimpanan kredensial belum dikonfigurasi. Hubungi administrator.",
+          422,
+        );
+      }
+      loginCredentials = encryptCredentials({ email, password });
+      if (!loginCredentials) {
+        return err("Gagal menyimpan kredensial target.", 422);
+      }
+    }
+  }
 
   if (!targetUrl) {
     return err("URL target harus http(s) yang valid (maks 2000).", 422);
@@ -148,9 +211,27 @@ export async function POST(request: Request) {
 
   const inserted = await queryOne<{ id: string }>(
     `INSERT INTO ai_test_runs
-      (created_by, target_url, goal, success_criteria, feature_id, tested_as_role, test_cycle, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,'queued') RETURNING id`,
-    [user.id, targetUrl, goal, criteria, featureId, role, cycle],
+      (created_by, target_url, goal, success_criteria, feature_id, tested_as_role,
+       test_cycle, status, use_login, login_url, login_goal, login_email_label,
+       login_password_label, login_submit_label, login_credentials_enc)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,'queued',$8,$9,$10,$11,$12,$13,$14)
+     RETURNING id`,
+    [
+      user.id,
+      targetUrl,
+      goal,
+      criteria,
+      featureId,
+      role,
+      cycle,
+      useLogin,
+      loginUrl,
+      loginGoal,
+      loginEmailLabel,
+      loginPasswordLabel,
+      loginSubmitLabel,
+      loginCredentials,
+    ],
   );
 
   return NextResponse.json({ ok: true, id: Number(inserted?.id) }, { status: 201 });

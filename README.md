@@ -113,6 +113,19 @@ terhadap target, lalu mengirim hasil + screenshot. Hasil masuk sebagai
 **draft** yang harus dikonfirmasi lewat form pengujian (aturan retest tetap
 berlaku).
 
+**Login target per-run** (opsional):
+- Centang **“Perlu login ke target”** di `/ai-test`.
+- Isi URL login, email/password target, dan instruksi login.
+- Isi ketiga label (`Email`, `Kata sandi`, `Masuk`) untuk login **deterministik**
+  memakai `getByLabel`/`getByRole`; kosongkan untuk menyerahkan login ke agent AI.
+- Kredensial disimpan **terenkripsi AES-256-GCM** di DB (`login_credentials_enc`),
+  hanya dikirim ke runner untuk run tersebut, tidak pernah masuk prompt/model,
+  dan dihapus saat hasil dikirim.
+- Jika email/password per-run kosong, runner memakai fallback
+  `AI_TARGET_EMAIL/PASSWORD`. Jika “Perlu login” tidak dicentang, login dilewati.
+- Kunci enkripsi memakai `AI_CREDENTIALS_KEY` bila ada; jika tidak, diturunkan
+  dari `AI_RUNNER_TOKEN`. Tidak perlu env baru agar tetap mudah.
+
 **Mengapa runner terpisah?** Vercel Functions tidak cocok menjalankan
 Chromium penuh (ukuran/timeout). Vercel hanya menyimpan antrean dan hasil.
 
@@ -127,7 +140,8 @@ OPENROUTER_API_KEY=...           # jika provider openrouter
 GOOGLE_GENERATIVE_AI_API_KEY=... # jika provider google
 E2E_MODEL=nvidia/nemotron-3.5-super-vl:free   # google: gemini-3.8-flash
 
-# opsional, kredensial login target (tidak masuk DB/model)
+# opsional, fallback kredensial login target untuk semua run
+# (dipakai hanya jika run mencentang "Perlu login" dan tidak mengisi kredensial)
 AI_TARGET_EMAIL=...
 AI_TARGET_PASSWORD=...
 ```

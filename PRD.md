@@ -141,12 +141,13 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 - Tetap satu sesi aktif per akun (BR-10); reset password mencabut semua sesi.
 
 ### F16 — AI Test Run
-- Halaman `/ai-test`: URL target (http/https), tujuan natural language, kriteria berhasil, fitur/peran/siklus.
+- Halaman `/ai-test`: URL target (http/https), tujuan natural language, kriteria berhasil, fitur/peran/siklus, serta opsi **login target per-run** (URL login, email/password, instruksi, dan label field untuk login deterministik).
 - Run `queued` di `ai_test_runs`; runner eksternal mengambil lewat `GET /api/v1/ai-runs/next` dengan Bearer `AI_RUNNER_TOKEN` (atomik; run macet >15 menit dikembalikan ke antrean).
-- Runner menjalankan e2e TesterArmy (Chromium + model gratis OpenRouter), mengambil screenshot, lalu `POST /api/v1/ai-runs/{id}/result`.
+- Runner menjalankan e2e TesterArmy (Chromium + model gratis OpenRouter/Google Gemini), mengambil screenshot, lalu `POST /api/v1/ai-runs/{id}/result`.
 - Hasil adalah **draft**: user klik `Konfirmasi` → `/pengujian-baru?ai_run=...` (form terisi hasil, severity, catatan, bukti) → submit memakai aturan retest/approval yang sama dan menandai run `confirmed`.
 - Target publik/localhost/internal diperbolehkan karena browser berjalan di runner, bukan Vercel.
-- Kredensial login target hanya di env runner (`AI_TARGET_EMAIL/PASSWORD`), tidak masuk DB/model.
+- Kredensial login target **per-run** disimpan terenkripsi AES-256-GCM di `ai_test_runs.login_credentials_enc`, hanya dikirim ke runner saat run diklaim, tidak masuk prompt/model, dan dihapus saat hasil dikirim. Fallback `AI_TARGET_EMAIL/PASSWORD` hanya dipakai jika run meminta login tanpa kredensial per-run.
+- Login deterministik memakai label field (`login_email_label`, `login_password_label`, `login_submit_label`); jika label tidak lengkap, agent AI menjalankan `login_goal`.
 - Gratis: runner di VPS/laptop 24 jam atau GitHub Actions terjadwal tiap 5 menit; Vercel hanya antrean/UI.
 - Keamanan: token runner wajib sama di Vercel + runner; waspadai prompt injection dari halaman target, gunakan akun tester hak minimal.
 
@@ -165,6 +166,7 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 | BR-17 | PDF mengikuti filter yang sama dengan CSV (semua hasil terfilter, maks 5000) |
 | BR-18 | Bukti upload divalidasi magic bytes; produksi tanpa Blob = tolak |
 | BR-19 | Rate limit login: 10/15 menit per email, 30/15 menit per IP |
+| BR-20 | Kredensial login target per-run disimpan terenkripsi AES-256-GCM, tidak pernah dikirim ke model, dan dihapus saat hasil AI run dikirim |
 
 Aturan BR-1..BR-10 dari v2 tetap berlaku.
 

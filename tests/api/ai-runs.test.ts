@@ -156,6 +156,83 @@ describe("AI test runs", () => {
     expect(again.status).toBe(422);
   });
 
+  it("login target per-run: kredensial terenkripsi, dikirim ke runner, lalu dihapus", async () => {
+    await resetDb();
+    const tester = await createUser(undefined, "tester");
+    const f = await feature();
+    await loginAs(tester.email);
+
+    const createRes = await createRun(
+      json({
+        target_url: "https://example.test/app",
+        goal: "buka dashboard dan pastikan tabel tampil",
+        success_criteria: "tabel terlihat",
+        feature_id: f.id,
+        tested_as_role: "tester",
+        use_login: true,
+        login_url: "https://example.test/login",
+        login_email: "target@example.test",
+        login_password: "rahasia-target-123",
+        login_email_label: "Email",
+        login_password_label: "Kata sandi",
+        login_submit_label: "Masuk",
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const created = (await createRes.json()) as { id: number };
+
+    const stored = await query<{ enc: string | null }>(
+      `SELECT login_credentials_enc AS enc FROM ai_test_runs WHERE id=$1`,
+      [created.id],
+    );
+    expect(stored[0].enc).toBeTruthy();
+    expect(stored[0].enc).not.toContain("target@example.test");
+    expect(stored[0].enc).not.toContain("rahasia-target-123");
+
+    const claimedRes = await nextRun(
+      runnerRequest("http://test/api/v1/ai-runs/next"),
+    );
+    expect(claimedRes.status).toBe(200);
+    const claimed = (await claimedRes.json()) as {
+      run: {
+        id: number;
+        use_login: boolean;
+        login_email: string;
+        login_password: string;
+        login_credentials_enc?: string;
+      };
+    };
+    expect(claimed.run.id).toBe(created.id);
+    expect(claimed.run.use_login).toBe(true);
+    expect(claimed.run.login_email).toBe("target@example.test");
+    expect(claimed.run.login_password).toBe("rahasia-target-123");
+    expect(claimed.run.login_credentials_enc).toBeUndefined();
+
+    const listRes = await listRuns();
+    const list = (await listRes.json()) as {
+      runs: { id: number; login_email?: string; login_password?: string }[];
+    };
+    expect(list.runs.find((r) => r.id === created.id)?.login_email).toBeUndefined();
+
+    const resultForm = new FormData();
+    resultForm.set("outcome", "pass");
+    resultForm.set("notes", "login berhasil");
+    const resultRes = await submitResult(
+      runnerRequest(`http://test/api/v1/ai-runs/${created.id}/result`, {
+        method: "POST",
+        body: resultForm,
+      }),
+      { params: Promise.resolve({ id: String(created.id) }) },
+    );
+    expect(resultRes.status).toBe(200);
+
+    const wiped = await query<{ enc: string | null }>(
+      `SELECT login_credentials_enc AS enc FROM ai_test_runs WHERE id=$1`,
+      [created.id],
+    );
+    expect(wiped[0].enc).toBeNull();
+  });
+
   it("validasi URL target dan token runner salah", async () => {
     await resetDb();
     const tester = await createUser(undefined, "tester");

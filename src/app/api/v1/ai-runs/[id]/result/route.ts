@@ -84,6 +84,7 @@ export async function POST(
             notes=$4,
             error=$5,
             evidence_path=coalesce($6, evidence_path),
+            login_credentials_enc=NULL,
             finished_at=now(),
             updated_at=now()
       WHERE id=$7 AND status='running'

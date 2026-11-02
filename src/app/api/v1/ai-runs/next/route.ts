@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { decryptCredentials } from "@/lib/ai-credentials";
 import { isRunnerAuthorized, runnerId, runnerUnauthorized } from "@/lib/runner-auth";
 import { query } from "@/lib/db";
 
@@ -24,6 +25,13 @@ export async function GET(request: Request) {
     test_cycle: string | null;
     feature_name: string;
     user_name: string;
+    use_login: boolean;
+    login_url: string | null;
+    login_goal: string | null;
+    login_email_label: string | null;
+    login_password_label: string | null;
+    login_submit_label: string | null;
+    login_credentials_enc: string | null;
   }>(
     `WITH next AS (
        SELECT id FROM ai_test_runs
@@ -37,7 +45,9 @@ export async function GET(request: Request) {
        FROM next
       WHERE r.id = next.id
       RETURNING r.id, r.target_url, r.goal, r.success_criteria, r.feature_id,
-                r.tested_as_role, r.test_cycle,
+                r.tested_as_role, r.test_cycle, r.use_login, r.login_url,
+                r.login_goal, r.login_email_label, r.login_password_label,
+                r.login_submit_label, r.login_credentials_enc,
                 (SELECT name FROM features WHERE id=r.feature_id) AS feature_name,
                 (SELECT name FROM users WHERE id=r.created_by) AS user_name`,
     [runnerId(request)],
@@ -48,11 +58,15 @@ export async function GET(request: Request) {
   }
 
   const run = claimed[0];
+  const { login_credentials_enc, ...safeRun } = run;
+  const loginCredentials = decryptCredentials(login_credentials_enc);
   return NextResponse.json({
     run: {
-      ...run,
+      ...safeRun,
       id: Number(run.id),
       feature_id: Number(run.feature_id),
+      login_email: loginCredentials?.email ?? null,
+      login_password: loginCredentials?.password ?? null,
     },
   });
 }

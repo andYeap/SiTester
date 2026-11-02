@@ -56,11 +56,27 @@ function q(value) {
   return JSON.stringify(String(value));
 }
 
-function buildConfig(run) {
-  const credentials =
-    TARGET_EMAIL && TARGET_PASSWORD
-      ? `credentials: { target: { username: process.env.AI_TARGET_EMAIL, password: process.env.AI_TARGET_PASSWORD } },`
-      : "";
+function buildLogin(run) {
+  const useLogin = run.use_login === true;
+  const email = useLogin ? run.login_email || TARGET_EMAIL : "";
+  const password = useLogin ? run.login_password || TARGET_PASSWORD : "";
+  return {
+    useLogin,
+    email,
+    password,
+    hasCredentials: Boolean(useLogin && email && password),
+    url: useLogin && run.login_url ? run.login_url : null,
+    goal: run.login_goal || "login ke aplikasi dengan email {email} dan password {password}",
+    emailLabel: run.login_email_label || null,
+    passwordLabel: run.login_password_label || null,
+    submitLabel: run.login_submit_label || null,
+  };
+}
+
+function buildConfig(run, login) {
+  const credentials = login.hasCredentials
+    ? `credentials: { target: { username: process.env.AI_RUN_EMAIL, password: process.env.AI_RUN_PASSWORD } },`
+    : "";
   const providerImport =
     PROVIDER === "google"
       ? `import { google } from "@ai-sdk/google";`
@@ -85,21 +101,41 @@ export default {
 `;
 }
 
-function buildTest(run, targetPath) {
-  const login = TARGET_EMAIL && TARGET_PASSWORD
-    ? `  {
+function buildTest(run, targetPath, login) {
+  let loginStep = "";
+  if (login.hasCredentials) {
+    const deterministic =
+      login.emailLabel && login.passwordLabel && login.submitLabel;
+    if (deterministic) {
+      loginStep = `  {
     const target = credentials.user("target");
-    await agent.act("login ke aplikasi dengan email {email} dan password {password}", {
+    await screen.getByLabel(${q(login.emailLabel)}).fill(target.username);
+    await screen.getByLabel(${q(login.passwordLabel)}).fill(target.password);
+    await screen.getByRole("button", ${q(login.submitLabel)}).tap();
+  }`;
+    } else {
+      loginStep = `  {
+    const target = credentials.user("target");
+    await agent.act(${q(login.goal)}, {
       params: { email: target.username, password: target.password },
     });
-  }`
-    : "";
+  }`;
+    }
+  }
+
+  const startUrl = login.useLogin && login.url ? login.url : targetPath || "/";
+  const reopenTarget =
+    login.useLogin && login.url && pathOf(login.url) !== (targetPath || "/")
+      ? `\n  await app.open(${q(targetPath || "/")});`
+      : "";
+
   return `import { test } from "@e2e-dev/web";
 import { credentials, expect } from "e2e";
 
-test("SITester AI run ${run.id}", async ({ app, agent }) => {
-  await app.open(${q(targetPath || "/")});
-${login}
+test("SITester AI run ${run.id}", async ({ app, agent, screen }) => {
+  await app.open(${q(startUrl)});
+${loginStep}
+${reopenTarget}
   await agent.act(${q(run.goal)});
   await agent.assert(${q(run.success_criteria || "tujuan pengujian tercapai")});
   await app.screenshot("hasil-ai");
@@ -107,7 +143,7 @@ ${login}
 `;
 }
 
-function runE2e(configPath, dir) {
+function runE2e(configPath, dir, login) {
   return new Promise((resolve) => {
     const child = spawn(
       "npx",
@@ -119,6 +155,8 @@ function runE2e(configPath, dir) {
           E2E_TELEMETRY_DISABLED: "1",
           AI_TARGET_EMAIL: TARGET_EMAIL,
           AI_TARGET_PASSWORD: TARGET_PASSWORD,
+          AI_RUN_EMAIL: login.email,
+          AI_RUN_PASSWORD: login.password,
         },
         stdio: ["ignore", "pipe", "pipe"],
       },
@@ -235,12 +273,29 @@ function errorText(report) {
 async function processRun(run) {
   const dir = join(".ai-runner", `run-${run.id}`);
   await mkdir(join(dir, "tests"), { recursive: true });
+  const login = buildLogin(run);
+
+  if (login.useLogin && !login.hasCredentials) {
+    await uploadResult(run.id, {
+      outcome: "error",
+      notes: `AI: ${run.goal}`,
+      error:
+        "Login target diminta, tetapi kredensial target tidak tersedia. Isi email/password di form AI Test atau set AI_TARGET_EMAIL/AI_TARGET_PASSWORD pada runner.",
+    }, null);
+    console.log(`[run ${run.id}] ERROR dikirim (kredensial login kosong)`);
+    await rm(dir, { recursive: true, force: true }).catch(() => undefined);
+    return;
+  }
+
   const configPath = join(dir, "e2e.config.ts");
-  await writeFile(configPath, buildConfig(run));
-  await writeFile(join(dir, "tests", "ai.e2e.ts"), buildTest(run, pathOf(run.target_url)));
+  await writeFile(configPath, buildConfig(run, login));
+  await writeFile(
+    join(dir, "tests", "ai.e2e.ts"),
+    buildTest(run, pathOf(run.target_url), login),
+  );
 
   console.log(`[run ${run.id}] mulai: ${run.target_url}`);
-  const execution = await runE2e(configPath, dir);
+  const execution = await runE2e(configPath, dir, login);
   let report = null;
   try {
     report = JSON.parse(await readFile(join(dir, ".e2e", "report.json"), "utf8"));
