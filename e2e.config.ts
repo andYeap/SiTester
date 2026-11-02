@@ -1,6 +1,14 @@
+import { existsSync } from "node:fs";
+
 import type { E2EConfig } from "e2e";
 import { web } from "@e2e-dev/web";
 import { openrouter } from "@openrouter/ai-sdk-provider";
+
+// Runner e2e tidak membaca .env sendiri; muat .env.local agar API key
+// dan kredensial test tersedia tanpa perlu export manual.
+if (existsSync(".env.local")) {
+  process.loadEnvFile(".env.local");
+}
 
 const email = process.env.E2E_EMAIL;
 const password = process.env.E2E_PASSWORD;
