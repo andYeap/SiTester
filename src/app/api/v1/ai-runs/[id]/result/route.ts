@@ -53,20 +53,27 @@ export async function POST(
       : null;
 
   let evidencePath: string | null = null;
+  let evidenceWarning: string | null = null;
   const evidence = form?.get("evidence");
   if (evidence instanceof File && evidence.size > 0) {
     if (evidence.size > 2 * 1024 * 1024) {
-      return err("Ukuran bukti maksimal 2MB.", 422);
-    }
-    try {
-      evidencePath = await saveEvidence(evidence);
-    } catch (e) {
-      return err(
-        e instanceof Error ? e.message : "Gagal menyimpan bukti.",
-        422,
-      );
+      evidenceWarning = "Screenshot AI dilewati karena lebih dari 2MB.";
+    } else {
+      try {
+        evidencePath = await saveEvidence(evidence);
+      } catch (e) {
+        // Bukti bersifat best-effort: hasil tetap disimpan walau storage belum siap.
+        evidenceWarning =
+          e instanceof Error ? e.message : "Gagal menyimpan bukti.";
+      }
     }
   }
+
+  const finalNotes =
+    [notes, evidenceWarning ? `Catatan sistem: ${evidenceWarning}` : null]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, 4000) || null;
 
   const failed = outcome === "error";
   const updated = await queryOne<{ id: number }>(
@@ -85,7 +92,7 @@ export async function POST(
       failed ? "failed" : "completed",
       failed ? null : outcome,
       severity,
-      notes,
+      finalNotes,
       error,
       evidencePath,
       id,

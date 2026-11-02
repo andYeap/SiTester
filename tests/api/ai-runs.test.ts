@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { GET as listRuns, POST as createRun } from "@/app/api/v1/ai-runs/route";
 import { GET as nextRun } from "@/app/api/v1/ai-runs/next/route";
@@ -19,6 +19,10 @@ beforeAll(() => {
   process.env.AI_RUNNER_TOKEN = RUNNER_TOKEN;
   // Simpan bukti ke disk lokal, bukan jalur produksi Vercel Blob.
   (process.env as unknown as Record<string, string>).NODE_ENV = "test";
+});
+
+beforeEach(async () => {
+  await query(`DELETE FROM ai_test_runs`);
 });
 
 const json = (body: unknown) =>
