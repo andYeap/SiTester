@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/riwayat", label: "Riwayat", ketua: false },
   { href: "/fitur", label: "Fitur", ketua: false },
   { href: "/defect", label: "Defect", ketua: false },
+  { href: "/ai-test", label: "AI Test", ketua: false },
   { href: "/proyek", label: "Proyek", ketua: true },
   { href: "/permohonan", label: "Permohonan", ketua: true },
   { href: "/pengguna", label: "Pengguna", ketua: true },

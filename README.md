@@ -98,6 +98,48 @@ npm run test:e2e:ai       # jalankan (test deterministik tidak butuh model)
 - Telemetry framework dimatikan lewat `E2E_TELEMETRY_DISABLED=1` di npm script.
 - CI menjalankan job `e2e-agentic`; tambahkan `OPENROUTER_API_KEY` (secret) + `E2E_MODEL` (variable) di GitHub jika ingin agent test aktif.
 
+## AI Test Runner (website menguji website lain)
+
+SITester punya antrean **AI Test**: user mengisi URL target, tujuan, kriteria
+berhasil, fitur/peran/siklus. Runner eksternal menjalankan e2e TesterArmy
+terhadap target, lalu mengirim hasil + screenshot. Hasil masuk sebagai
+**draft** yang harus dikonfirmasi lewat form pengujian (aturan retest tetap
+berlaku).
+
+**Mengapa runner terpisah?** Vercel Functions tidak cocok menjalankan
+Chromium penuh (ukuran/timeout). Vercel hanya menyimpan antrean dan hasil.
+
+**Setup**
+```env
+# .env.local (lokal) dan Vercel (endpoint antrean)
+AI_RUNNER_TOKEN=<string acak >= 20 karakter>
+
+# .env.local runner / GitHub Secrets (jangan di Vercel)
+OPENROUTER_API_KEY=...
+E2E_MODEL=nvidia/nemotron-3.5-super-vl:free
+
+# opsional, kredensial login target (tidak masuk DB/model)
+AI_TARGET_EMAIL=...
+AI_TARGET_PASSWORD=...
+```
+
+- **Lokal/24 jam**: jalankan `npm run ai-runner` di VPS/laptop yang selalu hidup.
+- **Gratis tanpa VPS**: workflow `.github/workflows/ai-runner.yml` berjalan
+  tiap 5 menit (schedule GitHub bisa tertunda) dan bisa dijalankan manual.
+- **VPS gratis 24 jam**: Oracle Cloud Always Free (ARM) cocok untuk
+  `npm run ai-runner` sebagai service systemd. GitHub Actions lebih mudah
+  tetapi tidak real-time.
+- Endpoint runner memakai `Authorization: Bearer AI_RUNNER_TOKEN`; token harus
+  sama di Vercel dan runner/GitHub.
+- Target boleh publik atau localhost/internal — karena browser berjalan di
+  mesin runner, bukan Vercel.
+- **Keamanan**: agent dapat dipengaruhi konten website target (prompt
+  injection). Gunakan akun tester khusus dengan hak minimal; jangan pakai akun
+  admin produksi. Jangan menguji situs yang tidak Anda miliki/izin.
+
+Alur: `/ai-test` → antre → runner → hasil + bukti → `Konfirmasi` →
+`/pengujian-baru?ai_run=...` (prefill) → simpan.
+
 ## Batas import
 
 - Format: `.xlsx` dan `.csv` (`.xls` lama tidak didukung).

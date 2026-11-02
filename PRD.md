@@ -1,7 +1,7 @@
 # PRD: SITester (Sistem Pengujian Tim Tester) — v3
 
 **Versi:** 3.0 · **Tanggal:** 2 November 2026 · **Stack:** Next.js 16 + Postgres + Vercel
-**Status:** Terimplementasi & terverifikasi (`68 tests` API/unit, E2E 3 lulus, build hijau) · **Supersedes:** PRD v2.0
+**Status:** Terimplementasi & terverifikasi (`75 tests` API/unit, E2E 3 lulus, build hijau) · **Supersedes:** PRD v2.0
 
 **Riwayat perubahan:**
 - v2.0: Form pengujian, retest per (fitur, peran, siklus), approval, dashboard, riwayat, ekspor CSV/PDF, master fitur/peran/proyek/siklus/pengguna, audit, multi-sesi login, rate limit.
@@ -140,6 +140,16 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 - Login dibatasi per email **dan** per IP (30 gagal/15 menit), respons 429 + `Retry-After`.
 - Tetap satu sesi aktif per akun (BR-10); reset password mencabut semua sesi.
 
+### F16 — AI Test Run
+- Halaman `/ai-test`: URL target (http/https), tujuan natural language, kriteria berhasil, fitur/peran/siklus.
+- Run `queued` di `ai_test_runs`; runner eksternal mengambil lewat `GET /api/v1/ai-runs/next` dengan Bearer `AI_RUNNER_TOKEN` (atomik; run macet >15 menit dikembalikan ke antrean).
+- Runner menjalankan e2e TesterArmy (Chromium + model gratis OpenRouter), mengambil screenshot, lalu `POST /api/v1/ai-runs/{id}/result`.
+- Hasil adalah **draft**: user klik `Konfirmasi` → `/pengujian-baru?ai_run=...` (form terisi hasil, severity, catatan, bukti) → submit memakai aturan retest/approval yang sama dan menandai run `confirmed`.
+- Target publik/localhost/internal diperbolehkan karena browser berjalan di runner, bukan Vercel.
+- Kredensial login target hanya di env runner (`AI_TARGET_EMAIL/PASSWORD`), tidak masuk DB/model.
+- Gratis: runner di VPS/laptop 24 jam atau GitHub Actions terjadwal tiap 5 menit; Vercel hanya antrean/UI.
+- Keamanan: token runner wajib sama di Vercel + runner; waspadai prompt injection dari halaman target, gunakan akun tester hak minimal.
+
 ---
 
 ## 4. Aturan Bisnis (tambahan v3)
@@ -183,6 +193,6 @@ SSO/OAuth, multi-tenant, komentar diskusi realtime, multi-file attachment, otoma
 Lihat `PLAN-v3.md` untuk urutan task dan kriteria selesai.
 
 ## 8. Verifikasi v3
-- Semua test v2 tetap hijau + regression baru (reset token, import CSV/XLSX, mapping, dedupe, skip-invalid, test case, defect, sort, rate limit IP, PDF filter, upload magic): **73 test lulus**.
+- Semua test v2 tetap hijau + regression baru (reset token, import CSV/XLSX, mapping, dedupe, skip-invalid, test case, defect, AI run queue/runner/confirm, sort, rate limit IP, PDF filter, upload magic): **75 test lulus**.
 - `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`, `npm run test:e2e` (3 skenario) hijau.
 - Manual: lupa password → reset → login; import 2 baris valid + 1 error → commit ditolak; Fail → defect open → verified; PDF filter = CSV filter; bukti non-gambar ditolak.

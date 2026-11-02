@@ -42,6 +42,7 @@ export const config = {
     "/riwayat/:path*",
     "/fitur/:path*",
     "/defect/:path*",
+    "/ai-test/:path*",
     "/permohonan/:path*",
     "/pengguna/:path*",
     "/peran/:path*",

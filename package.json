@@ -16,7 +16,9 @@
     "preview": "npm run build && next start",
     "test:e2e:ai": "E2E_TELEMETRY_DISABLED=1 NODE_ENV=development e2e run",
     "e2e:list": "E2E_TELEMETRY_DISABLED=1 NODE_ENV=development e2e list",
-    "e2e:check-model": "node scripts/check-free-model.mjs"
+    "e2e:check-model": "node scripts/check-free-model.mjs",
+    "ai-runner": "node scripts/ai-runner.mjs",
+    "ai-runner:once": "node scripts/ai-runner.mjs --once"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.2",

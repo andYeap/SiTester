@@ -59,6 +59,8 @@ export async function POST(request: Request) {
   const evidence = form.get("evidence");
   const testCaseRaw = str("test_case_id");
   const testCaseId = testCaseRaw === "" ? null : Number(testCaseRaw);
+  const aiRunRaw = str("ai_run_id");
+  const aiRunId = aiRunRaw === "" ? null : Number(aiRunRaw);
 
   if (!testedAt || !isIsoDate(testedAt)) {
     return err("Tanggal pengujian tidak valid (format YYYY-MM-DD).", 422);
@@ -145,6 +147,38 @@ export async function POST(request: Request) {
     }
   }
 
+  let aiRun: {
+    id: number;
+    created_by: string;
+    status: string;
+    evidence_path: string | null;
+    confirmed_session_id: number | null;
+  } | null = null;
+
+  if (aiRunId !== null) {
+    if (!Number.isInteger(aiRunId) || aiRunId <= 0) {
+      return err("AI run tidak valid.", 422);
+    }
+    aiRun = await queryOne<{
+      id: number;
+      created_by: string;
+      status: string;
+      evidence_path: string | null;
+      confirmed_session_id: number | null;
+    }>(
+      `SELECT id, created_by, status, evidence_path, confirmed_session_id
+         FROM ai_test_runs WHERE id=$1`,
+      [aiRunId],
+    );
+    if (!aiRun) return err("AI run tidak ditemukan.", 404);
+    if (aiRun.created_by !== user.id && user.role !== "ketua_tim") {
+      return err("Forbidden", 403);
+    }
+    if (aiRun.status !== "completed" || aiRun.confirmed_session_id !== null) {
+      return err("Hasil AI ini sudah dikonfirmasi atau belum selesai.", 422);
+    }
+  }
+
   let evidencePath: string | null = null;
   if (evidence instanceof File && evidence.size > 0) {
     if (evidence.size > 2 * 1024 * 1024) {
@@ -158,6 +192,9 @@ export async function POST(request: Request) {
         422,
       );
     }
+  }
+  if (aiRun && evidencePath === null) {
+    evidencePath = aiRun.evidence_path;
   }
 
   const last = await queryOne<{ result: TestResult }>(
@@ -229,6 +266,19 @@ export async function POST(request: Request) {
 
       const sessionId = Number(inserted.rows[0].id);
       let defectId: number | null = null;
+
+      if (aiRun) {
+        const confirmed = await client.query<{ id: number }>(
+          `UPDATE ai_test_runs
+              SET status='confirmed', confirmed_session_id=$1, updated_at=now()
+            WHERE id=$2 AND status='completed' AND confirmed_session_id IS NULL
+            RETURNING id`,
+          [sessionId, aiRun.id],
+        );
+        if (confirmed.rows.length === 0) {
+          throw new Error("Hasil AI ini sudah dikonfirmasi pengguna lain.");
+        }
+      }
 
       if (result === "fail" || result === "bug") {
         const defect = await client.query<{ id: number }>(

@@ -3,6 +3,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { todayString } from "@/lib/time";
 import FeatureCombobox from "./FeatureCombobox";
@@ -47,6 +48,20 @@ type QueueRow = {
   notes: string;
 };
 
+type AiRunInitial = {
+  id: number;
+  targetUrl: string;
+  goal: string;
+  successCriteria: string | null;
+  featureId: number;
+  testedAsRole: string;
+  testCycle: string | null;
+  result: string;
+  severity: string | null;
+  notes: string | null;
+  evidencePath: string | null;
+};
+
 const DRAFT_KEY = "sitester:draft-v3";
 
 const RESULTS = [
@@ -71,6 +86,7 @@ export default function PengujianForm({
   initialProjects,
   initialFeatureId,
   initialCycle,
+  initialAiRun,
 }: {
   initialFeatures: Feature[];
   initialRoles: Role[];
@@ -78,6 +94,7 @@ export default function PengujianForm({
   initialProjects: { id: number; name: string }[];
   initialFeatureId?: string;
   initialCycle?: string;
+  initialAiRun?: AiRunInitial;
 }) {
   const [features] = useState<Feature[]>(initialFeatures);
   const [roles] = useState<Role[]>(initialRoles);
@@ -99,16 +116,22 @@ export default function PengujianForm({
 
   const [testedAt, setTestedAt] = useState(today());
   const [isRetest, setIsRetest] = useState(false);
-  const [featureId, setFeatureId] = useState(initialFeatureId ?? "");
-  const [role, setRole] = useState(initialRoles[0]?.name ?? "tester");
-  const [cycle, setCycle] = useState(initialCycle ?? "");
+  const [featureId, setFeatureId] = useState(
+    initialAiRun ? String(initialAiRun.featureId) : initialFeatureId ?? "",
+  );
+  const [role, setRole] = useState(
+    initialAiRun?.testedAsRole ?? initialRoles[0]?.name ?? "tester",
+  );
+  const [cycle, setCycle] = useState(
+    initialAiRun?.testCycle ?? initialCycle ?? "",
+  );
   const [testCaseId, setTestCaseId] = useState("");
-  const [result, setResult] = useState("");
-  const [severity, setSeverity] = useState("");
+  const [result, setResult] = useState(initialAiRun?.result ?? "");
+  const [severity, setSeverity] = useState(initialAiRun?.severity ?? "");
   const [environment, setEnvironment] = useState("");
   const [expected, setExpected] = useState("");
   const [actual, setActual] = useState("");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(initialAiRun?.notes ?? "");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
 
@@ -125,6 +148,7 @@ export default function PengujianForm({
 
   const [draftAvailable, setDraftAvailable] = useState(false);
   const mounted = useRef(false);
+  const router = useRouter();
 
   const needsTriage = result === "fail" || result === "bug";
 
@@ -182,12 +206,19 @@ export default function PengujianForm({
     }
   }
 
-  // Muat info siklus + cek awal dari query param.
+  // Muat info siklus + cek awal dari query param / hasil AI.
   useEffect(() => {
-    if (initialCycle) void loadCycleInfo(initialCycle);
-    if (initialFeatureId) {
-      void runCheckWith(initialFeatureId, false, initialRoles[0]?.name ?? "tester", initialCycle ?? "");
-      void loadTestCases(initialFeatureId);
+    const startFeature = initialAiRun
+      ? String(initialAiRun.featureId)
+      : initialFeatureId;
+    const startRole =
+      initialAiRun?.testedAsRole ?? initialRoles[0]?.name ?? "tester";
+    const startCycle = initialAiRun?.testCycle ?? initialCycle ?? "";
+
+    if (startCycle) void loadCycleInfo(startCycle);
+    if (startFeature) {
+      void runCheckWith(startFeature, false, startRole, startCycle);
+      void loadTestCases(startFeature);
     }
     const raw = localStorage.getItem(DRAFT_KEY);
     if (raw) setDraftAvailable(true);
@@ -270,6 +301,7 @@ export default function PengujianForm({
     if (row.notes) fd.set("notes", row.notes);
     if (evidenceUrl) fd.set("evidence_url", evidenceUrl);
     if (evidenceFile) fd.set("evidence", evidenceFile);
+    if (initialAiRun) fd.set("ai_run_id", String(initialAiRun.id));
     return fd;
   }
 
@@ -295,6 +327,11 @@ export default function PengujianForm({
       }
       setOk("Hasil pengujian berhasil disimpan.");
       if (data.warning) setWarn(data.warning);
+      if (initialAiRun) {
+        router.push("/riwayat");
+        router.refresh();
+        return;
+      }
       setResult("");
       setSeverity("");
       setNotes("");
@@ -424,16 +461,45 @@ export default function PengujianForm({
           <h1 className="page-title">Form Pengujian</h1>
           <p className="page-subtitle">Catat hasil uji manual — validasi retest berjalan otomatis.</p>
         </div>
-        <label className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold ${quickMode ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-300 bg-white text-neutral-800"}`}>
-          <input
-            type="checkbox"
-            checked={quickMode}
-            onChange={(e) => { setQuickMode(e.target.checked); setQueueError(null); }}
-            className="h-4 w-4 accent-neutral-950"
-          />
-          Mode cepat
-        </label>
+        {!initialAiRun && (
+          <label className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold ${quickMode ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-300 bg-white text-neutral-800"}`}>
+            <input
+              type="checkbox"
+              checked={quickMode}
+              onChange={(e) => { setQuickMode(e.target.checked); setQueueError(null); }}
+              className="h-4 w-4 accent-neutral-950"
+            />
+            Mode cepat
+          </label>
+        )}
       </div>
+
+      {initialAiRun && (
+        <div className="alert-info space-y-2 text-sm" role="status">
+          <p className="font-semibold">Hasil AI — review sebelum menyimpan</p>
+          <p>
+            Target:{" "}
+            <a href={initialAiRun.targetUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+              {initialAiRun.targetUrl}
+            </a>
+          </p>
+          <p>Tujuan: {initialAiRun.goal}</p>
+          {initialAiRun.successCriteria && <p>Kriteria berhasil: {initialAiRun.successCriteria}</p>}
+          {initialAiRun.evidencePath && (
+            <p>
+              Bukti:{" "}
+              <a
+                href={initialAiRun.evidencePath.startsWith("http") ? initialAiRun.evidencePath : `/api/uploads/${initialAiRun.evidencePath}`}
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-2"
+              >
+                lihat screenshot
+              </a>
+            </p>
+          )}
+        </div>
+      )}
 
       {draftAvailable && (
         <div className="alert-info flex flex-wrap items-center justify-between gap-2">
@@ -618,7 +684,9 @@ export default function PengujianForm({
             ? "Menyimpan..."
             : quickMode
               ? "Tambah ke daftar"
-              : "Simpan Hasil Pengujian"}
+              : initialAiRun
+                ? "Konfirmasi & Simpan Hasil AI"
+                : "Simpan Hasil Pengujian"}
         </button>
       </form>
 
