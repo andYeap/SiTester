@@ -133,6 +133,12 @@ input[type="checkbox"] {
 .skeleton {
   @apply relative overflow-hidden rounded-xl bg-neutral-200/70;
 }
+.timeline {
+  @apply relative space-y-4 border-l border-neutral-200 pl-5;
+}
+.timeline-dot {
+  @apply absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full border border-neutral-950 bg-white;
+}
 .skeleton::after {
   content: "";
   @apply absolute inset-0;

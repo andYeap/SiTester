@@ -1,19 +1,27 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useState } from "react";
-import {
-  Bar,
-  BarChart,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 import type { Stats } from "@/lib/stats";
+
+const DashboardCharts = dynamic(() => import("./DashboardCharts"), {
+  ssr: false,
+  loading: () => (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3" aria-hidden>
+      <div className="card space-y-3 p-5 lg:col-span-2">
+        <div className="skeleton h-5 w-48" />
+        <div className="skeleton h-64" />
+      </div>
+      <div className="card space-y-3 p-5">
+        <div className="skeleton h-5 w-40" />
+        <div className="skeleton mx-auto h-48 w-48 !rounded-full" />
+        <div className="skeleton h-4 w-32" />
+      </div>
+    </div>
+  ),
+});
 
 export default function DashboardView({
   isKetua,
@@ -100,7 +108,71 @@ export default function DashboardView({
       {isKetua && (stats?.summary.permohonan_pending ?? 0) > 0 && (
         <div className="alert-warn flex items-center justify-between">
           <span>{stats?.summary.permohonan_pending} permohonan pengujian ulang menunggu persetujuan Anda.</span>
-          <a href="/permohonan" className="text-sm font-semibold underline underline-offset-2">Lihat permohonan</a>
+          <Link href="/permohonan" className="text-sm font-semibold underline underline-offset-2">Lihat permohonan</Link>
+        </div>
+      )}
+
+      {stats?.myTasks && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="card p-5">
+            <h3 className="mb-3 font-semibold text-neutral-800">Belum saya uji</h3>
+            {stats.myTasks.untestedFeatures.length === 0 ? (
+              <p className="text-sm text-neutral-500">Semua fitur dalam lingkup ini sudah Anda uji.</p>
+            ) : (
+              <ul className="space-y-1.5 text-sm">
+                {stats.myTasks.untestedFeatures.map((f) => (
+                  <li key={f.id}>
+                    <Link href={`/pengujian-baru?feature=${f.id}${stats.cycle ? `&cycle=${encodeURIComponent(stats.cycle)}` : ""}`}
+                      className="action-link min-h-9 px-1"
+                    >
+                      {f.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="card p-5">
+            <h3 className="mb-3 font-semibold text-neutral-800">Permohonan saya</h3>
+            {stats.myTasks.readyApprovals > 0 && (
+              <p className="mb-2 inline-flex rounded-full border border-neutral-950 bg-neutral-950 px-3 py-1 text-xs font-semibold text-white">
+                {stats.myTasks.readyApprovals} siap diuji ulang
+              </p>
+            )}
+            {stats.myTasks.myPendingRequests.length === 0 ? (
+              <p className="text-sm text-neutral-500">Tidak ada permohonan menunggu.</p>
+            ) : (
+              <ul className="space-y-1.5 text-sm">
+                {stats.myTasks.myPendingRequests.map((r) => (
+                  <li key={r.id} className="flex items-center justify-between gap-2">
+                    <span className="truncate text-neutral-700">{r.feature_name}</span>
+                    <span className="shrink-0 text-xs text-neutral-500">
+                      s.d. {new Date(r.expires_at).toLocaleDateString("id-ID")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="card p-5">
+            <h3 className="mb-3 font-semibold text-neutral-800">Defect terbuka</h3>
+            {stats.myTasks.openDefects.length === 0 ? (
+              <p className="text-sm text-neutral-500">Tidak ada defect yang perlu ditindak.</p>
+            ) : (
+              <ul className="space-y-1.5 text-sm">
+                {stats.myTasks.openDefects.map((d) => (
+                  <li key={d.id} className="flex items-center justify-between gap-2">
+                    <Link href="/defect" className="truncate text-neutral-700 underline-offset-2 hover:underline">
+                      {d.feature_name}
+                    </Link>
+                    <span className="badge badge-outline shrink-0 text-[10px]">{d.status.toUpperCase()}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 
@@ -168,51 +240,14 @@ export default function DashboardView({
           </div>
         </div>
       ) : (
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="card p-5 lg:col-span-2">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h3 className="font-semibold text-neutral-800">
-              Masa Pengujian ({range} hari terakhir){cycle ? ` — ${cycle}` : ""}
-            </h3>
-            <div className="flex gap-2 text-xs" role="group" aria-label="Rentang masa pengujian">
-              <button onClick={() => changeRange(7)} disabled={loading} aria-pressed={range === 7} className={`inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:opacity-50 ${range === 7 ? "border-neutral-950 bg-neutral-950 text-white shadow" : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950"}`}>7 hari</button>
-              <button onClick={() => changeRange(30)} disabled={loading} aria-pressed={range === 30} className={`inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:opacity-50 ${range === 30 ? "border-neutral-950 bg-neutral-950 text-white shadow" : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-950"}`}>30 hari</button>
-            </div>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dailyData}>
-                <XAxis dataKey="label" fontSize={10} interval={2} stroke="#52525b" />
-                <YAxis allowDecimals={false} stroke="#52525b" />
-                <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#09090b" }} />
-                <Bar dataKey="total" fill="#09090b" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="card p-5">
-          <h3 className="font-semibold text-neutral-800">
-                Hasil Pengujian Bulan Ini
-              </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90}>
-                  {pieData.map((d) => (
-                    <Cell key={d.name} fill={d.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-neutral-700">
-            {pieData.map((d) => (
-              <span key={d.name}><span className="mr-1 inline-block h-2 w-2 rounded-full border border-neutral-950" style={{ background: d.color }} aria-hidden />{d.name}: {d.value}</span>
-            ))}
-          </div>
-        </div>
-      </div>
+        <DashboardCharts
+          dailyData={dailyData}
+          pieData={pieData}
+          range={range}
+          cycle={cycle || null}
+          loading={loading}
+          onChangeRange={changeRange}
+        />
       )}
 
       <div className="card p-5">
@@ -228,7 +263,7 @@ export default function DashboardView({
             <span className="empty-icon" aria-hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6M9 16h6" /></svg></span>
             <p className="empty-title">Belum ada data pengujian</p>
             <p className="empty-hint">Catat hasil pengujian pertama agar grafik dan daftar ini terisi.</p>
-            <a href="/pengujian-baru" className="btn-primary mt-2">Catat Pengujian</a>
+            <Link href="/pengujian-baru" className="btn-primary mt-2">Catat Pengujian</Link>
           </div>
         ) : (
         <div className="space-y-3">

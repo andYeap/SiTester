@@ -4,9 +4,14 @@ import PengujianForm from "@/components/pengujian/PengujianForm";
 import { getSessionUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 
-export default async function PengujianBaruPage() {
+export default async function PengujianBaruPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ feature?: string; cycle?: string }>;
+}) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  const sp = await searchParams;
 
   const [features, roles, cycles, projects] = await Promise.all([
     query<{ id: number; name: string; project_name: string | null; description: string | null }>(
@@ -29,6 +34,8 @@ export default async function PengujianBaruPage() {
       initialRoles={roles.length > 0 ? roles : [{ name: "tester", label: "Tester" }]}
       initialCycles={cycles}
       initialProjects={projects}
+      initialFeatureId={sp.feature}
+      initialCycle={sp.cycle}
     />
   );
 }

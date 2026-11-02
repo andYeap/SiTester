@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   // nothing useful to prerender. Keep rendering dynamic instead of opting every
   // page into Suspense boundaries.
   cacheComponents: false,
+  allowedDevOrigins: ["127.0.0.1"],
   turbopack: {
     rules: {
       "*.css": {

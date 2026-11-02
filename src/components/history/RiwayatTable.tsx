@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+/* eslint-disable react-hooks/set-state-in-effect */
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import type { SessionRow } from "@/lib/history";
 
@@ -46,21 +49,28 @@ export default function RiwayatTable({
   const [result, setResult] = useState("");
   const [q, setQ] = useState("");
   const [cycle, setCycle] = useState("");
+  const [sort, setSort] = useState("date_desc");
+  const [savedNotice, setSavedNotice] = useState<string | null>(null);
 
   const isLoading = status === "Memuat…";
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const from = total === 0 ? 0 : page * PAGE_SIZE + 1;
   const to = Math.min(total, (page + 1) * PAGE_SIZE);
 
-  async function apply(nextPage = 0) {
+  async function apply(
+    nextPage = 0,
+    overrides: Partial<{ dari: string; sampai: string }> = {},
+  ) {
     setStatus("Memuat…");
+    const v = { dari, sampai, ...overrides };
     const sp = new URLSearchParams();
-    if (dari) sp.set("dari", dari);
-    if (sampai) sp.set("sampai", sampai);
+    if (v.dari) sp.set("dari", v.dari);
+    if (v.sampai) sp.set("sampai", v.sampai);
     if (featureId) sp.set("feature_id", featureId);
     if (result) sp.set("result", result);
     if (q) sp.set("q", q);
     if (cycle) sp.set("cycle", cycle);
+    if (sort) sp.set("sort", sort);
     sp.set("limit", String(PAGE_SIZE));
     sp.set("offset", String(nextPage * PAGE_SIZE));
     try {
@@ -86,12 +96,57 @@ export default function RiwayatTable({
     setResult("");
     setQ("");
     setCycle("");
+    setSort("date_desc");
     setPage(0);
     setSessions(initialSessions);
     setTotal(initialTotal);
+    setSavedNotice(null);
   }
 
-  function exportHref(): string {
+  function preset(days: number) {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - (days - 1));
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    setDari(iso(start));
+    setSampai(iso(end));
+    void apply(0, { dari: iso(start), sampai: iso(end) });
+  }
+
+  const FILTER_KEY = "sitester:riwayat-filters";
+
+  useEffect(() => {
+    const raw = localStorage.getItem(FILTER_KEY);
+    if (!raw) return;
+    try {
+      const f = JSON.parse(raw) as Record<string, string>;
+      setDari(f.dari ?? "");
+      setSampai(f.sampai ?? "");
+      setFeatureId(f.featureId ?? "");
+      setResult(f.result ?? "");
+      setQ(f.q ?? "");
+      setCycle(f.cycle ?? "");
+      setSort(f.sort ?? "date_desc");
+      setSavedNotice("Filter tersimpan dipulihkan.");
+    } catch {
+      localStorage.removeItem(FILTER_KEY);
+    }
+  }, []);
+
+  function saveFilters() {
+    localStorage.setItem(
+      FILTER_KEY,
+      JSON.stringify({ dari, sampai, featureId, result, q, cycle, sort }),
+    );
+    setSavedNotice("Filter disimpan di perangkat ini.");
+  }
+
+  function clearSaved() {
+    localStorage.removeItem(FILTER_KEY);
+    setSavedNotice("Filter tersimpan dihapus.");
+  }
+
+  function queryString(): string {
     const sp = new URLSearchParams();
     if (dari) sp.set("dari", dari);
     if (sampai) sp.set("sampai", sampai);
@@ -99,7 +154,12 @@ export default function RiwayatTable({
     if (result) sp.set("result", result);
     if (q) sp.set("q", q);
     if (cycle) sp.set("cycle", cycle);
-    return `/api/v1/export/csv?${sp}`;
+    if (sort) sp.set("sort", sort);
+    return sp.toString();
+  }
+
+  function exportHref(): string {
+    return `/api/v1/export/csv?${queryString()}`;
   }
 
   return (
@@ -109,9 +169,9 @@ export default function RiwayatTable({
           <h1 className="page-title">Riwayat Pengujian</h1>
           <p className="page-subtitle">Semua hasil yang tercatat — tidak dapat diubah atau dihapus.</p>
         </div>
-        <a href="/pengujian-baru" className="btn-dark">
+        <Link href="/pengujian-baru" className="btn-dark">
           + Pengujian Baru
-        </a>
+        </Link>
       </div>
 
       {status && <div className="alert-warn" role="status" aria-live="polite">{status}</div>}
@@ -157,21 +217,42 @@ export default function RiwayatTable({
               ))}
             </select>
           </div>
-          <div className="flex items-end gap-3">
+          <div>
+            <label htmlFor="riw-urut" className="label text-xs">Urutkan</label>
+            <select id="riw-urut" value={sort} onChange={(e) => setSort(e.target.value)} className="input">
+              <option value="date_desc">Tanggal terbaru</option>
+              <option value="date_asc">Tanggal terlama</option>
+              <option value="feature_asc">Fitur A–Z</option>
+              <option value="feature_desc">Fitur Z–A</option>
+              <option value="result_asc">Hasil A–Z</option>
+              <option value="result_desc">Hasil Z–A</option>
+              <option value="severity_desc">Severity tertinggi</option>
+              <option value="severity_asc">Severity terendah</option>
+            </select>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
             <button onClick={() => void apply(0)} className="btn-dark" disabled={isLoading}>Filter</button>
             <button onClick={reset} className="action-link">Atur ulang</button>
+            <button onClick={saveFilters} className="action-link">Simpan filter</button>
+            <button onClick={clearSaved} className="action-link">Hapus tersimpan</button>
           </div>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-neutral-500">Preset:</span>
+          <button onClick={() => preset(7)} className="btn-soft min-h-9 px-3 py-1">7 hari</button>
+          <button onClick={() => preset(30)} className="btn-soft min-h-9 px-3 py-1">30 hari</button>
+          {savedNotice && <span className="text-xs text-neutral-500">{savedNotice}</span>}
         </div>
       </div>
 
       <div className="flex flex-wrap gap-3 print:hidden">
         <a href={exportHref()} className="btn-success-solid">Unduh CSV</a>
-        <DownloadPdfButton sessions={sessions} />
+        <DownloadPdfButton query={queryString()} />
       </div>
 
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="hidden min-w-full text-sm md:table">
             <caption className="sr-only">Riwayat hasil pengujian</caption>
             <thead className="table-head">
               <tr>
@@ -245,6 +326,47 @@ export default function RiwayatTable({
               )}
             </tbody>
           </table>
+
+          <div className="divide-y divide-neutral-200 md:hidden">
+            {isLoading ? (
+              <div className="p-4"><div className="skeleton h-24" /></div>
+            ) : (
+              sessions.map((s) => (
+                <div key={s.id} className="space-y-1 p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-neutral-900">{s.feature_name}</span>
+                    <span className={`badge ${badge(s.result)}`}>{s.result.toUpperCase()}</span>
+                  </div>
+                  <p className="text-xs text-neutral-500">
+                    {new Date(s.tested_at).toLocaleDateString("id-ID")}
+                    {isKetua ? ` · ${s.user_name}` : ""}
+                    {` · ${s.tested_as_role}`}
+                    {s.test_cycle ? ` · ${s.test_cycle}` : ""}
+                  </p>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {s.severity && <span className="badge badge-outline">{s.severity.toUpperCase()}</span>}
+                    {s.is_retest && <span className="badge badge-neutral">Ulang</span>}
+                    {s.evidence_path && (
+                      <a
+                        href={evidenceHref(s.evidence_path) ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-neutral-700 underline underline-offset-2"
+                      >
+                        Bukti
+                      </a>
+                    )}
+                    {s.evidence_url && (
+                      <a href={s.evidence_url} target="_blank" rel="noreferrer" className="text-neutral-700 underline underline-offset-2">
+                        Tautan
+                      </a>
+                    )}
+                  </div>
+                  {s.notes && <p className="line-clamp-3 text-sm text-neutral-600">{s.notes}</p>}
+                </div>
+              ))
+            )}
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 p-4 text-sm print:hidden">
             <p className="text-neutral-500" role="status">
               Menampilkan {from}–{to} dari {total} hasil
@@ -276,7 +398,7 @@ export default function RiwayatTable({
               <span className="empty-icon" aria-hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6M9 16h6" /></svg></span>
               <p className="empty-title">Belum ada data pengujian</p>
               <p className="empty-hint">Coba ubah filter, atau catat hasil pengujian pertama Anda.</p>
-              <a href="/pengujian-baru" className="btn-primary mt-2">Catat Pengujian</a>
+              <Link href="/pengujian-baru" className="btn-primary mt-2">Catat Pengujian</Link>
             </div>
           )}
         </div>

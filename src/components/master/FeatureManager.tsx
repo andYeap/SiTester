@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 
 async function api(path: string, init?: RequestInit) {
@@ -176,17 +177,18 @@ export default function FeatureManager({ isKetua, initialFeatures, initialProjec
                   </td>
                   <td className="px-4 py-3 text-neutral-600">{f.test_count}</td>
                   <td className="px-4 py-3 text-right">
-                    {isKetua ? (
-                      <span className="inline-flex flex-wrap justify-end gap-1">
-                        {!f.verified && (
-                          <button onClick={() => verify(f)} className="action-link text-neutral-950">Verifikasi</button>
-                        )}
-                        <button onClick={() => { setEditing(f); setName(f.name); setProject(f.project_name ?? ""); }} className="action-link text-neutral-950">Edit</button>
-                        <button onClick={() => remove(f)} className="action-link text-neutral-950">Hapus</button>
-                      </span>
-                    ) : (
-                      <span className="text-neutral-400">—</span>
-                    )}
+                    <span className="inline-flex flex-wrap justify-end gap-1">
+                      <Link href={`/fitur/${f.id}`} className="action-link text-neutral-950">Detail</Link>
+                      {isKetua && (
+                        <>
+                          {!f.verified && (
+                            <button onClick={() => verify(f)} className="action-link text-neutral-950">Verifikasi</button>
+                          )}
+                          <button onClick={() => { setEditing(f); setName(f.name); setProject(f.project_name ?? ""); }} className="action-link text-neutral-950">Edit</button>
+                          <button onClick={() => remove(f)} className="action-link text-neutral-950">Hapus</button>
+                        </>
+                      )}
+                    </span>
                   </td>
                 </tr>
               ))}

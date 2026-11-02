@@ -22,6 +22,7 @@ export default function UserManager({ selfId, initialUsers }: { selfId: string; 
   const [role, setRole] = useState("tester");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [resetLink, setResetLink] = useState<{ url: string; name: string } | null>(null);
 
   const load = useCallback(async () => {
     const data = (await api("/api/v1/users")) as { users: User[] };
@@ -73,6 +74,30 @@ export default function UserManager({ selfId, initialUsers }: { selfId: string; 
     }
   }
 
+  async function makeResetLink(u: User) {
+    setError(null);
+    setInfo(null);
+    setResetLink(null);
+    try {
+      const data = (await api(`/api/v1/users/${u.id}/reset-link`, {
+        method: "POST",
+      })) as { resetUrl: string };
+      setResetLink({ url: data.resetUrl, name: u.name });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal membuat tautan reset.");
+    }
+  }
+
+  async function copyResetLink() {
+    if (!resetLink) return;
+    try {
+      await navigator.clipboard.writeText(resetLink.url);
+      setInfo("Tautan reset disalin.");
+    } catch {
+      setInfo("Salin tautan secara manual.");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -81,6 +106,16 @@ export default function UserManager({ selfId, initialUsers }: { selfId: string; 
       </div>
       {error && <div className="alert-err" role="alert">{error}</div>}
       {info && <div className="alert-ok" role="status">{info}</div>}
+      {resetLink && (
+        <div className="alert-info space-y-2 text-sm" role="status">
+          <p className="font-semibold">Tautan reset untuk {resetLink.name} (berlaku 24 jam, sekali pakai):</p>
+          <p className="break-all underline underline-offset-2">{resetLink.url}</p>
+          <div className="flex gap-3">
+            <button type="button" onClick={() => void copyResetLink()} className="btn-soft min-h-9 px-3 py-1">Salin</button>
+            <button type="button" onClick={() => setResetLink(null)} className="action-link">Tutup</button>
+          </div>
+        </div>
+      )}
       <form onSubmit={create} className="card flex flex-wrap items-end gap-3 p-4">
         <div>
           <label htmlFor="user-nama" className="label text-xs">Nama</label>
@@ -122,6 +157,7 @@ export default function UserManager({ selfId, initialUsers }: { selfId: string; 
                 </td>
                 <td className="px-4 py-3 text-neutral-600">{u.test_count}</td>
                 <td className="px-4 py-3 text-right">
+                  <button onClick={() => makeResetLink(u)} title={`Buat tautan reset untuk ${u.name}`} className="action-link">Reset</button>
                   <button onClick={() => remove(u)} disabled={u.id === selfId} title={u.id === selfId ? "Anda tidak dapat menghapus akun sendiri" : `Hapus pengguna ${u.name}`} className="action-link disabled:text-neutral-300 disabled:no-underline">Hapus</button>
                 </td>
               </tr>

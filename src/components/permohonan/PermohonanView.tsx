@@ -29,6 +29,7 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
   const [pending, setPending] = useState<Req[]>(initialPending);
   const [reviewed, setReviewed] = useState<Req[]>(initialReviewed);
   const [rejectReason, setRejectReason] = useState<Record<number, string>>({});
+  const [approveNote, setApproveNote] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -49,7 +50,7 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
       const body =
         action === "reject"
           ? { rejection_reason: rejectReason[id] ?? "" }
-          : undefined;
+          : { note: approveNote[id] ?? "" };
       await api(`/api/v1/retest-requests/${id}/${action}`, {
         method: "PATCH",
         body: body ? JSON.stringify(body) : undefined,
@@ -92,6 +93,13 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
                 {r.reason && <div className="text-sm text-neutral-600">Alasan: {r.reason}</div>}
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <input
+                  aria-label={`Catatan persetujuan untuk ${r.feature_name}`}
+                  value={approveNote[r.id] ?? ""}
+                  onChange={(e) => setApproveNote({ ...approveNote, [r.id]: e.target.value })}
+                  placeholder="Catatan persetujuan (opsional)"
+                  className="input mt-0 sm:w-52"
+                />
                 <button onClick={() => act(r.id, "approve")} className="btn-success-solid">
                   Setujui
                 </button>

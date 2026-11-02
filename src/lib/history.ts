@@ -9,6 +9,20 @@ export type SessionFilters = {
   result?: string;
   q?: string;
   cycle?: string;
+  sort?: string;
+};
+
+const SORTS: Record<string, string> = {
+  date_desc: "s.tested_at DESC, s.id DESC",
+  date_asc: "s.tested_at ASC, s.id ASC",
+  feature_asc: "f.name ASC, s.tested_at DESC, s.id DESC",
+  feature_desc: "f.name DESC, s.tested_at DESC, s.id DESC",
+  result_asc: "s.result ASC, s.tested_at DESC, s.id DESC",
+  result_desc: "s.result DESC, s.tested_at DESC, s.id DESC",
+  severity_desc:
+    "CASE s.severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END ASC, s.tested_at DESC",
+  severity_asc:
+    "CASE s.severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END DESC, s.tested_at DESC",
 };
 
 export type SessionRow = {
@@ -40,6 +54,7 @@ export function parseSessionFilters(
   const result = sp.get("result") ?? undefined;
   const q = sp.get("q")?.trim() || undefined;
   const cycle = sp.get("cycle")?.trim() || undefined;
+  const sort = sp.get("sort")?.trim() || undefined;
 
   if (dari && !isIsoDate(dari)) {
     return { error: "Filter tanggal 'dari' tidak valid (format YYYY-MM-DD)." };
@@ -61,7 +76,7 @@ export function parseSessionFilters(
   }
 
   return {
-    filters: { dari, sampai, userId, featureId, result, q, cycle },
+    filters: { dari, sampai, userId, featureId, result, q, cycle, sort },
   };
 }
 
@@ -111,6 +126,7 @@ export async function getSessions(
   }
 
   const where = conds.length > 0 ? `WHERE ${conds.join(" AND ")}` : "";
+  const orderBy = SORTS[f.sort ?? ""] ?? SORTS.date_desc;
   const [rows, counted] = await Promise.all([
     query<SessionRow>(
       `SELECT s.id, s.tested_at::text AS tested_at, s.result, s.severity, s.environment,
@@ -124,7 +140,7 @@ export async function getSessions(
          LEFT JOIN retest_approvals ra ON ra.id = s.retest_approval_id
          LEFT JOIN users ap ON ap.id = ra.approved_by
         ${where}
-        ORDER BY s.tested_at DESC, s.id DESC
+        ORDER BY ${orderBy}
         LIMIT ${limit} OFFSET ${offset}`,
       vals,
     ),

@@ -5,12 +5,14 @@ import { query } from "@/lib/db";
 
 import { createUser, resetDb } from "./helpers";
 
+const ip = `10.77.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
+
 const req = (email: string, password: string) =>
   new Request("http://test/api/auth/login", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-forwarded-for": "9.9.9.9",
+      "x-forwarded-for": ip,
     },
     body: JSON.stringify({ email, password }),
   });

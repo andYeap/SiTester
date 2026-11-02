@@ -14,6 +14,21 @@ export type DashboardStats = {
   cycle: string | null;
   brief: string | null;
   scope: CycleScope | null;
+  myTasks: {
+    untestedFeatures: { id: number; name: string }[];
+    myPendingRequests: {
+      id: number;
+      feature_name: string;
+      expires_at: string;
+    }[];
+    readyApprovals: number;
+    openDefects: {
+      id: number;
+      feature_name: string;
+      status: string;
+      severity: string | null;
+    }[];
+  };
   summary: {
     total_bulan_ini: number;
     fitur_belum_diuji: number;
@@ -30,15 +45,17 @@ export type Stats = DashboardStats;
 
 async function cycleScope(cycle: string | null): Promise<{ featureIds: number[]; brief: string | null }> {
   if (!cycle) return { featureIds: [], brief: null };
-  const briefRow = await queryOne<{ brief: string | null }>(
-    `SELECT brief FROM test_cycles WHERE name = $1`,
-    [cycle],
-  );
-  const rows = await query<{ feature_id: number }>(
-    `SELECT cf.feature_id FROM cycle_features cf
-      JOIN test_cycles c ON c.id = cf.cycle_id WHERE c.name = $1`,
-    [cycle],
-  );
+  const [briefRow, rows] = await Promise.all([
+    queryOne<{ brief: string | null }>(
+      `SELECT brief FROM test_cycles WHERE name = $1`,
+      [cycle],
+    ),
+    query<{ feature_id: number }>(
+      `SELECT cf.feature_id FROM cycle_features cf
+        JOIN test_cycles c ON c.id = cf.cycle_id WHERE c.name = $1`,
+      [cycle],
+    ),
+  ]);
   return { featureIds: rows.map((r) => r.feature_id), brief: briefRow?.brief ?? null };
 }
 
@@ -72,6 +89,7 @@ export async function getDashboardStats(
 ): Promise<DashboardStats> {
   const today = todayString();
   const month = today.slice(0, 7) + "-01";
+  const startDate = addDays(today, -(range - 1));
   const count = (
     extra: string,
     ...params: unknown[]
@@ -82,28 +100,36 @@ export async function getDashboardStats(
     ).then((r) => Number(r?.n ?? 0));
 
   const m = scoped("s", isKetua, userId, cycle, 2);
-  const total = await count(
-    `AND date_trunc('month', s.tested_at) = date_trunc('month', $1::date) ${m.cond}`,
-    month,
-    ...m.vals,
-  );
   const p = scoped("s", isKetua, userId, cycle, 2);
-  const pass = await count(
-    `AND s.result='pass' AND date_trunc('month', s.tested_at) = date_trunc('month', $1::date) ${p.cond}`,
-    month,
-    ...p.vals,
-  );
   const f = scoped("s", isKetua, userId, cycle, 2);
-  const failBug = await count(
-    `AND s.result IN ('fail','bug') AND date_trunc('month', s.tested_at) = date_trunc('month', $1::date) ${f.cond}`,
-    month,
-    ...f.vals,
-  );
 
-  const scopeInfo = await cycleScope(cycle);
+  // Gelombang 1: semua independen, dijalankan paralel.
+  const [scopeInfo, total, pass, failBug, pending] = await Promise.all([
+    cycleScope(cycle),
+    count(
+      `AND date_trunc('month', s.tested_at) = date_trunc('month', $1::date) ${m.cond}`,
+      month,
+      ...m.vals,
+    ),
+    count(
+      `AND s.result='pass' AND date_trunc('month', s.tested_at) = date_trunc('month', $1::date) ${p.cond}`,
+      month,
+      ...p.vals,
+    ),
+    count(
+      `AND s.result IN ('fail','bug') AND date_trunc('month', s.tested_at) = date_trunc('month', $1::date) ${f.cond}`,
+      month,
+      ...f.vals,
+    ),
+    queryOne<{ n: string }>(
+      `SELECT count(*)::text AS n FROM retest_requests WHERE status='pending'`,
+    ),
+  ]);
+
   const scopeIds = scopeInfo.featureIds;
-  const untested = cycle
-    ? await queryOne<{ n: string }>(
+
+  const untestedPromise = cycle
+    ? queryOne<{ n: string }>(
         scopeIds.length > 0
           ? `SELECT count(*)::text AS n FROM features f WHERE f.is_active = true
                AND f.id = ANY($2)
@@ -112,17 +138,17 @@ export async function getDashboardStats(
                AND NOT EXISTS (SELECT 1 FROM test_sessions s WHERE s.feature_id = f.id AND s.test_cycle = $1)`,
         scopeIds.length > 0 ? [cycle, scopeIds] : [cycle],
       )
-    : await queryOne<{ n: string }>(
+    : queryOne<{ n: string }>(
         `SELECT count(*)::text AS n FROM features f WHERE f.is_active = true
            AND NOT EXISTS (SELECT 1 FROM test_sessions s WHERE s.feature_id = f.id)`,
         [],
       );
 
-  const scope: CycleScope | null = !cycle
-    ? null
+  const scopePromise: Promise<CycleScope | null> = !cycle
+    ? Promise.resolve(null)
     : scopeIds.length === 0
-      ? { total: 0, tested: 0, untested: [] }
-      : await (async () => {
+      ? Promise.resolve({ total: 0, tested: 0, untested: [] })
+      : (async () => {
           const names = await query<{ name: string }>(
             `SELECT f.name FROM features f WHERE f.is_active = true AND f.id = ANY($2)
                AND NOT EXISTS (SELECT 1 FROM test_sessions s WHERE s.feature_id = f.id AND s.test_cycle = $1)
@@ -133,18 +159,132 @@ export async function getDashboardStats(
           return { total, tested: total - names.length, untested: names.map((r) => r.name) };
         })();
 
-  const pending = await queryOne<{ n: string }>(
-    `SELECT count(*)::text AS n FROM retest_requests WHERE status='pending'`,
-  );
-
   const d = scoped("s", isKetua, userId, cycle, 2);
-  const startDate = addDays(today, -(range - 1));
-  const daily = await query<{ day: string; n: string }>(
+  const dailyPromise = query<{ day: string; n: string }>(
     `SELECT s.tested_at::text AS day, count(*)::text AS n FROM test_sessions s
       WHERE s.tested_at >= $1::date ${d.cond}
       GROUP BY s.tested_at`,
     [startDate, ...d.vals],
   );
+
+  const g = scoped("s", isKetua, userId, cycle, 2);
+  const distPromise = query<{ result: string; n: string }>(
+    `SELECT s.result, count(*)::text AS n FROM test_sessions s
+      WHERE date_trunc('month', s.tested_at) = date_trunc('month', $1::date) ${g.cond}
+      GROUP BY s.result`,
+    [month, ...g.vals],
+  );
+
+  const perFeaturePromise = cycle
+    ? query<{ name: string; count: string; last_result: string | null }>(
+        `SELECT f.name,
+                (SELECT count(*)::text FROM test_sessions s WHERE s.feature_id = f.id AND s.test_cycle = $1) AS count,
+                (SELECT s2.result FROM test_sessions s2 WHERE s2.feature_id = f.id AND s2.test_cycle = $1 ORDER BY s2.tested_at DESC, s2.id DESC LIMIT 1) AS last_result
+           FROM features f WHERE f.is_active = true
+           ORDER BY (SELECT count(*) FROM test_sessions s WHERE s.feature_id = f.id AND s.test_cycle = $1) DESC
+           LIMIT 10`,
+        [cycle],
+      )
+    : query<{ name: string; count: string; last_result: string | null }>(
+        `SELECT f.name,
+                (SELECT count(*)::text FROM test_sessions s WHERE s.feature_id = f.id) AS count,
+                (SELECT s2.result FROM test_sessions s2 WHERE s2.feature_id = f.id ORDER BY s2.tested_at DESC, s2.id DESC LIMIT 1) AS last_result
+           FROM features f WHERE f.is_active = true
+           ORDER BY (SELECT count(*) FROM test_sessions s WHERE s.feature_id = f.id) DESC
+           LIMIT 10`,
+      );
+
+  // ===== Tugas Saya =====
+  const taskVals: unknown[] = [userId];
+  let taskWhere = "";
+  if (cycle) {
+    taskVals.push(cycle);
+    taskWhere += ` AND NOT EXISTS (
+      SELECT 1 FROM test_sessions s
+       WHERE s.feature_id = f.id AND s.user_id = $1 AND s.test_cycle = $2
+    )`;
+  } else {
+    taskWhere += ` AND NOT EXISTS (
+      SELECT 1 FROM test_sessions s
+       WHERE s.feature_id = f.id AND s.user_id = $1
+    )`;
+  }
+  if (cycle && scopeIds.length > 0) {
+    taskVals.push(scopeIds);
+    taskWhere += ` AND f.id = ANY($${taskVals.length})`;
+  }
+
+  const untestedFeaturesPromise = query<{ id: number; name: string }>(
+    `SELECT f.id, f.name FROM features f
+      WHERE f.is_active = true ${taskWhere}
+      ORDER BY f.name LIMIT 20`,
+    taskVals,
+  );
+
+  const myPendingPromise = query<{
+    id: number;
+    feature_name: string;
+    expires_at: string;
+  }>(
+    `SELECT r.id, f.name AS feature_name, r.expires_at::text AS expires_at
+       FROM retest_requests r
+       JOIN features f ON f.id = r.feature_id
+      WHERE r.user_id=$1 AND r.status='pending' AND r.expires_at > now()
+      ORDER BY r.created_at DESC LIMIT 10`,
+    [userId],
+  );
+
+  const readyPromise = queryOne<{ n: string }>(
+    `SELECT count(*)::text AS n FROM retest_approvals
+      WHERE requested_by=$1 AND used_at IS NULL
+        AND (expires_at IS NULL OR expires_at > now())`,
+    [userId],
+  );
+
+  const defectVals: unknown[] = [];
+  let defectScope = "";
+  if (cycle && scopeIds.length > 0) {
+    defectVals.push(scopeIds);
+    defectScope = ` AND d.feature_id = ANY($${defectVals.length})`;
+  }
+  const openDefectsPromise = query<{
+    id: number;
+    feature_name: string;
+    status: string;
+    severity: string | null;
+  }>(
+    `SELECT d.id, f.name AS feature_name, d.status, d.severity
+       FROM defects d JOIN features f ON f.id = d.feature_id
+      WHERE d.status IN ('open','reopened','fixed') ${defectScope}
+      ORDER BY CASE d.severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
+               d.created_at DESC
+      LIMIT 10`,
+    defectVals,
+  );
+
+  // Gelombang 2: sisa query, semuanya paralel.
+  const [
+    untested,
+    scope,
+    daily,
+    dist,
+    perFeature,
+    untestedFeatures,
+    myPendingRequests,
+    ready,
+    openDefects,
+  ] = await Promise.all([
+    untestedPromise,
+    scopePromise,
+    dailyPromise,
+    distPromise,
+    perFeaturePromise,
+    untestedFeaturesPromise,
+    myPendingPromise,
+    readyPromise,
+    openDefectsPromise,
+  ]);
+
   const byDate = new Map(daily.map((r) => [r.day, Number(r.n)]));
   const labels: string[] = [];
   const values: number[] = [];
@@ -154,13 +294,6 @@ export async function getDashboardStats(
     values.push(byDate.get(iso) ?? 0);
   }
 
-  const g = scoped("s", isKetua, userId, cycle, 2);
-  const dist = await query<{ result: string; n: string }>(
-    `SELECT s.result, count(*)::text AS n FROM test_sessions s
-      WHERE date_trunc('month', s.tested_at) = date_trunc('month', $1::date) ${g.cond}
-      GROUP BY s.result`,
-    [month, ...g.vals],
-  );
   const distribution = { pass: 0, fail: 0, bug: 0 };
   for (const r of dist) {
     if (r.result === "pass" || r.result === "fail" || r.result === "bug") {
@@ -168,30 +301,17 @@ export async function getDashboardStats(
     }
   }
 
-  const perFeature = cycle
-    ? await query<{ name: string; count: string; last_result: string | null }>(
-        `SELECT f.name,
-                (SELECT count(*)::text FROM test_sessions s WHERE s.feature_id = f.id AND s.test_cycle = $1) AS count,
-                (SELECT s2.result FROM test_sessions s2 WHERE s2.feature_id = f.id AND s2.test_cycle = $1 ORDER BY s2.tested_at DESC, s2.id DESC LIMIT 1) AS last_result
-           FROM features f WHERE f.is_active = true
-           ORDER BY (SELECT count(*) FROM test_sessions s WHERE s.feature_id = f.id AND s.test_cycle = $1) DESC
-           LIMIT 10`,
-        [cycle],
-      )
-    : await query<{ name: string; count: string; last_result: string | null }>(
-        `SELECT f.name,
-                (SELECT count(*)::text FROM test_sessions s WHERE s.feature_id = f.id) AS count,
-                (SELECT s2.result FROM test_sessions s2 WHERE s2.feature_id = f.id ORDER BY s2.tested_at DESC, s2.id DESC LIMIT 1) AS last_result
-           FROM features f WHERE f.is_active = true
-           ORDER BY (SELECT count(*) FROM test_sessions s WHERE s.feature_id = f.id) DESC
-           LIMIT 10`,
-      );
-
   return {
     range,
     cycle,
     brief: scopeInfo.brief,
     scope,
+    myTasks: {
+      untestedFeatures,
+      myPendingRequests,
+      readyApprovals: Number(ready?.n ?? 0),
+      openDefects,
+    },
     summary: {
       total_bulan_ini: total,
       fitur_belum_diuji: Number(untested?.n ?? 0),

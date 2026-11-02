@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { cache } from "react";
 import { cookies } from "next/headers";
 
 import { query, queryOne } from "@/lib/db";
@@ -62,24 +63,46 @@ export async function destroySession() {
   store.delete(SESSION_COOKIE);
 }
 
-export async function getSessionUser(): Promise<SessionUser | null> {
-  const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-
-  const user = await queryOne<UserRow>(
-    `SELECT u.id, u.name, u.email, u.role, u.password_hash
-       FROM sessions s
-       JOIN users u ON u.id = s.user_id
-      WHERE s.id = $1
-        AND s.expires_at > now()`,
-    [hashToken(token)],
-  );
-
-  if (!user) return null;
-
-  return { id: user.id, name: user.name, email: user.email, role: user.role };
+export async function getSessionUser(): Promise<
+  (SessionUser & { unread: number }) | null
+> {
+  return getSessionUserCached();
 }
+
+/**
+ * Satu query per request: sesi + user + jumlah notifikasi belum dibaca.
+ * `cache` mendeduplikasi panggilan dari layout dan page dalam request yang sama.
+ */
+const getSessionUserCached = cache(
+  async (): Promise<(SessionUser & { unread: number }) | null> => {
+    const store = await cookies();
+    const token = store.get(SESSION_COOKIE)?.value;
+    if (!token) return null;
+
+    const user = await queryOne<
+      SessionUser & { unread: string }
+    >(
+      `SELECT u.id, u.name, u.email, u.role,
+              (SELECT count(*)::text FROM notifications n
+                WHERE n.user_id = u.id AND n.read_at IS NULL) AS unread
+         FROM sessions s
+         JOIN users u ON u.id = s.user_id
+        WHERE s.id = $1
+          AND s.expires_at > now()`,
+      [hashToken(token)],
+    );
+
+    if (!user) return null;
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      unread: Number(user.unread ?? 0),
+    };
+  },
+);
 
 export async function requireUser(): Promise<SessionUser> {
   const user = await getSessionUser();

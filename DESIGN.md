@@ -33,6 +33,9 @@ Adegan cahaya: tester bekerja di ruangan terang — dasar terang, tinta hitam. B
 | `.alert-ok/err/warn/info` | Umpan balik ber-border hitam: ok = hitam solid/teks putih; err = putih/border-2; warn/info = `neutral-100`/putih border tipis | Jangan `bg-yellow-50` / `bg-red-50` manual |
 | `.empty-state` + `.empty-icon/title/hint` | Semua keadaan kosong + CTA; ikon = SVG garis dalam kotak `neutral-100` border, bukan emoji | Jangan teks polos "Belum ada data." |
 | `.skeleton` | Pengganti area muat — kilau mati saat `prefers-reduced-motion` | Jangan spinner baru/lib baru |
+| `.timeline` / `.timeline-dot` | Detail fitur: garis vertikal + titik per sesi | Jangan tabel padat untuk 3–5 item |
+
+Pola v3: baris pratinjau import yang invalid memakai `bg-neutral-100` + daftar error teks; riwayat memakai kartu di bawah `md` dan tabel di atasnya; PDF memakai header hitam `[9,9,11]` (bukan ungu).
 
 Aturan tombol: semua `.btn-*` punya `min-h-11` (44px) dan `focus-visible:ring-neutral-950`; pil rentang 7/30 hari juga `min-h-11` + `aria-pressed`, aktif = hitam solid, nonaktif = putih border.
 

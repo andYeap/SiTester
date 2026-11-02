@@ -6,7 +6,7 @@ import { notifyUser } from "@/lib/notify";
 import { parsePositiveInt } from "@/lib/validation";
 
 export async function PATCH(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ketua = await needKetua();
@@ -14,6 +14,14 @@ export async function PATCH(
   const { id } = await params;
   const requestId = parsePositiveInt(id);
   if (requestId === null) return err("Permohonan tidak ditemukan.", 404);
+
+  const body = (await request.json().catch(() => null)) as {
+    note?: unknown;
+  } | null;
+  const note =
+    typeof body?.note === "string" && body.note.trim() !== ""
+      ? body.note.trim().slice(0, 1000)
+      : null;
 
   try {
     await withTransaction(async (client) => {
@@ -44,9 +52,9 @@ export async function PATCH(
         [ketua.id, req.id],
       );
       await client.query(
-        `INSERT INTO retest_approvals (feature_id, requested_by, approved_by, scope_role, expires_at)
-         VALUES ($1,$2,$3,$4, now() + make_interval(days => 7))`,
-        [req.feature_id, req.user_id, ketua.id, req.tested_as_role],
+        `INSERT INTO retest_approvals (feature_id, requested_by, approved_by, scope_role, expires_at, note)
+         VALUES ($1,$2,$3,$4, now() + make_interval(days => 7), $5)`,
+        [req.feature_id, req.user_id, ketua.id, req.tested_as_role, note],
       );
 
       await notifyUser(req.user_id, {

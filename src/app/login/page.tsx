@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
@@ -96,6 +97,11 @@ function LoginForm() {
         >
           {loading ? "Memeriksa..." : "Masuk"}
         </button>
+        <p className="text-center text-sm text-neutral-500">
+          <Link href="/lupa-password" className="underline underline-offset-2">
+            Lupa kata sandi?
+          </Link>
+        </p>
       </form>
     </div>
   );

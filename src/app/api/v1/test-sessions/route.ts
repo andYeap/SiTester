@@ -57,6 +57,8 @@ export async function POST(request: Request) {
   const notes = str("notes") || null;
   const evidenceUrl = str("evidence_url") || null;
   const evidence = form.get("evidence");
+  const testCaseRaw = str("test_case_id");
+  const testCaseId = testCaseRaw === "" ? null : Number(testCaseRaw);
 
   if (!testedAt || !isIsoDate(testedAt)) {
     return err("Tanggal pengujian tidak valid (format YYYY-MM-DD).", 422);
@@ -71,8 +73,8 @@ export async function POST(request: Request) {
     return err("Status hasil tidak valid.", 422);
   }
 
-  const feature = await queryOne<{ id: number; is_active: boolean }>(
-    `SELECT id, is_active FROM features WHERE id=$1`,
+  const feature = await queryOne<{ id: number; name: string; is_active: boolean }>(
+    `SELECT id, name, is_active FROM features WHERE id=$1`,
     [featureId],
   );
   if (!feature || !feature.is_active) {
@@ -129,15 +131,33 @@ export async function POST(request: Request) {
     return err("Tautan bukti harus berupa URL http(s).", 422);
   }
 
+  if (testCaseId !== null) {
+    if (!Number.isInteger(testCaseId) || testCaseId <= 0) {
+      return err("Test case tidak valid.", 422);
+    }
+    const testCase = await queryOne<{ id: number }>(
+      `SELECT id FROM test_cases
+        WHERE id=$1 AND feature_id=$2 AND is_active=true`,
+      [testCaseId, featureId],
+    );
+    if (!testCase) {
+      return err("Test case harus milik fitur ini dan aktif.", 422);
+    }
+  }
+
   let evidencePath: string | null = null;
   if (evidence instanceof File && evidence.size > 0) {
     if (evidence.size > 2 * 1024 * 1024) {
       return err("Ukuran bukti maksimal 2MB.", 422);
     }
-    if (!evidence.type.startsWith("image/")) {
-      return err("Bukti harus berupa gambar.", 422);
+    try {
+      evidencePath = await saveEvidence(evidence);
+    } catch (e) {
+      return err(
+        e instanceof Error ? e.message : "Gagal menyimpan bukti.",
+        422,
+      );
     }
-    evidencePath = await saveEvidence(evidence);
   }
 
   const last = await queryOne<{ result: TestResult }>(
@@ -168,8 +188,13 @@ export async function POST(request: Request) {
     );
   }
 
+  let saved: { sessionId: number; defectId: number | null } = {
+    sessionId: 0,
+    defectId: null,
+  };
+
   try {
-    await withTransaction(async (client) => {
+    saved = await withTransaction(async (client) => {
       let approvalId: number | null = null;
       if (needsApproval) {
         const locked = await client.query<{ id: number }>(
@@ -189,16 +214,38 @@ export async function POST(request: Request) {
         ]);
       }
 
-      await client.query(
+      const inserted = await client.query<{ id: number }>(
         `INSERT INTO test_sessions
-          (user_id, feature_id, tested_at, result, severity, environment, expected, actual,
+          (user_id, feature_id, test_case_id, tested_at, result, severity, environment, expected, actual,
            notes, is_retest, tested_as_role, test_cycle, retest_approval_id, evidence_path, evidence_url)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+         RETURNING id`,
         [
-          user.id, featureId, testedAt, result, severity, environment, expected,
-          actual, notes, isRetest, role, cycle, approvalId, evidencePath, evidenceUrl,
+          user.id, featureId, testCaseId, testedAt, result, severity, environment,
+          expected, actual, notes, isRetest, role, cycle, approvalId, evidencePath,
+          evidenceUrl,
         ],
       );
+
+      const sessionId = Number(inserted.rows[0].id);
+      let defectId: number | null = null;
+
+      if (result === "fail" || result === "bug") {
+        const defect = await client.query<{ id: number }>(
+          `INSERT INTO defects (feature_id, session_id, title, severity, status, created_by)
+           VALUES ($1,$2,$3,$4,'open',$5) RETURNING id`,
+          [
+            featureId,
+            sessionId,
+            `Temuan: ${feature.name}`,
+            severity,
+            user.id,
+          ],
+        );
+        defectId = Number(defect.rows[0].id);
+      }
+
+      return { sessionId, defectId };
     });
   } catch (e) {
     return err(e instanceof Error ? e.message : "Gagal menyimpan.", 422);
@@ -213,6 +260,8 @@ export async function POST(request: Request) {
   return NextResponse.json(
     {
       ok: true,
+      sessionId: saved.sessionId,
+      defectId: saved.defectId,
       warning:
         recent[0].n !== "0"
           ? "Perhatian: fitur ini baru saja diuji oleh tester lain dalam 24 jam terakhir."

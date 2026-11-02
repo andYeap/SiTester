@@ -19,6 +19,8 @@ export default function proxy(request: NextRequest) {
     pathname.startsWith("/siklus") ||
     pathname.startsWith("/aktivitas") ||
     pathname.startsWith("/notifikasi") ||
+    pathname.startsWith("/defect") ||
+    pathname.startsWith("/impor") ||
     pathname.startsWith("/profil");
 
   if (isAppRoute && !request.cookies.has("testlab_session")) {
@@ -31,5 +33,22 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Hanya route aplikasi yang butuh cek cookie; jangan jalankan proxy untuk
+  // /api, aset statis, login, dan halaman publik (mengurangi latensi Vercel).
+  matcher: [
+    "/",
+    "/dashboard/:path*",
+    "/pengujian-baru/:path*",
+    "/riwayat/:path*",
+    "/fitur/:path*",
+    "/defect/:path*",
+    "/permohonan/:path*",
+    "/pengguna/:path*",
+    "/peran/:path*",
+    "/siklus/:path*",
+    "/impor/:path*",
+    "/aktivitas/:path*",
+    "/notifikasi/:path*",
+    "/profil/:path*",
+  ],
 };

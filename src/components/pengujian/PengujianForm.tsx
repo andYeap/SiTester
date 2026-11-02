@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+/* eslint-disable react-hooks/set-state-in-effect */
+
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { todayString } from "@/lib/time";
 import FeatureCombobox from "./FeatureCombobox";
@@ -8,6 +10,7 @@ import FeatureCombobox from "./FeatureCombobox";
 type Feature = { id: number; name: string; project_name: string | null; description: string | null };
 type Role = { name: string; label: string };
 type Cycle = { name: string };
+type TestCase = { id: number; title: string };
 type Check = {
   allowed: boolean;
   requiresApproval: boolean;
@@ -17,6 +20,34 @@ type Check = {
   hasPendingRequestOwn: boolean;
   duplicateWarning: string | null;
 };
+
+type Draft = {
+  testedAt: string;
+  isRetest: boolean;
+  featureId: string;
+  role: string;
+  cycle: string;
+  testCaseId: string;
+  result: string;
+  severity: string;
+  environment: string;
+  expected: string;
+  actual: string;
+  notes: string;
+  evidenceUrl: string;
+};
+
+type QueueRow = {
+  key: string;
+  featureId: string;
+  featureName: string;
+  testCaseId: string;
+  result: string;
+  severity: string;
+  notes: string;
+};
+
+const DRAFT_KEY = "sitester:draft-v3";
 
 const RESULTS = [
   { value: "pass", label: "Pass" },
@@ -38,11 +69,15 @@ export default function PengujianForm({
   initialRoles,
   initialCycles,
   initialProjects,
+  initialFeatureId,
+  initialCycle,
 }: {
   initialFeatures: Feature[];
   initialRoles: Role[];
   initialCycles: Cycle[];
   initialProjects: { id: number; name: string }[];
+  initialFeatureId?: string;
+  initialCycle?: string;
 }) {
   const [features] = useState<Feature[]>(initialFeatures);
   const [roles] = useState<Role[]>(initialRoles);
@@ -62,6 +97,37 @@ export default function PengujianForm({
     [features, scopeIds],
   );
 
+  const [testedAt, setTestedAt] = useState(today());
+  const [isRetest, setIsRetest] = useState(false);
+  const [featureId, setFeatureId] = useState(initialFeatureId ?? "");
+  const [role, setRole] = useState(initialRoles[0]?.name ?? "tester");
+  const [cycle, setCycle] = useState(initialCycle ?? "");
+  const [testCaseId, setTestCaseId] = useState("");
+  const [result, setResult] = useState("");
+  const [severity, setSeverity] = useState("");
+  const [environment, setEnvironment] = useState("");
+  const [expected, setExpected] = useState("");
+  const [actual, setActual] = useState("");
+  const [notes, setNotes] = useState("");
+  const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [check, setCheck] = useState<Check | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+  const [warn, setWarn] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const [quickMode, setQuickMode] = useState(false);
+  const [queue, setQueue] = useState<QueueRow[]>([]);
+  const [queueError, setQueueError] = useState<string | null>(null);
+
+  const [draftAvailable, setDraftAvailable] = useState(false);
+  const mounted = useRef(false);
+
+  const needsTriage = result === "fail" || result === "bug";
+
   async function loadCycleInfo(name: string) {
     setCycleBrief(null);
     setScopeIds(null);
@@ -77,30 +143,9 @@ export default function PengujianForm({
       setCycleBrief(found.brief);
       setScopeIds(found.feature_ids.length > 0 ? found.feature_ids.map(Number) : null);
     } catch {
-      /* abaikan: form tetap bisa dipakai tanpa lingkup */
+      /* form tetap bisa dipakai tanpa lingkup */
     }
   }
-
-  const [testedAt, setTestedAt] = useState(today());
-  const [isRetest, setIsRetest] = useState(false);
-  const [featureId, setFeatureId] = useState("");
-  const [role, setRole] = useState("tester");
-  const [cycle, setCycle] = useState("");
-  const [result, setResult] = useState("");
-  const [severity, setSeverity] = useState("");
-  const [environment, setEnvironment] = useState("");
-  const [expected, setExpected] = useState("");
-  const [actual, setActual] = useState("");
-  const [notes, setNotes] = useState("");
-  const [evidenceUrl, setEvidenceUrl] = useState("");
-  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
-  const [reason, setReason] = useState("");
-
-  const [check, setCheck] = useState<Check | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState<string | null>(null);
-  const [warn, setWarn] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
 
   async function runCheckWith(fId: string, rt: boolean, rl: string, cyc: string) {
     setCheck(null);
@@ -110,13 +155,91 @@ export default function PengujianForm({
       role: rl,
       cycle: cyc,
     });
-    const res = await fetch(`/api/v1/features/${fId}/can-test?${q}`);
-    if (!res.ok) return;
-    setCheck((await res.json()) as Check);
+    try {
+      const res = await fetch(`/api/v1/features/${fId}/can-test?${q}`);
+      if (!res.ok) return;
+      setCheck((await res.json()) as Check);
+    } catch {
+      /* abaikan */
+    }
   }
 
   function checkNow(fId = featureId, rt = isRetest, rl = role, cyc = cycle) {
-    runCheckWith(fId, rt, rl, cyc).catch(() => undefined);
+    void runCheckWith(fId, rt, rl, cyc);
+  }
+
+  async function loadTestCases(fId: string) {
+    setTestCases([]);
+    setTestCaseId("");
+    if (!fId) return;
+    try {
+      const res = await fetch(`/api/v1/features/${fId}/test-cases`);
+      if (!res.ok) return;
+      const data = (await res.json()) as { testCases?: TestCase[] };
+      setTestCases(data.testCases ?? []);
+    } catch {
+      /* opsional */
+    }
+  }
+
+  // Muat info siklus + cek awal dari query param.
+  useEffect(() => {
+    if (initialCycle) void loadCycleInfo(initialCycle);
+    if (initialFeatureId) {
+      void runCheckWith(initialFeatureId, false, initialRoles[0]?.name ?? "tester", initialCycle ?? "");
+      void loadTestCases(initialFeatureId);
+    }
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (raw) setDraftAvailable(true);
+    mounted.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Simpan draft otomatis setelah mount.
+  useEffect(() => {
+    if (!mounted.current) return;
+    const draft: Draft = {
+      testedAt, isRetest, featureId, role, cycle, testCaseId, result, severity,
+      environment, expected, actual, notes, evidenceUrl,
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }, [
+    testedAt, isRetest, featureId, role, cycle, testCaseId, result, severity,
+    environment, expected, actual, notes, evidenceUrl,
+  ]);
+
+  function restoreDraft() {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw) as Partial<Draft>;
+      setTestedAt(d.testedAt ?? today());
+      setIsRetest(Boolean(d.isRetest));
+      setFeatureId(d.featureId ?? "");
+      setRole(d.role ?? role);
+      setCycle(d.cycle ?? "");
+      setTestCaseId(d.testCaseId ?? "");
+      setResult(d.result ?? "");
+      setSeverity(d.severity ?? "");
+      setEnvironment(d.environment ?? "");
+      setExpected(d.expected ?? "");
+      setActual(d.actual ?? "");
+      setNotes(d.notes ?? "");
+      setEvidenceUrl(d.evidenceUrl ?? "");
+      if (d.cycle) void loadCycleInfo(d.cycle);
+      if (d.featureId) {
+        void runCheckWith(d.featureId, Boolean(d.isRetest), d.role ?? role, d.cycle ?? "");
+        void loadTestCases(d.featureId);
+      }
+      setDraftAvailable(false);
+    } catch {
+      localStorage.removeItem(DRAFT_KEY);
+    }
+  }
+
+  function discardDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+    setDraftAvailable(false);
   }
 
   const messages: string[] = [];
@@ -124,6 +247,31 @@ export default function PengujianForm({
   if (check?.duplicateWarning) messages.push(check.duplicateWarning);
   if (check?.hasPendingRequestOwn)
     messages.push("Permohonan pengujian ulang Anda untuk fitur ini sedang menunggu persetujuan ketua tim.");
+
+  function buildFormData(row: {
+    featureId: string;
+    testCaseId?: string;
+    result: string;
+    severity: string;
+    notes: string;
+  }) {
+    const fd = new FormData();
+    fd.set("tested_at", testedAt);
+    fd.set("feature_id", row.featureId);
+    fd.set("is_retest", isRetest ? "1" : "0");
+    fd.set("tested_as_role", role);
+    if (cycle) fd.set("test_cycle", cycle);
+    if (row.testCaseId) fd.set("test_case_id", row.testCaseId);
+    fd.set("result", row.result);
+    if (row.severity) fd.set("severity", row.severity);
+    if (environment) fd.set("environment", environment);
+    if (expected) fd.set("expected", expected);
+    if (actual) fd.set("actual", actual);
+    if (row.notes) fd.set("notes", row.notes);
+    if (evidenceUrl) fd.set("evidence_url", evidenceUrl);
+    if (evidenceFile) fd.set("evidence", evidenceFile);
+    return fd;
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -136,22 +284,10 @@ export default function PengujianForm({
     }
     setSaving(true);
     try {
-      const fd = new FormData();
-      fd.set("tested_at", testedAt);
-      fd.set("feature_id", featureId);
-      fd.set("is_retest", isRetest ? "1" : "0");
-      fd.set("tested_as_role", role);
-      if (cycle) fd.set("test_cycle", cycle);
-      fd.set("result", result);
-      if (severity) fd.set("severity", severity);
-      if (environment) fd.set("environment", environment);
-      if (expected) fd.set("expected", expected);
-      if (actual) fd.set("actual", actual);
-      if (notes) fd.set("notes", notes);
-      if (evidenceUrl) fd.set("evidence_url", evidenceUrl);
-      if (evidenceFile) fd.set("evidence", evidenceFile);
-
-      const res = await fetch("/api/v1/test-sessions", { method: "POST", body: fd });
+      const res = await fetch("/api/v1/test-sessions", {
+        method: "POST",
+        body: buildFormData({ featureId, testCaseId, result, severity, notes }),
+      });
       const data = (await res.json()) as { error?: string; warning?: string | null };
       if (!res.ok) {
         setError(data.error ?? "Gagal menyimpan.");
@@ -162,8 +298,12 @@ export default function PengujianForm({
       setResult("");
       setSeverity("");
       setNotes("");
+      setExpected("");
+      setActual("");
       setEvidenceFile(null);
       setEvidenceUrl("");
+      setTestCaseId("");
+      localStorage.removeItem(DRAFT_KEY);
       checkNow();
     } catch {
       setError("Tidak dapat menghubungi server.");
@@ -172,14 +312,98 @@ export default function PengujianForm({
     }
   }
 
+  function addToQueue() {
+    setQueueError(null);
+    if (!featureId) {
+      setQueueError("Pilih fitur terlebih dahulu.");
+      return;
+    }
+    if (!result) {
+      setQueueError("Pilih hasil pengujian.");
+      return;
+    }
+    if (needsTriage && !severity) {
+      setQueueError("Severity wajib untuk Fail/Bug.");
+      return;
+    }
+    if (needsTriage && notes.trim().length < 10) {
+      setQueueError("Catatan minimal 10 karakter untuk Fail/Bug.");
+      return;
+    }
+    const f = features.find((x) => String(x.id) === featureId);
+    if (!f) return;
+
+    setQueue((prev) => [
+      ...prev,
+      {
+        key: `${Date.now()}-${featureId}`,
+        featureId,
+        featureName: f.name,
+        testCaseId,
+        result,
+        severity,
+        notes,
+      },
+    ]);
+    setFeatureId("");
+    setTestCaseId("");
+    setResult("");
+    setSeverity("");
+    setNotes("");
+    setTestCases([]);
+    setCheck(null);
+  }
+
+  async function saveQueue() {
+    setQueueError(null);
+    setError(null);
+    setOk(null);
+    if (queue.length === 0) {
+      setQueueError("Daftar masih kosong.");
+      return;
+    }
+    setSaving(true);
+    const failed: QueueRow[] = [];
+    let success = 0;
+    for (const row of queue) {
+      try {
+        const res = await fetch("/api/v1/test-sessions", {
+          method: "POST",
+          body: buildFormData(row),
+        });
+        if (!res.ok) {
+          failed.push(row);
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          if (!queueError) setQueueError(`${row.featureName}: ${data.error ?? "gagal"}`);
+        } else {
+          success += 1;
+        }
+      } catch {
+        failed.push(row);
+      }
+    }
+    setQueue(failed);
+    setSaving(false);
+    if (success > 0) {
+      setOk(`${success} hasil tersimpan${failed.length ? `, ${failed.length} gagal` : ""}.`);
+      localStorage.removeItem(DRAFT_KEY);
+      setDraftAvailable(false);
+    }
+  }
+
   async function requestRetest(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const reason = "";
     try {
       const res = await fetch("/api/v1/retest-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feature_id: Number(featureId), tested_as_role: role, reason: reason || null }),
+        body: JSON.stringify({
+          feature_id: Number(featureId),
+          tested_as_role: role,
+          reason: reason || null,
+        }),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
@@ -195,19 +419,43 @@ export default function PengujianForm({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="page-title">Form Pengujian</h1>
-        <p className="page-subtitle">Catat hasil uji manual — validasi retest berjalan otomatis.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="page-title">Form Pengujian</h1>
+          <p className="page-subtitle">Catat hasil uji manual — validasi retest berjalan otomatis.</p>
+        </div>
+        <label className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold ${quickMode ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-300 bg-white text-neutral-800"}`}>
+          <input
+            type="checkbox"
+            checked={quickMode}
+            onChange={(e) => { setQuickMode(e.target.checked); setQueueError(null); }}
+            className="h-4 w-4 accent-neutral-950"
+          />
+          Mode cepat
+        </label>
       </div>
+
+      {draftAvailable && (
+        <div className="alert-info flex flex-wrap items-center justify-between gap-2">
+          <span>Ada draft pengujian yang belum disimpan.</span>
+          <span className="flex gap-3">
+            <button type="button" onClick={restoreDraft} className="font-semibold underline underline-offset-2">Pulihkan</button>
+            <button type="button" onClick={discardDraft} className="underline underline-offset-2">Hapus</button>
+          </span>
+        </div>
+      )}
+
       {error && <div className="alert-err" role="alert">{error}</div>}
       {ok && <div className="alert-ok" role="status">{ok}</div>}
       {warn && <div className="alert-warn">{warn}</div>}
+      {queueError && <div className="alert-err" role="alert">{queueError}</div>}
 
-      <form onSubmit={submit} className="space-y-5 card-pad">
+      <form onSubmit={quickMode ? (e) => { e.preventDefault(); addToQueue(); } : submit} className="space-y-5 card-pad">
         <div>
           <label className="label" htmlFor="uji-tanggal">Tanggal Pengujian</label>
           <input id="uji-tanggal" type="date" value={testedAt} max={today()} onChange={(e) => setTestedAt(e.target.value)} required className="input" />
         </div>
+
         <fieldset>
           <legend className="label">Apakah ini pengujian ulang?</legend>
           <div className="mt-2 flex gap-6">
@@ -219,38 +467,43 @@ export default function PengujianForm({
             </label>
           </div>
         </fieldset>
-        <div>
-          <label className="label" htmlFor="uji-peran">Diuji sebagai peran</label>
-          <select id="uji-peran" value={role} onChange={(e) => { setRole(e.target.value); checkNow(featureId, isRetest, e.target.value, cycle); }} required className="input">
-            {roles.map((r) => (
-              <option key={r.name} value={r.name}>{r.label}</option>
-            ))}
-          </select>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label" htmlFor="uji-peran">Diuji sebagai peran</label>
+            <select id="uji-peran" value={role} onChange={(e) => { setRole(e.target.value); checkNow(featureId, isRetest, e.target.value, cycle); }} required className="input">
+              {roles.map((r) => (
+                <option key={r.name} value={r.name}>{r.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label" htmlFor="uji-siklus">Siklus</label>
+            <select id="uji-siklus" value={cycle} onChange={(e) => {
+              const v = e.target.value;
+              setCycle(v);
+              setFeatureId("");
+              setCheck(null);
+              void loadCycleInfo(v);
+            }} className="input">
+              <option value="">— Tanpa siklus —</option>
+              {cycles.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div>
-          <label className="label" htmlFor="uji-siklus">Siklus</label>
-          <select id="uji-siklus" value={cycle} onChange={(e) => {
-            const v = e.target.value;
-            setCycle(v);
-            setFeatureId("");
-            setCheck(null);
-            void loadCycleInfo(v);
-          }} className="input">
-            <option value="">— Tanpa siklus —</option>
-            {cycles.map((c) => (
-              <option key={c.name} value={c.name}>{c.name}</option>
-            ))}
-          </select>
-          {cycleBrief && (
-            <div className="alert-info mt-2" role="note">
-              <p className="font-semibold">Instruksi {cycle}</p>
-              <p className="whitespace-pre-wrap">{cycleBrief}</p>
-            </div>
-          )}
-          {scopeIds !== null && (
-            <p className="hint mt-1">Siklus ini mencakup {scopeIds.length} fitur — daftar di bawah sudah disaring.</p>
-          )}
-        </div>
+
+        {cycleBrief && (
+          <div className="alert-info" role="note">
+            <p className="font-semibold">Instruksi {cycle}</p>
+            <p className="whitespace-pre-wrap">{cycleBrief}</p>
+          </div>
+        )}
+        {scopeIds !== null && (
+          <p className="hint">Siklus ini mencakup {scopeIds.length} fitur — daftar di bawah sudah disaring.</p>
+        )}
+
         <div>
           <label className="label" htmlFor="uji-proyek">Filter proyek</label>
           <select id="uji-proyek" value={projectFilter} onChange={(e) => {
@@ -267,28 +520,42 @@ export default function PengujianForm({
               <option key={n} value={n}>{n}</option>
             ))}
           </select>
-          <p className="hint">Batasi daftar bila fitur sudah banyak.</p>
         </div>
+
         <FeatureCombobox
           id="uji-fitur"
           label="Fitur yang Diuji"
           features={scopedFeatures.map((f) => ({ id: f.id, name: f.name, project: f.project_name, description: f.description }))}
           value={featureId}
           project={projectFilter}
-          onChange={(id) => { setFeatureId(id); checkNow(id, isRetest, role, cycle); }}
+          onChange={(id) => {
+            setFeatureId(id);
+            checkNow(id, isRetest, role, cycle);
+            void loadTestCases(id);
+          }}
         />
 
-        <div aria-live="polite">
-        {check && messages.length > 0 && (
-          <div className={!check.allowed ? "alert-err" : "alert-warn"}>
-            {messages.map((m, i) => (
-              <p key={i}>{m}</p>
-            ))}
+        {!quickMode && testCases.length > 0 && (
+          <div>
+            <label className="label" htmlFor="uji-testcase">Test case <span className="font-normal text-neutral-400">(opsional)</span></label>
+            <select id="uji-testcase" value={testCaseId} onChange={(e) => setTestCaseId(e.target.value)} className="input">
+              <option value="">— Tanpa test case —</option>
+              {testCases.map((tc) => (
+                <option key={tc.id} value={tc.id}>{tc.title}</option>
+              ))}
+            </select>
           </div>
         )}
-        {check && messages.length === 0 && featureId && (
-          <div className="alert-ok">Fitur ini siap diuji.</div>
-        )}
+
+        <div aria-live="polite">
+          {check && messages.length > 0 && (
+            <div className={!check.allowed ? "alert-err" : "alert-warn"}>
+              {messages.map((m, i) => <p key={i}>{m}</p>)}
+            </div>
+          )}
+          {check && messages.length === 0 && featureId && (
+            <div className="alert-ok">Fitur ini siap diuji.</div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -296,65 +563,103 @@ export default function PengujianForm({
             <label className="label" htmlFor="uji-hasil">Status Hasil</label>
             <select id="uji-hasil" value={result} onChange={(e) => setResult(e.target.value)} required className="input">
               <option value="">— Pilih hasil —</option>
-              {RESULTS.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
+              {RESULTS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
-          <div>
-            <label className="label" htmlFor="uji-severity">Tingkat Keparahan</label>
-            <select id="uji-severity" aria-describedby="uji-severity-hint" value={severity} onChange={(e) => setSeverity(e.target.value)} className="input">
-              <option value="">— Pilih tingkat keparahan —</option>
-              {SEVERITIES.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-            <p className="hint" id="uji-severity-hint">Wajib diisi bila hasil Fail atau Bug.</p>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="label" htmlFor="uji-env">Lingkungan <span className="font-normal text-neutral-400">(opsional)</span></label>
-            <input id="uji-env" value={environment} onChange={(e) => setEnvironment(e.target.value)} placeholder="cth: Chrome 126 / Windows 11" className="input" />
-          </div>
-          <div>
-            <label className="label" htmlFor="uji-expected">Yang diharapkan <span className="font-normal text-neutral-400">(opsional)</span></label>
-            <textarea id="uji-expected" value={expected} onChange={(e) => setExpected(e.target.value)} rows={2} className="input" />
-          </div>
-          <div>
-            <label className="label" htmlFor="uji-actual">Yang terjadi <span className="font-normal text-neutral-400">(opsional)</span></label>
-            <textarea id="uji-actual" value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="input" />
-          </div>
-          <div>
-            <label className="label" htmlFor="uji-file">Bukti gambar <span className="font-normal text-neutral-400">(opsional, maks 2MB)</span></label>
-            <input id="uji-file" type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)} className="input-file" />
-          </div>
-          <div>
-            <label className="label" htmlFor="uji-url">atau tautan bukti <span className="font-normal text-neutral-400">(opsional)</span></label>
-            <input id="uji-url" type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://..." className="input" />
-          </div>
+          {needsTriage && (
+            <div>
+              <label className="label" htmlFor="uji-severity">Tingkat Keparahan</label>
+              <select id="uji-severity" value={severity} onChange={(e) => setSeverity(e.target.value)} required className="input">
+                <option value="">— Pilih tingkat keparahan —</option>
+                {SEVERITIES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </div>
+          )}
         </div>
 
         <div>
           <label className="label" htmlFor="uji-notes">Catatan</label>
           <p className="hint" id="uji-notes-hint">Wajib minimal 10 karakter bila hasil Fail atau Bug.</p>
-          <textarea id="uji-notes" aria-describedby="uji-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Jelaskan langkah dan hasil yang ditemui…" className="input" />
+          <textarea id="uji-notes" aria-describedby="uji-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={quickMode ? 2 : 4} placeholder="Jelaskan langkah dan hasil yang ditemui…" className="input" />
         </div>
 
+        {!quickMode && (
+          <details className="rounded-xl border border-neutral-200 p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-neutral-800">
+              Detail opsional (lingkungan, expected/actual, bukti)
+            </summary>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="label" htmlFor="uji-env">Lingkungan</label>
+                <input id="uji-env" value={environment} onChange={(e) => setEnvironment(e.target.value)} placeholder="cth: Chrome 126 / Windows 11" className="input" />
+              </div>
+              <div>
+                <label className="label" htmlFor="uji-expected">Yang diharapkan</label>
+                <textarea id="uji-expected" value={expected} onChange={(e) => setExpected(e.target.value)} rows={2} className="input" />
+              </div>
+              <div>
+                <label className="label" htmlFor="uji-actual">Yang terjadi</label>
+                <textarea id="uji-actual" value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="input" />
+              </div>
+              <div>
+                <label className="label" htmlFor="uji-file">Bukti gambar (maks 2MB)</label>
+                <input id="uji-file" type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)} className="input-file" />
+              </div>
+              <div>
+                <label className="label" htmlFor="uji-url">atau tautan bukti</label>
+                <input id="uji-url" type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://..." className="input" />
+              </div>
+            </div>
+          </details>
+        )}
+
         <button type="submit" disabled={saving || (check !== null && !check.allowed)} className="btn-dark">
-          {saving ? "Menyimpan..." : "Simpan Hasil Pengujian"}
+          {saving
+            ? "Menyimpan..."
+            : quickMode
+              ? "Tambah ke daftar"
+              : "Simpan Hasil Pengujian"}
         </button>
       </form>
 
-      {check && !check.allowed && check.requiresApproval && (
+      {quickMode && (
+        <div className="card-pad space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-semibold text-neutral-900">Daftar cepat ({queue.length})</h2>
+            <button onClick={() => void saveQueue()} disabled={saving || queue.length === 0} className="btn-primary">
+              {saving ? "Menyimpan..." : "Simpan semua"}
+            </button>
+          </div>
+          {queue.length === 0 ? (
+            <p className="text-sm text-neutral-500">Tambahkan hasil dari form di atas. Tanggal, peran, dan siklus dipakai untuk semua baris.</p>
+          ) : (
+            <ul className="divide-y divide-neutral-200">
+              {queue.map((row) => (
+                <li key={row.key} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                  <span>
+                    <span className="font-medium text-neutral-900">{row.featureName}</span>
+                    <span className="badge badge-outline ml-2">{row.result.toUpperCase()}</span>
+                    {row.severity && <span className="badge badge-neutral ml-1">{row.severity.toUpperCase()}</span>}
+                  </span>
+                  <button
+                    type="button"
+                    className="action-link text-xs"
+                    onClick={() => setQueue((prev) => prev.filter((r) => r.key !== row.key))}
+                  >
+                    Hapus
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {!quickMode && check && !check.allowed && check.requiresApproval && (
         <form onSubmit={requestRetest} className="card-pad space-y-4 border-2 border-neutral-950">
           <h3 className="font-semibold text-neutral-950">Ajukan Permohonan Pengujian Ulang</h3>
           <p className="text-sm text-neutral-700">Hasil terakhir untuk kombinasi ini sudah Pass. Permohonan akan dikirim ke ketua tim untuk disetujui sebelum Anda bisa menguji ulang.</p>
-          <div>
-            <label className="label" htmlFor="uji-reason">Alasan <span className="font-normal text-neutral-400">(opsional)</span></label>
-            <textarea id="uji-reason" value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="cth: verifikasi perbaikan dari developer…" className="input" />
-          </div>
-          <button className="btn-dark">
-            Kirim Permohonan
-          </button>
+          <button className="btn-dark">Kirim Permohonan</button>
         </form>
       )}
     </div>

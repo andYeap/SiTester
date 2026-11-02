@@ -4,6 +4,7 @@ import { createSession, verifyCredentials } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
 
 const MAX_FAILS = 10;
+const MAX_IP_FAILS = 30;
 const WINDOW_MINUTES = 15;
 
 function clientIp(request: Request): string | null {
@@ -19,6 +20,18 @@ async function failuresSince(email: string): Promise<number> {
         AND created_at >= now() - make_interval(mins => $1)
         AND email = $2`,
     [WINDOW_MINUTES, email],
+  );
+  return Number(row?.n ?? 0);
+}
+
+async function ipFailuresSince(ip: string | null): Promise<number> {
+  if (!ip) return 0;
+  const row = await queryOne<{ n: string }>(
+    `SELECT count(*)::text AS n FROM login_attempts
+      WHERE success = false
+        AND created_at >= now() - make_interval(mins => $1)
+        AND ip = $2`,
+    [WINDOW_MINUTES, ip],
   );
   return Number(row?.n ?? 0);
 }
@@ -45,7 +58,13 @@ export async function POST(request: Request) {
   if ((await failuresSince(email)) >= MAX_FAILS) {
     return NextResponse.json(
       { error: `Terlalu banyak percobaan gagal. Coba lagi setelah ${WINDOW_MINUTES} menit.` },
-      { status: 429 },
+      { status: 429, headers: { "Retry-After": String(WINDOW_MINUTES * 60) } },
+    );
+  }
+  if ((await ipFailuresSince(ip)) >= MAX_IP_FAILS) {
+    return NextResponse.json(
+      { error: "Terlalu banyak percobaan dari perangkat/jaringan ini. Coba lagi nanti." },
+      { status: 429, headers: { "Retry-After": String(WINDOW_MINUTES * 60) } },
     );
   }
 

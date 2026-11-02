@@ -9,15 +9,12 @@ export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const cycles = await query<{ name: string }>(
-    `SELECT name FROM test_cycles WHERE is_active = true ORDER BY name`,
-  );
-  const initialStats = await getDashboardStats(
-    user.id,
-    user.role === "ketua_tim",
-    30,
-    null,
-  );
+  const [cycles, initialStats] = await Promise.all([
+    query<{ name: string }>(
+      `SELECT name FROM test_cycles WHERE is_active = true ORDER BY name`,
+    ),
+    getDashboardStats(user.id, user.role === "ketua_tim", 30, null),
+  ]);
 
   return (
     <DashboardView

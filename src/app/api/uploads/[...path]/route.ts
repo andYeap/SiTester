@@ -41,6 +41,11 @@ export async function GET(
             : "application/octet-stream";
 
   return new Response(stream as unknown as BodyInit, {
-    headers: { "Content-Type": type, "Cache-Control": "public, max-age=86400" },
+    headers: {
+      "Content-Type": type,
+      "Content-Disposition": "inline",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "public, max-age=86400",
+    },
   });
 }

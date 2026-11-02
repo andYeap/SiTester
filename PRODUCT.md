@@ -1,27 +1,33 @@
-# PRODUCT.md — SITester
+# PRODUCT.md — SITester v3
 
-**Nama:** SITester — Sistem Pencatatan Pengujian Tim Tester.
+**Nama:** SITester — Sistem Pencatatan & Kendali Pengujian Tim Tester.
 
-**Misi (satu kalimat):** Menggantikan pencatatan pengujian di Excel dengan satu form terstruktur yang cepat diisi, terkontrol, dan langsung terlihat di dashboard.
+**Misi:** Menggantikan Excel dengan alur pengujian yang cepat dicatat, terkontrol aturannya, dan langsung terlihat kualitasnya.
 
 **Pengguna:**
-- **Tester** (pengguna internal non-teknis): mencatat hasil uji harian, mengajukan pengujian ulang, mengusulkan fitur baru, melihat data miliknya + grafik tim.
-- **Ketua tim penguji**: semua hak tester + menyetujui/menolak permohonan ulang, mengelola master (fitur, peran uji, siklus, pengguna), memverifikasi usulan fitur, mengekspor laporan.
+- **Tester** (non-teknis): mencatat hasil uji harian, memilih test case, mengajukan retest, mengelola draft form, melihat antrean "Tugas Saya", mengusulkan fitur, dan melacak defect yang ia temukan.
+- **Ketua tim penguji**: semua hak tester + menyetujui/menolak retest, mengelola master (fitur, peran, proyek, siklus, test case, pengguna), import Excel, membuat tautan reset akun, memverifikasi fitur/defect, dan mengekspor laporan.
 
-**Ruang lingkup v2:**
-1. Form pengujian 14 field dengan validasi pengujian ulang otomatis per (fitur, peran, siklus).
-2. Alur persetujuan pengujian ulang sekali pakai + notifikasi dalam aplikasi.
-3. Dashboard (kartu ringkasan, grafik masa 7/30 hari, donut hasil, fitur tersering diuji) dengan filter siklus.
-4. Riwayat append-only dengan filter + ekspor CSV/PDF.
-5. Master data: fitur (usulan tester → verifikasi ketua), peran uji, siklus, pengguna.
+**Ruang lingkup v3:**
+1. Form pengujian dengan progressive disclosure, draft otomatis, dan mode cepat multi-hasil.
+2. Kontrol retest per (fitur, peran, siklus) + approval single-use.
+3. Tugas Saya: daftar kerja per siklus (belum diuji, permohonan, defect).
+4. Dashboard + riwayat dengan sort, preset tanggal, filter tersimpan, dan tampilan mobile.
+5. Test case per fitur + siklus hidup defect (open → fixed → verified → closed).
+6. Detail fitur: test case, defect, dan timeline pengujian.
+7. Import Excel/CSV dengan pratinjau & validasi per baris.
+8. Ekspor CSV/PDF yang konsisten mengikuti filter.
+9. Akun mandiri: lupa/reset password + tautan reset dari ketua.
+10. Notifikasi in-app + email/Telegram opsional.
+11. Master data lengkap + audit aktivitas.
 
 **Batasan / anti-tujuan:**
-- Bukan multi-proyek multi-tim, bukan SSO, bukan notifikasi email.
-- Bukan diskusi/komentar, bukan multi-lampiran (1 gambar + 1 URL), bukan otomasi test-case.
-- Riwayat tidak bisa diubah/dihapus; persetujuan hangus setelah dipakai satu kali.
-- Deploy murah: Vercel free + Postgres free.
+- Bukan multi-tenant/SSO, bukan diskusi realtime, bukan multi-lampiran (1 gambar + 1 URL), bukan otomasi test runner.
+- Riwayat append-only; approval hangus setelah dipakai; satu akun satu sesi aktif.
+- Tetap murah: Vercel free + Postgres free.
 
-**Nada visual:**
-- Bahasa Indonesia yang jelas untuk non-teknis; istilah asing (Pass/Fail/Bug, severity) dijelaskan seperlunya.
-- Tenang dan rapi: kartu putih di atas latar abu kebiruan, aksen indigo/violet, status berwarna (hijau Pass, merah Fail, oranye Bug).
-- Hierarki tegas: judul halaman → kartu ringkasan → filter → data. Negara kosong selalu diberi tahu harus ngapain berikutnya.
+**Nada visual (diperbarui):**
+- Monokrom hitam/putih; status dibedakan lewat label teks + bentuk border, bukan warna.
+- Bahasa Indonesia yang jelas; istilah teknis dijelaskan singkat.
+- Navigasi sidebar kiri; topbar hanya untuk menu mobile + notifikasi.
+- Setiap keadaan kosong memberi langkah berikutnya; target sentuh ≥44px; fokus keyboard terlihat.
