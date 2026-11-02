@@ -87,6 +87,13 @@ npm run test:e2e:ai       # jalankan (test deterministik tidak butuh model)
 ```
 
 - **Model default (gratis): `nvidia/nemotron-3.5-super-vl:free`** via OpenRouter — $0, vision (screenshot/GUI), tool calling, context 1M. Fallback gratis: `google/gemma-4-31b-it:free`.
+- **Jika kuota harian OpenRouter habis** (`free-models-per-day`), pindah ke **Google Gemini free tier** (kuota terpisah, tanpa kartu):
+  ```env
+  E2E_PROVIDER=google
+  E2E_MODEL=gemini-3.8-flash
+  GOOGLE_GENERATIVE_AI_API_KEY=...
+  ```
+  Buat key gratis di Google AI Studio. Data free tier dapat dipakai untuk peningkatan produk Google.
 - Butuh akun OpenRouter gratis + `OPENROUTER_API_KEY`. Tidak ada biaya, tetapi ada **rate limit harian/menit** khas model free (bisa berubah; cek dashboard OpenRouter). Data pada model free dapat digunakan untuk pelatihan — jangan pakai data sensitif.
 - **Test deterministik** (`halaman login tampil`, redirect `/dashboard`) memakai locator tanpa model dan selalu jalan.
 - **Test agentic** (`agent: login dan dashboard tampil`) hanya jalan jika semua env ini tersedia:
@@ -115,8 +122,10 @@ Chromium penuh (ukuran/timeout). Vercel hanya menyimpan antrean dan hasil.
 AI_RUNNER_TOKEN=<string acak >= 20 karakter>
 
 # .env.local runner / GitHub Secrets (jangan di Vercel)
-OPENROUTER_API_KEY=...
-E2E_MODEL=nvidia/nemotron-3.5-super-vl:free
+E2E_PROVIDER=openrouter          # atau google
+OPENROUTER_API_KEY=...           # jika provider openrouter
+GOOGLE_GENERATIVE_AI_API_KEY=... # jika provider google
+E2E_MODEL=nvidia/nemotron-3.5-super-vl:free   # google: gemini-3.8-flash
 
 # opsional, kredensial login target (tidak masuk DB/model)
 AI_TARGET_EMAIL=...

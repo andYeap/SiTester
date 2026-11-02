@@ -21,14 +21,19 @@ test("agent: login dan dashboard tampil", async ({
   const email = process.env.E2E_EMAIL;
   const password = process.env.E2E_PASSWORD;
   const model = process.env.E2E_MODEL;
+  const provider = process.env.E2E_PROVIDER ?? "openrouter";
+  const providerKey =
+    provider === "google"
+      ? process.env.GOOGLE_GENERATIVE_AI_API_KEY
+      : process.env.OPENROUTER_API_KEY;
 
   test.skip(
     !email ||
       !password ||
       password.length < 6 ||
       !model ||
-      !process.env.OPENROUTER_API_KEY,
-    "Butuh E2E_EMAIL, E2E_PASSWORD, E2E_MODEL, dan OPENROUTER_API_KEY.",
+      !providerKey,
+    "Butuh E2E_EMAIL, E2E_PASSWORD, E2E_MODEL, dan API key provider.",
   );
 
   const admin = credentials.user("admin");

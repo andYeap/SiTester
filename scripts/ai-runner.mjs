@@ -10,7 +10,12 @@ if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
 const API = (process.env.SITESTER_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const TOKEN = process.env.AI_RUNNER_TOKEN ?? "";
-const MODEL = process.env.E2E_MODEL ?? "nvidia/nemotron-3.5-super-vl:free";
+const PROVIDER = process.env.E2E_PROVIDER ?? "openrouter";
+const MODEL =
+  process.env.E2E_MODEL ??
+  (PROVIDER === "google"
+    ? "gemini-3.8-flash"
+    : "nvidia/nemotron-3.5-super-vl:free");
 const RUNNER_ID =
   process.env.AI_RUNNER_ID ?? `runner-${process.pid}-${Date.now()}`;
 const ONCE = process.argv.includes("--once");
@@ -21,8 +26,18 @@ if (!TOKEN || TOKEN.length < 20) {
   console.error("AI_RUNNER_TOKEN wajib diisi (minimal 20 karakter).");
   process.exit(1);
 }
-if (!process.env.OPENROUTER_API_KEY) {
-  console.error("OPENROUTER_API_KEY wajib diisi untuk agent step.");
+if (!process.env.OPENROUTER_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+  console.error(
+    "API key model wajib: OPENROUTER_API_KEY atau GOOGLE_GENERATIVE_AI_API_KEY.",
+  );
+  process.exit(1);
+}
+if (PROVIDER === "google" && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+  console.error("E2E_PROVIDER=google tetapi GOOGLE_GENERATIVE_AI_API_KEY kosong.");
+  process.exit(1);
+}
+if (PROVIDER === "openrouter" && !process.env.OPENROUTER_API_KEY) {
+  console.error("E2E_PROVIDER=openrouter tetapi OPENROUTER_API_KEY kosong.");
   process.exit(1);
 }
 
@@ -46,14 +61,22 @@ function buildConfig(run) {
     TARGET_EMAIL && TARGET_PASSWORD
       ? `credentials: { target: { username: process.env.AI_TARGET_EMAIL, password: process.env.AI_TARGET_PASSWORD } },`
       : "";
-  return `import { web } from "@e2e-dev/web";
-import { openrouter } from "@openrouter/ai-sdk-provider";
+  const providerImport =
+    PROVIDER === "google"
+      ? `import { google } from "@ai-sdk/google";`
+      : `import { openrouter } from "@openrouter/ai-sdk-provider";`;
+  const modelExpr =
+    PROVIDER === "google"
+      ? `google(${q(MODEL)})`
+      : `openrouter(${q(MODEL)})`;
+  return `${providerImport}
+import { web } from "@e2e-dev/web";
 
 export default {
   tests: ["tests/**/*.e2e.ts"],
   output: ".e2e",
   targets: [{ name: "target", engine: web({ viewport: { width: 1440, height: 900 } }), app: { url: ${q(run.target_url)} } }],
-  agents: { default: { model: openrouter(${q(MODEL)}) } },
+  agents: { default: { model: ${modelExpr} } },
   ${credentials}
   timeout: 180_000,
   workers: 1,
@@ -229,9 +252,13 @@ async function processRun(run) {
     execution.code === 0 && report?.run?.status === "passed";
   const summary = report?.run?.summary ?? {};
   const errors = errorText(report);
+  if (!passed) {
+    console.error(`[run ${run.id}] e2e gagal. Output terakhir:\n${execution.output.slice(-4000)}`);
+  }
+  const diagnostic = passed ? "" : errors || execution.output.slice(-1500);
   const notes = passed
     ? `AI: ${run.goal}${run.success_criteria ? ` — kriteria: ${run.success_criteria}` : ""} (${summary.executed ?? 0} test lulus)`
-    : `AI: ${run.goal}${run.success_criteria ? ` — kriteria: ${run.success_criteria}` : ""}${errors ? `\nError: ${errors}` : ""}`;
+    : `AI: ${run.goal}${run.success_criteria ? ` — kriteria: ${run.success_criteria}` : ""}${diagnostic ? `\nDiagnostik: ${diagnostic}` : ""}`;
 
   const screenshot = await findScreenshot(join(dir, ".e2e"), report);
 

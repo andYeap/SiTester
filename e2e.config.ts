@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 
 import type { E2EConfig } from "e2e";
 import { web } from "@e2e-dev/web";
+import { google } from "@ai-sdk/google";
 import { openrouter } from "@openrouter/ai-sdk-provider";
 
 // Runner e2e tidak membaca .env sendiri; muat .env.local agar API key
@@ -12,9 +13,16 @@ if (existsSync(".env.local")) {
 
 const email = process.env.E2E_EMAIL;
 const password = process.env.E2E_PASSWORD;
-// Model gratis ($0) + vision + tool calling di OpenRouter.
-// Fallback: google/gemma-4-31b-it:free
-const model = process.env.E2E_MODEL ?? "nvidia/nemotron-3.5-super-vl:free";
+const provider = process.env.E2E_PROVIDER ?? "openrouter";
+// Model gratis + vision + tool calling.
+// OpenRouter: nvidia/nemotron-3.5-super-vl:free (fallback gemma-4-31b-it:free)
+// Google free tier: gemini-3.8-flash (alternatif kuota terpisah)
+const modelId =
+  process.env.E2E_MODEL ??
+  (provider === "google"
+    ? "gemini-3.8-flash"
+    : "nvidia/nemotron-3.5-super-vl:free");
+const model = provider === "google" ? google(modelId) : openrouter(modelId);
 const appUrl = process.env.E2E_APP_URL ?? "http://127.0.0.1:3200";
 
 const config: E2EConfig = {
@@ -44,7 +52,7 @@ const config: E2EConfig = {
   timeout: 120_000,
   workers: 1,
   reporters: ["list", "junit"],
-  agents: { default: { model: openrouter(model) } },
+  agents: { default: { model } },
   ...(email && password && password.length >= 6
     ? { credentials: { admin: { username: email, password } } }
     : {}),

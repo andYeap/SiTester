@@ -48,7 +48,9 @@ jobs:
           E2E_TELEMETRY_DISABLED: "1"
           SITESTER_URL: ${{ vars.SITESTER_URL }}
           AI_RUNNER_TOKEN: ${{ secrets.AI_RUNNER_TOKEN }}
+          E2E_PROVIDER: ${{ vars.E2E_PROVIDER }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
           E2E_MODEL: ${{ vars.E2E_MODEL }}
           AI_TARGET_EMAIL: ${{ secrets.AI_TARGET_EMAIL }}
           AI_TARGET_PASSWORD: ${{ secrets.AI_TARGET_PASSWORD }}
