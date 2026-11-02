@@ -131,6 +131,9 @@ AI_TARGET_PASSWORD=...
   tetapi tidak real-time.
 - Endpoint runner memakai `Authorization: Bearer AI_RUNNER_TOKEN`; token harus
   sama di Vercel dan runner/GitHub.
+- **Wajib di Vercel**: Project → Settings → Environment Variables →
+  `AI_RUNNER_TOKEN` (Production/Preview/Development), lalu redeploy. Tanpa ini
+  endpoint AI mengembalikan 401 dan workflow runner dilewati dengan peringatan.
 - Target boleh publik atau localhost/internal — karena browser berjalan di
   mesin runner, bukan Vercel.
 - **Keamanan**: agent dapat dipengaruhi konten website target (prompt
