@@ -83,7 +83,8 @@ export async function GET(
 
   const recent = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM test_sessions
-      WHERE feature_id=$1 AND user_id<>$2 AND created_at >= now() - interval '24 hours'`,
+      WHERE feature_id=$1 AND user_id<>$2
+        AND tested_at >= ((now() AT TIME ZONE 'Asia/Jakarta')::date - 1)`,
     [feature.id, user.id],
   );
 

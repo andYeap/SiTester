@@ -48,3 +48,51 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+
+  e2e-agentic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lensa
+          POSTGRES_PASSWORD: lensa
+          POSTGRES_DB: testlab
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lensa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://lensa:lensa@127.0.0.1:5432/testlab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run db:seed
+      - name: Install e2e web browser
+        run: npx e2e-web install chromium --with-deps
+      - name: Verify free model
+        run: npm run e2e:check-model
+      - name: Run e2e by TesterArmy
+        run: npm run test:e2e:ai
+        env:
+          E2E_TELEMETRY_DISABLED: "1"
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          E2E_MODEL: ${{ vars.E2E_MODEL }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      - name: Upload e2e report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-testerarmy-report
+          path: .e2e/
+          if-no-files-found: warn

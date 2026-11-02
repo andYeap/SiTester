@@ -7,6 +7,7 @@ import { GET as canTest } from "@/app/api/v1/features/[id]/can-test/route";
 
 import { createUser, loginAs, resetDb, uid } from "./helpers";
 import { query } from "@/lib/db";
+import { todayString } from "@/lib/time";
 
 function fd(obj: Record<string, string>) {
   const f = new FormData();
@@ -127,7 +128,7 @@ describe("alur retest", () => {
     const fid = await featureId("Fitur W");
     await loginAs(testerEmail);
     await submitSession(
-      fd({ tested_at: "2026-10-29", feature_id: String(fid), is_retest: "0", tested_as_role: "tester", result: "fail", notes: "catatan cukup panjang sekali", severity: "low" }),
+      fd({ tested_at: todayString(), feature_id: String(fid), is_retest: "0", tested_as_role: "tester", result: "fail", notes: "catatan cukup panjang sekali", severity: "low" }),
     );
 
     

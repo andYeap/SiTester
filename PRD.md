@@ -99,12 +99,22 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 - Ketua dapat membuat tautan reset untuk pengguna mana pun; berguna bila email belum dikonfigurasi.
 - Token disimpan sebagai hash SHA-256, kedaluwarsa 24 jam, tercatat di audit.
 
-### F10 — Import Excel/CSV (baru)
-- Halaman `/impor` (ketua) + template CSV.
-- Unggah `.xlsx`, `.xls`, atau `.csv`; kolom: Tanggal, Email Tester, Peran, Siklus (opsional), Fitur, Hasil, Severity, Lingkungan, Catatan, Ulang (0/1).
-- **Pratinjau** maks 500 baris dengan status valid/error per baris (baris, pesan). Tidak ada data ditulis saat pratinjau.
-- **Commit** hanya jika 0 error; seluruh baris disimpan dalam satu transaksi. Hasil import **tidak** memicu notifikasi dan tetap append-only.
-- File >2MB atau >5000 baris ditolak.
+### F10 — Import Excel/CSV (v2)
+- Halaman `/impor` (ketua) + template **CSV dan XLSX**.
+- Unggah **`.xlsx` atau `.csv`**, maks **4MB** dan **20.000 baris** (batas 4MB karena body request Vercel ±4.5MB; `.xls` lama tidak didukung).
+- Pilih **sheet** dan **baris header**; **mapping kolom** otomatis + dapat diubah manual, dengan preset mapping tersimpan di perangkat.
+- Kolom: Tanggal, Email Tester, Fitur, Hasil, Peran, Siklus, Test Case, Severity, Lingkungan, Diharapkan, Terjadi, Catatan, Bukti URL, Ulang.
+- **Pratinjau** maks 500 baris (valid/error per baris, header error, mapping terdeteksi).
+- **Commit**:
+  - default all-or-nothing; opsi **“lewati baris error”** untuk mengimpor baris valid saja;
+  - seluruh baris valid disimpan dalam transaksi, batch insert;
+  - **dedupe** lewat hash baris — import ulang file yang sama dilewati, bukan menggandakan;
+  - membuat `import_batches` (file, hash, jumlah valid/invalid/imported/skipped, user, waktu) + audit;
+  - Fail/Bug membuat defect dengan **creator = tester baris** dan **tanggal = tanggal pengujian**;
+  - tidak mengirim notifikasi; tetap append-only.
+- **Unduh error CSV** untuk baris invalid.
+- Validasi: fitur/peran/siklus aktif, **lingkup fitur siklus**, test case harus milik fitur, format tanggal, severity/catatan Fail/Bug, URL bukti http(s).
+- Peringatan duplikat “diuji tester lain” memakai **tanggal pengujian**, bukan waktu import.
 
 ### F11 — Test Case (baru)
 - Tabel `test_cases`: fitur, judul, langkah, expected, aktif.
@@ -173,6 +183,6 @@ SSO/OAuth, multi-tenant, komentar diskusi realtime, multi-file attachment, otoma
 Lihat `PLAN-v3.md` untuk urutan task dan kriteria selesai.
 
 ## 8. Verifikasi v3
-- Semua test v2 tetap hijau + regression baru (reset token, import CSV/XLSX, test case, defect, sort, rate limit IP, PDF filter, upload magic): **68 test lulus**.
+- Semua test v2 tetap hijau + regression baru (reset token, import CSV/XLSX, mapping, dedupe, skip-invalid, test case, defect, sort, rate limit IP, PDF filter, upload magic): **73 test lulus**.
 - `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`, `npm run test:e2e` (3 skenario) hijau.
 - Manual: lupa password → reset → login; import 2 baris valid + 1 error → commit ditolak; Fail → defect open → verified; PDF filter = CSV filter; bukti non-gambar ditolak.

@@ -11,10 +11,11 @@ Lihat `PRD.md` (spesifikasi v3), `PLAN-v3.md` (rencana), dan `DESIGN.md`.
 - **Test case** per fitur + **defect lifecycle** (open → fixed → verified → closed).
 - **Detail fitur**: test case, defect, dan timeline sesi.
 - Riwayat: sort, preset tanggal, filter tersimpan, kartu mobile.
-- **Import Excel/CSV** dengan pratinjau + commit transaksional.
+- **Import Excel/CSV** dengan pratinjau, mapping kolom, pilih sheet/header, skip baris error, error CSV, dedupe, dan riwayat batch (maks 4MB / 20.000 baris).
 - Ekspor CSV/PDF **mengikuti filter** (PDF seluruh hasil, bukan satu halaman).
 - Akun: lupa password, reset password token 24 jam, tautan reset dari ketua.
 - Hardening: upload magic-bytes, rate limit email+IP, health check, CI, E2E.
+- **AI E2E opsional** dengan [e2e by TesterArmy](https://e2e.tester.army): test deterministik + agentic (`e2e.config.ts`, `tests/e2e-agent/`).
 
 ## Stack
 
@@ -72,6 +73,37 @@ Checklist yang paling berdampak (urut prioritas):
 8. Jika masih lambat: cache daftar master (fitur/peran/siklus/proyek) dengan `unstable_cache` + `revalidateTag`, dan pertimbangkan `@neondatabase/serverless` untuk query satu-kali.
 
 Catatan kode: middleware (`proxy.ts`) hanya berjalan di route aplikasi (bukan `/api`/aset/publik), dashboard memakai query paralel, auth+unread satu query, grafik dimuat lazy, dan semua link internal memakai `next/link` + `loading.tsx`.
+
+## AI E2E (e2e by TesterArmy)
+
+Selain Playwright (`npm run test:e2e`), project punya integrasi opsional
+[e2e by TesterArmy](https://e2e.tester.army) di `e2e.config.ts` dan
+`tests/e2e-agent/`. Runner ini otomatis menyalakan dev server di port 3200.
+
+```bash
+npm run e2e:list          # daftar test
+npm run e2e:check-model   # cek model gratis masih $0, vision, tools, online
+npm run test:e2e:ai       # jalankan (test deterministik tidak butuh model)
+```
+
+- **Model default (gratis): `nvidia/nemotron-3.5-super-vl:free`** via OpenRouter — $0, vision (screenshot/GUI), tool calling, context 1M. Fallback gratis: `google/gemma-4-31b-it:free`.
+- Butuh akun OpenRouter gratis + `OPENROUTER_API_KEY`. Tidak ada biaya, tetapi ada **rate limit harian/menit** khas model free (bisa berubah; cek dashboard OpenRouter). Data pada model free dapat digunakan untuk pelatihan — jangan pakai data sensitif.
+- **Test deterministik** (`halaman login tampil`, redirect `/dashboard`) memakai locator tanpa model dan selalu jalan.
+- **Test agentic** (`agent: login dan dashboard tampil`) hanya jalan jika semua env ini tersedia:
+  `E2E_EMAIL`, `E2E_PASSWORD`, `E2E_MODEL`, dan `OPENROUTER_API_KEY`.
+  Password dikirim sebagai `credentials` sehingga tidak masuk ke input model.
+- Tanpa env tersebut, test agentic di-skip (bukan gagal).
+- `e2e:check-model` memverifikasi model masih gratis, mendukung image/tools, dan endpoint provider online (uptime).
+- Cache replay dan report ada di `.e2e/` (di-ignore dari git; diunggah sebagai artifact CI).
+- Telemetry framework dimatikan lewat `E2E_TELEMETRY_DISABLED=1` di npm script.
+- CI menjalankan job `e2e-agentic`; tambahkan `OPENROUTER_API_KEY` (secret) + `E2E_MODEL` (variable) di GitHub jika ingin agent test aktif.
+
+## Batas import
+
+- Format: `.xlsx` dan `.csv` (`.xls` lama tidak didukung).
+- Maks **4MB** dan **20.000 baris**. 4MB adalah batas aman karena Vercel membatasi body request Functions sekitar 4,5MB.
+- Untuk file lebih besar: pecah menjadi beberapa file, atau (perlu pengembangan) unggah langsung ke Vercel Blob lalu import dari URL.
+- Import hanya untuk ketua; baris duplikat (hash sama) otomatis dilewati.
 
 ## Deploy ke Vercel (gratis, tanpa kartu kredit)
 

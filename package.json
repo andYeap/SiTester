@@ -13,7 +13,10 @@
     "test:api": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://lensa:lensa@127.0.0.1:55432/testlab_test} vitest run tests/api",
     "db:cleanup": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/cleanup.mjs",
     "test:e2e": "playwright test",
-    "preview": "npm run build && next start"
+    "preview": "npm run build && next start",
+    "test:e2e:ai": "E2E_TELEMETRY_DISABLED=1 NODE_ENV=development e2e run",
+    "e2e:list": "E2E_TELEMETRY_DISABLED=1 NODE_ENV=development e2e list",
+    "e2e:check-model": "node scripts/check-free-model.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.2",
@@ -28,6 +31,8 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
+    "@e2e-dev/web": "^0.15.4",
+    "@openrouter/ai-sdk-provider": "^3.1.0",
     "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^24.19.2",
@@ -35,6 +40,8 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "ai": "^7.0.159",
+    "e2e": "^0.22.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
