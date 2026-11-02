@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { err, needKetua } from "@/lib/api";
 import { audit, clientIp } from "@/lib/audit";
 import { query, withTransaction } from "@/lib/db";
+import { parsePositiveInt } from "@/lib/validation";
 
 export async function PUT(
   request: Request,
@@ -11,6 +12,8 @@ export async function PUT(
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
   const { id } = await params;
+  const projectId = parsePositiveInt(id);
+  if (projectId === null) return err("Proyek tidak ditemukan.", 404);
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
     is_active?: unknown;
@@ -27,13 +30,13 @@ export async function PUT(
     await withTransaction(async (client) => {
       const old = await client.query<{ name: string }>(
         `SELECT name FROM projects WHERE id=$1 FOR UPDATE`,
-        [Number(id)],
+        [projectId],
       );
       if (old.rows.length === 0) throw new Error("Proyek tidak ditemukan.");
       await client.query(`UPDATE projects SET name=$1, is_active=$2 WHERE id=$3`, [
         name,
         isActive,
-        Number(id),
+        projectId,
       ]);
       if (old.rows[0].name !== name) {
         await client.query(`UPDATE features SET project_name=$1 WHERE project_name=$2`, [
@@ -69,10 +72,12 @@ export async function DELETE(
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
   const { id } = await params;
+  const projectId = parsePositiveInt(id);
+  if (projectId === null) return err("Proyek tidak ditemukan.", 404);
 
   const row = await query<{ id: number; name: string }>(
     `SELECT id, name FROM projects WHERE id=$1`,
-    [Number(id)],
+    [projectId],
   );
   if (row.length === 0) return err("Proyek tidak ditemukan.", 404);
 
@@ -87,7 +92,7 @@ export async function DELETE(
     );
   }
 
-  await query(`DELETE FROM projects WHERE id=$1`, [Number(id)]);
+  await query(`DELETE FROM projects WHERE id=$1`, [projectId]);
   await audit({
     actorId: ketua.id,
     actorName: ketua.name,

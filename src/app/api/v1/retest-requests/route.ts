@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { err, needKetua, needUser } from "@/lib/api";
-import { query, queryOne } from "@/lib/db";
+import { query, queryOne, withTransaction } from "@/lib/db";
 import { notifyRole } from "@/lib/notify";
 
 export async function GET() {
@@ -59,23 +59,71 @@ export async function POST(request: Request) {
   );
   if (!roleOk) return err("Peran pengujian tidak valid.", 422);
 
-  const dup = await query<{ n: string }>(
-    `SELECT count(*)::text AS n FROM retest_requests
-      WHERE feature_id=$1 AND tested_as_role=$2 AND status='pending' AND expires_at > now()`,
-    [featureId, role],
-  );
-  if (dup[0].n !== "0") {
+  let createdId: number;
+  try {
+    createdId = await withTransaction(async (client) => {
+      // Serialisasi permohonan per fitur agar dua request tidak lolos bersamaan.
+      await client.query(`SELECT id FROM features WHERE id=$1 FOR UPDATE`, [
+        featureId,
+      ]);
+
+      const last = await client.query<{ result: string }>(
+        `SELECT result FROM test_sessions
+          WHERE feature_id=$1 AND tested_as_role=$2
+          ORDER BY tested_at DESC, id DESC LIMIT 1`,
+        [featureId, role],
+      );
+      if (last.rows.length === 0 || last.rows[0].result !== "pass") {
+        throw Object.assign(
+          new Error(
+            "Permohonan pengujian ulang hanya diperlukan untuk fitur yang sudah lulus (Pass) pada pengujian sebelumnya.",
+          ),
+          { status: 422 },
+        );
+      }
+
+      const approval = await client.query<{ id: number }>(
+        `SELECT id FROM retest_approvals
+          WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3
+            AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
+          LIMIT 1`,
+        [featureId, user.id, role],
+      );
+      if (approval.rows.length > 0) {
+        throw Object.assign(
+          new Error("Sudah ada persetujuan pengujian ulang yang masih berlaku."),
+          { status: 422 },
+        );
+      }
+
+      const dupInside = await client.query<{ n: string }>(
+        `SELECT count(*)::text AS n FROM retest_requests
+          WHERE feature_id=$1 AND tested_as_role=$2 AND status='pending' AND expires_at > now()`,
+        [featureId, role],
+      );
+      if (dupInside.rows[0].n !== "0") {
+        throw Object.assign(
+          new Error(
+            "Sudah ada permohonan pengujian ulang yang menunggu persetujuan untuk fitur dan peran ini.",
+          ),
+          { status: 422 },
+        );
+      }
+
+      const inserted = await client.query<{ id: number }>(
+        `INSERT INTO retest_requests (user_id, feature_id, tested_as_role, reason, status)
+         VALUES ($1,$2,$3,$4,'pending') RETURNING id`,
+        [user.id, featureId, role, reason],
+      );
+      return Number(inserted.rows[0].id);
+    });
+  } catch (e) {
+    const status = (e as { status?: number }).status ?? 422;
     return err(
-      "Sudah ada permohonan pengujian ulang yang menunggu persetujuan untuk fitur dan peran ini.",
-      422,
+      e instanceof Error ? e.message : "Gagal menyimpan permohonan.",
+      status,
     );
   }
-
-  await query(
-    `INSERT INTO retest_requests (user_id, feature_id, tested_as_role, reason, status)
-     VALUES ($1,$2,$3,$4,'pending')`,
-    [user.id, featureId, role, reason],
-  );
 
   await notifyRole("ketua_tim", {
     type: "retest_request",
@@ -84,5 +132,5 @@ export async function POST(request: Request) {
     link: "/permohonan",
   }).catch(() => undefined);
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  return NextResponse.json({ ok: true, id: createdId }, { status: 201 });
 }

@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { isIsoDate, isUuid } from "@/lib/validation";
 
 export type SessionFilters = {
   dari?: string;
@@ -28,6 +29,41 @@ export type SessionRow = {
   feature_name: string;
   approver_name: string | null;
 };
+
+export function parseSessionFilters(
+  sp: URLSearchParams,
+): { filters: SessionFilters } | { error: string } {
+  const dari = sp.get("dari") ?? undefined;
+  const sampai = sp.get("sampai") ?? undefined;
+  const userId = sp.get("user_id") ?? undefined;
+  const featureId = sp.get("feature_id") ?? undefined;
+  const result = sp.get("result") ?? undefined;
+  const q = sp.get("q")?.trim() || undefined;
+  const cycle = sp.get("cycle")?.trim() || undefined;
+
+  if (dari && !isIsoDate(dari)) {
+    return { error: "Filter tanggal 'dari' tidak valid (format YYYY-MM-DD)." };
+  }
+  if (sampai && !isIsoDate(sampai)) {
+    return { error: "Filter tanggal 'sampai' tidak valid (format YYYY-MM-DD)." };
+  }
+  if (dari && sampai && dari > sampai) {
+    return { error: "Rentang tanggal tidak valid: 'dari' melebihi 'sampai'." };
+  }
+  if (userId && !isUuid(userId)) {
+    return { error: "Filter tester tidak valid." };
+  }
+  if (featureId && !/^\d+$/.test(featureId)) {
+    return { error: "Filter fitur tidak valid." };
+  }
+  if (result && !["pass", "fail", "bug"].includes(result)) {
+    return { error: "Filter hasil tidak valid." };
+  }
+
+  return {
+    filters: { dari, sampai, userId, featureId, result, q, cycle },
+  };
+}
 
 export async function getSessions(
   viewerId: string,

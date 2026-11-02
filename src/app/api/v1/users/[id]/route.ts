@@ -4,6 +4,7 @@ import { err, needKetua } from "@/lib/api";
 import { audit, clientIp } from "@/lib/audit";
 import { query } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
+import { isUuid } from "@/lib/validation";
 
 export async function PUT(
   request: Request,
@@ -22,6 +23,7 @@ export async function PATCH(
 async function updateUser(request: Request, id: string) {
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
+  if (!isUuid(id)) return err("Pengguna tidak ditemukan.", 404);
 
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
@@ -33,6 +35,7 @@ async function updateUser(request: Request, id: string) {
   const fields: string[] = [];
   const values: unknown[] = [];
   let i = 1;
+  let passwordChanged = false;
 
   if (body && "name" in body) {
     const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -58,6 +61,7 @@ async function updateUser(request: Request, id: string) {
     if (password.length < 8) return err("Password minimal 8 karakter.", 422);
     fields.push(`password_hash=$${i++}`);
     values.push(await hashPassword(password));
+    passwordChanged = true;
   }
   if (body && "role" in body) {
     if (body.role !== "tester" && body.role !== "ketua_tim")
@@ -77,7 +81,11 @@ async function updateUser(request: Request, id: string) {
     values,
   );
   if (rows.length === 0) return err("Pengguna tidak ditemukan.", 404);
-    const safeChanges: Record<string, unknown> = { ...(body ?? {}) };
+  if (passwordChanged) {
+    // Password berubah: cabut semua sesi lama pengguna tersebut.
+    await query(`DELETE FROM sessions WHERE user_id=$1`, [id]);
+  }
+  const safeChanges: Record<string, unknown> = { ...(body ?? {}) };
     if ("password" in safeChanges) {
       safeChanges.password_changed = safeChanges.password !== "";
       delete safeChanges.password;
@@ -101,6 +109,7 @@ export async function DELETE(
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
   const { id } = await params;
+  if (!isUuid(id)) return err("Pengguna tidak ditemukan.", 404);
 
   if (id === ketua.id) {
     return err("Anda tidak dapat menghapus akun sendiri.", 422);

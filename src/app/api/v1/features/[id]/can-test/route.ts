@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { err, needUser } from "@/lib/api";
 import { query, queryOne } from "@/lib/db";
 import { canTest } from "@/lib/retest";
+import { parsePositiveInt } from "@/lib/validation";
 
 export async function GET(
   request: Request,
@@ -11,13 +12,15 @@ export async function GET(
   const user = await needUser();
   if (!user) return err("Unauthorized", 401);
   const { id } = await params;
+  const featureId = parsePositiveInt(id);
+  if (featureId === null) return err("Fitur tidak ditemukan.", 404);
   const sp = new URL(request.url).searchParams;
   const isRetest = sp.get("is_retest") === "1";
   const cycle = sp.get("cycle") || null;
 
   const feature = await queryOne<{ id: number; is_active: boolean }>(
     `SELECT id, is_active FROM features WHERE id = $1`,
-    [Number(id)],
+    [featureId],
   );
   if (!feature) return err("Fitur tidak ditemukan.", 404);
   if (!feature.is_active) {
@@ -69,13 +72,13 @@ export async function GET(
 
   const pending = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM retest_requests
-      WHERE feature_id=$1 AND status='pending' AND expires_at > now()`,
-    [feature.id],
+      WHERE feature_id=$1 AND tested_as_role=$2 AND status='pending' AND expires_at > now()`,
+    [feature.id, role],
   );
   const ownPending = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM retest_requests
-      WHERE feature_id=$1 AND user_id=$2 AND status='pending' AND expires_at > now()`,
-    [feature.id, user.id],
+      WHERE feature_id=$1 AND user_id=$2 AND tested_as_role=$3 AND status='pending' AND expires_at > now()`,
+    [feature.id, user.id, role],
   );
 
   const recent = await query<{ n: string }>(

@@ -1,8 +1,10 @@
 import { err, needUser } from "@/lib/api";
-import { getSessions } from "@/lib/history";
+import { getSessions, parseSessionFilters } from "@/lib/history";
 
 function csvCell(v: unknown): string {
-  const s = v === null || v === undefined ? "" : String(v);
+  let s = v === null || v === undefined ? "" : String(v);
+  // Cegah formula injection saat dibuka di Excel/Sheets.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return `"${s.replace(/"/g, '""')}"`;
 }
 
@@ -10,16 +12,15 @@ export async function GET(request: Request) {
   const user = await needUser();
   if (!user) return err("Unauthorized", 401);
 
-  const sp = new URL(request.url).searchParams;
-  const { rows } = await getSessions(user.id, user.role === "ketua_tim", {
-    dari: sp.get("dari") ?? undefined,
-    sampai: sp.get("sampai") ?? undefined,
-    userId: sp.get("user_id") ?? undefined,
-    featureId: sp.get("feature_id") ?? undefined,
-    result: sp.get("result") ?? undefined,
-    q: sp.get("q")?.trim() || undefined,
-    cycle: sp.get("cycle")?.trim() || undefined,
-  }, { limit: 5000, offset: 0 });
+  const parsed = parseSessionFilters(new URL(request.url).searchParams);
+  if ("error" in parsed) return err(parsed.error, 422);
+
+  const { rows } = await getSessions(
+    user.id,
+    user.role === "ketua_tim",
+    parsed.filters,
+    { limit: 5000, offset: 0 },
+  );
 
   const lines = [
     ["Tanggal", "Tester", "Peran", "Siklus", "Fitur", "Hasil", "Severity", "Lingkungan", "Pengujian Ulang", "Catatan"].map(csvCell).join(","),

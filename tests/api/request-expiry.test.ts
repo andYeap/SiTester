@@ -24,6 +24,11 @@ describe("permohonan kedaluwarsa", () => {
       `INSERT INTO features (name, is_active, verified) VALUES ('Fitur Exp Req',true,true) RETURNING id`,
     );
     fid = f[0].id;
+    await query(
+      `INSERT INTO test_sessions (user_id, feature_id, tested_at, result, tested_as_role)
+       VALUES ($1,$2,CURRENT_DATE,'pass','tester')`,
+      [testerId, fid],
+    );
     await loginAs(t.email);
   });
 

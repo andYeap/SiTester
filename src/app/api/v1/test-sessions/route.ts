@@ -2,27 +2,28 @@ import { NextResponse } from "next/server";
 
 import { err, needUser } from "@/lib/api";
 import { query, queryOne, withTransaction } from "@/lib/db";
-import { getSessions } from "@/lib/history";
+import { getSessions, parseSessionFilters } from "@/lib/history";
 import { canTest, type TestResult } from "@/lib/retest";
 import { saveEvidence } from "@/lib/storage";
 import { todayString } from "@/lib/time";
+import { isIsoDate } from "@/lib/validation";
 
 export async function GET(request: Request) {
   const user = await needUser();
   if (!user) return err("Unauthorized", 401);
 
   const sp = new URL(request.url).searchParams;
+  const parsed = parseSessionFilters(sp);
+  if ("error" in parsed) return err(parsed.error, 422);
+
   const limit = Math.min(Math.max(Number(sp.get("limit") ?? 50) || 50, 1), 5000);
   const offset = Math.max(Number(sp.get("offset") ?? 0) || 0, 0);
-  const { rows, total } = await getSessions(user.id, user.role === "ketua_tim", {
-    dari: sp.get("dari") ?? undefined,
-    sampai: sp.get("sampai") ?? undefined,
-    userId: sp.get("user_id") ?? undefined,
-    featureId: sp.get("feature_id") ?? undefined,
-    result: sp.get("result") ?? undefined,
-    q: sp.get("q")?.trim() || undefined,
-    cycle: sp.get("cycle")?.trim() || undefined,
-  }, { limit, offset });
+  const { rows, total } = await getSessions(
+    user.id,
+    user.role === "ketua_tim",
+    parsed.filters,
+    { limit, offset },
+  );
 
   return NextResponse.json({ sessions: rows, total, limit, offset });
 }
@@ -57,7 +58,10 @@ export async function POST(request: Request) {
   const evidenceUrl = str("evidence_url") || null;
   const evidence = form.get("evidence");
 
-  if (!testedAt || testedAt > TODAY()) {
+  if (!testedAt || !isIsoDate(testedAt)) {
+    return err("Tanggal pengujian tidak valid (format YYYY-MM-DD).", 422);
+  }
+  if (testedAt > TODAY()) {
     return err("Tanggal pengujian tidak boleh di masa depan.", 422);
   }
   if (!Number.isInteger(featureId)) {

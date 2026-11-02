@@ -62,16 +62,14 @@ describe("alur retest", () => {
 
     r = await requestRetest(json({ feature_id: fid, tested_as_role: "tester" }));
     expect(r.status).toBe(201);
+    const created = (await r.json()) as { id: number };
 
     r = await requestRetest(json({ feature_id: fid, tested_as_role: "tester" }));
     expect(r.status).toBe(422);
 
-    const req = await query<{ id: number }>(
-      `SELECT id FROM retest_requests ORDER BY id DESC LIMIT 1`,
-    );
     await loginAs(ketuaEmail);
     const ap = await approve(new Request("http://test/x", { method: "PATCH" }), {
-      params: Promise.resolve({ id: String(req[0].id) }),
+      params: Promise.resolve({ id: String(created.id) }),
     });
     expect(ap.status).toBe(200);
 

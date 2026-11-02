@@ -13,6 +13,9 @@ export async function PUT(
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
   const { name } = await params;
+  if (!NAME_RE.test(name) || name.length > 50) {
+    return err("Peran tidak ditemukan.", 404);
+  }
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
     label?: unknown;
@@ -63,6 +66,9 @@ export async function DELETE(
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
   const { name } = await params;
+  if (!NAME_RE.test(name) || name.length > 50) {
+    return err("Peran tidak ditemukan.", 404);
+  }
 
   const used = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM test_sessions WHERE tested_as_role=$1

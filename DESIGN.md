@@ -6,12 +6,12 @@ Sistem desain monokrom hitam/putih (redesign 29 Okt 2026, menggantikan dunia ind
 
 | Token | Nilai | Pakai untuk |
 |---|---|---|
-| Tinta `--color-ink` | `#09090b` (neutral-950) | Semua aksi primer, judul, badge Pass/Baru, header, logo-block |
+| Tinta `--color-ink` | `#09090b` (neutral-950) | Semua aksi primer, judul, badge Pass/Baru, sidebar, logo-block |
 | Kertas | `#fafafa` body, `#ffffff` kartu | Latar aplikasi vs permukaan kartu |
 | Netral | `neutral-100/200/300` garis & pembagi, `neutral-500/600` teks sekunder, `neutral-800/900` teks isi | Satu skala netral saja — tidak ada `slate-*`, `gray-*`, indigo, violet, emerald, rose, amber, sky |
 | Status tanpa warna | Pass = `badge-pass` (hitam solid/teks putih) · Fail = `badge-fail` (putih/border-2 hitam) · Bug = `badge-bug` (putih/border dashed) · Info/netral = `badge-neutral`/`badge-outline` | Selalu pasangkan label teks (PASS/FAIL/BUG) + bentuk border berbeda, jangan mengandalkan warna |
 | Grafik | Bar `#09090b`, pie `#09090b` / `#71717a` / `#d4d4d8` + border hitam | Urutan gelap→terang = Pass→Fail→Bug, legenda selalu tampil |
-| Header | `bg-neutral-950` + `border-neutral-800`, teks putih | Satu-satunya permukaan gelap; badge unread putih/teks hitam |
+| Sidebar | `bg-neutral-950` + `border-white/10`, teks putih; item aktif = pil putih/teks hitam | Satu-satunya permukaan gelap; badge unread putih/teks hitam. Topbar putih hanya berisi tombol menu (mobile) + bel |
 
 Adegan cahaya: tester bekerja di ruangan terang — dasar terang, tinta hitam. Bukan dark-mode.
 

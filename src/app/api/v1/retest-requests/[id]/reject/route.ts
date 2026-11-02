@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { err, needKetua } from "@/lib/api";
 import { query, queryOne } from "@/lib/db";
 import { notifyUser } from "@/lib/notify";
+import { parsePositiveInt } from "@/lib/validation";
 
 export async function PATCH(
   request: Request,
@@ -11,6 +12,8 @@ export async function PATCH(
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
   const { id } = await params;
+  const requestId = parsePositiveInt(id);
+  if (requestId === null) return err("Permohonan tidak ditemukan.", 404);
 
   const body = (await request.json().catch(() => null)) as {
     rejection_reason?: unknown;
@@ -23,7 +26,7 @@ export async function PATCH(
 
   const req = await queryOne<{ id: number; user_id: string; status: string; expires_at: string }>(
     `SELECT id, user_id, status, expires_at FROM retest_requests WHERE id=$1`,
-    [Number(id)],
+    [requestId],
   );
   if (!req) return err("Permohonan tidak ditemukan.", 404);
   if (req.status !== "pending") {

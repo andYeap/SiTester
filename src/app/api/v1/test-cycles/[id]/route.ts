@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { err, needKetua } from "@/lib/api";
 import { audit, clientIp } from "@/lib/audit";
 import { query, withTransaction } from "@/lib/db";
+import { parsePositiveInt } from "@/lib/validation";
 
 export async function PUT(
   request: Request,
@@ -11,6 +12,8 @@ export async function PUT(
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
   const { id } = await params;
+  const cycleId = parsePositiveInt(id);
+  if (cycleId === null) return err("Siklus tidak ditemukan.", 404);
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
     description?: unknown;
@@ -51,15 +54,15 @@ export async function PUT(
     await withTransaction(async (client) => {
       const updated = await client.query<{ id: number }>(
         `UPDATE test_cycles SET name=$1, description=$2, brief=$3, is_active=$4 WHERE id=$5 RETURNING id`,
-        [name, description, brief, isActive, Number(id)],
+        [name, description, brief, isActive, cycleId],
       );
       if (updated.rows.length === 0) throw new Error("Siklus tidak ditemukan.");
       if (featureIds !== null) {
-        await client.query(`DELETE FROM cycle_features WHERE cycle_id=$1`, [Number(id)]);
+        await client.query(`DELETE FROM cycle_features WHERE cycle_id=$1`, [cycleId]);
         for (const fid of featureIds) {
           await client.query(
             `INSERT INTO cycle_features (cycle_id, feature_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
-            [Number(id), fid],
+            [cycleId, fid],
           );
         }
       }
@@ -91,10 +94,12 @@ export async function DELETE(
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
   const { id } = await params;
+  const cycleId = parsePositiveInt(id);
+  if (cycleId === null) return err("Siklus tidak ditemukan.", 404);
 
   const row = await query<{ name: string }>(
     `SELECT name FROM test_cycles WHERE id=$1`,
-    [Number(id)],
+    [cycleId],
   );
   if (row.length === 0) return err("Siklus tidak ditemukan.", 404);
 
@@ -109,7 +114,7 @@ export async function DELETE(
     );
   }
 
-  await query(`DELETE FROM test_cycles WHERE id=$1`, [Number(id)]);
+  await query(`DELETE FROM test_cycles WHERE id=$1`, [cycleId]);
   await audit({
     actorId: ketua.id,
     actorName: ketua.name,

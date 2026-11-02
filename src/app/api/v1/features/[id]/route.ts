@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 import { err, needKetua, type SessionUser } from "@/lib/api";
 import { audit, clientIp } from "@/lib/audit";
 import { query } from "@/lib/db";
+import { parsePositiveInt } from "@/lib/validation";
 
-async function updateFeature(request: Request, id: string, ketua: SessionUser) {
+async function updateFeature(request: Request, id: number, ketua: SessionUser) {
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
     description?: unknown;
@@ -22,7 +23,7 @@ async function updateFeature(request: Request, id: string, ketua: SessionUser) {
     if (!name || name.length > 255) return err("Nama fitur tidak valid.", 422);
     const dup = await query<{ n: string }>(
       `SELECT count(*)::text AS n FROM features WHERE LOWER(name) = LOWER($1) AND id <> $2`,
-      [name, Number(id)],
+      [name, id],
     );
     if (dup[0].n !== "0")
       return err("Nama fitur sudah dipakai fitur lain.", 422);
@@ -65,7 +66,7 @@ async function updateFeature(request: Request, id: string, ketua: SessionUser) {
   if (fields.length === 0) return err("Tidak ada perubahan.", 422);
 
   fields.push(`updated_at=now()`);
-  values.push(Number(id));
+  values.push(id);
   const rows = await query<{ id: number; name: string }>(
     `UPDATE features SET ${fields.join(", ")} WHERE id=$${i} RETURNING id, name`,
     values,
@@ -89,7 +90,9 @@ export async function PUT(
 ) {
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
-  return updateFeature(request, (await params).id, ketua);
+  const featureId = parsePositiveInt((await params).id);
+  if (featureId === null) return err("Fitur tidak ditemukan.", 404);
+  return updateFeature(request, featureId, ketua);
 }
 
 export async function PATCH(
@@ -98,7 +101,9 @@ export async function PATCH(
 ) {
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
-  return updateFeature(request, (await params).id, ketua);
+  const featureId = parsePositiveInt((await params).id);
+  if (featureId === null) return err("Fitur tidak ditemukan.", 404);
+  return updateFeature(request, featureId, ketua);
 }
 
 export async function DELETE(
@@ -108,12 +113,14 @@ export async function DELETE(
   const ketua = await needKetua();
   if (!ketua) return err("Forbidden", 403);
   const { id } = await params;
+  const featureId = parsePositiveInt(id);
+  if (featureId === null) return err("Fitur tidak ditemukan.", 404);
 
   const used = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM test_sessions WHERE feature_id=$1
      UNION ALL SELECT count(*)::text FROM retest_requests WHERE feature_id=$1
      UNION ALL SELECT count(*)::text FROM retest_approvals WHERE feature_id=$1`,
-    [Number(id)],
+    [featureId],
   );
   if (used.some((r) => r.n !== "0")) {
     return err(
@@ -124,7 +131,7 @@ export async function DELETE(
 
   const rows = await query<{ id: number; name: string }>(
     `DELETE FROM features WHERE id=$1 RETURNING id, name`,
-    [Number(id)],
+    [featureId],
   );
   if (rows.length === 0) return err("Fitur tidak ditemukan.", 404);
   await audit({
