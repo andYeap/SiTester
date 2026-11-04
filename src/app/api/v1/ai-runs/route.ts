@@ -6,7 +6,7 @@ import {
   encryptCredentials,
 } from "@/lib/ai-credentials";
 import { dispatchAiRunner } from "@/lib/ai-runner-dispatch";
-import { query, queryOne } from "@/lib/db";
+import { query, queryOne, withTransaction } from "@/lib/db";
 
 const MAX_PENDING = 3;
 
@@ -200,44 +200,53 @@ export async function POST(request: Request) {
     }
   }
 
-  const pending = await queryOne<{ n: string }>(
-    `SELECT count(*)::text AS n FROM ai_test_runs
-      WHERE created_by=$1 AND status IN ('queued','running')`,
-    [user.id],
-  );
-  if (Number(pending?.n ?? 0) >= MAX_PENDING) {
+  // Serialisasi per pengguna agar cek kuota dan insert tidak balapan.
+  const inserted = await withTransaction(async (client) => {
+    await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
+      `ai-runs-pending:${user.id}`,
+    ]);
+    const pending = await client.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM ai_test_runs
+        WHERE created_by=$1 AND status IN ('queued','running')`,
+      [user.id],
+    );
+    if (Number(pending.rows[0]?.n ?? 0) >= MAX_PENDING) return null;
+
+    const ins = await client.query<{ id: string }>(
+      `INSERT INTO ai_test_runs
+        (created_by, target_url, goal, success_criteria, feature_id, tested_as_role,
+         test_cycle, status, use_login, login_url, login_goal, login_email_label,
+         login_password_label, login_submit_label, login_credentials_enc)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'queued',$8,$9,$10,$11,$12,$13,$14)
+       RETURNING id`,
+      [
+        user.id,
+        targetUrl,
+        goal,
+        criteria,
+        featureId,
+        role,
+        cycle,
+        useLogin,
+        loginUrl,
+        loginGoal,
+        loginEmailLabel,
+        loginPasswordLabel,
+        loginSubmitLabel,
+        loginCredentials,
+      ],
+    );
+    return ins.rows[0] ?? null;
+  });
+
+  if (!inserted) {
     return err(
       `Maksimal ${MAX_PENDING} AI test aktif per pengguna. Tunggu runner menyelesaikan yang lain.`,
       422,
     );
   }
 
-  const inserted = await queryOne<{ id: string }>(
-    `INSERT INTO ai_test_runs
-      (created_by, target_url, goal, success_criteria, feature_id, tested_as_role,
-       test_cycle, status, use_login, login_url, login_goal, login_email_label,
-       login_password_label, login_submit_label, login_credentials_enc)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,'queued',$8,$9,$10,$11,$12,$13,$14)
-     RETURNING id`,
-    [
-      user.id,
-      targetUrl,
-      goal,
-      criteria,
-      featureId,
-      role,
-      cycle,
-      useLogin,
-      loginUrl,
-      loginGoal,
-      loginEmailLabel,
-      loginPasswordLabel,
-      loginSubmitLabel,
-      loginCredentials,
-    ],
-  );
-
-  const runId = Number(inserted?.id);
+  const runId = Number(inserted.id);
   await dispatchAiRunner(runId);
 
   return NextResponse.json({ ok: true, id: runId }, { status: 201 });

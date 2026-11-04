@@ -68,6 +68,16 @@ function q(value) {
   return JSON.stringify(String(value));
 }
 
+// Samarkan rahasia dari teks log sebelum disimpan. Split/join dipakai agar
+// nilai dengan karakter regex khusus tetap aman disamarkan.
+function redactSecrets(text, secrets) {
+  let out = String(text ?? "");
+  for (const s of secrets) {
+    if (typeof s === "string" && s.length >= 3) out = out.split(s).join("[redacted]");
+  }
+  return out;
+}
+
 function buildLogin(run) {
   const useLogin = run.use_login === true;
   const email = useLogin ? run.login_email || TARGET_EMAIL : "";
@@ -323,6 +333,16 @@ async function processRun(run) {
     buildTest(run, pathOf(run.target_url), login),
   );
 
+  // Heartbeat: perbarui claimed_at selama run jalan agar tidak dikira mati
+  // dan diambil alih runner lain (reclaim 15 menit di GET /next).
+  const heartbeat = setInterval(() => {
+    api(`/api/v1/ai-runs/${run.id}/heartbeat`, {
+      method: "POST",
+      headers: { "X-Runner-Id": RUNNER_ID },
+    }).catch(() => undefined);
+  }, 5 * 60 * 1000);
+
+  try {
   let execution = { code: 1, output: "", dir };
   let report = null;
   let usedModel = MODEL;
@@ -345,6 +365,16 @@ async function processRun(run) {
     console.error(`[run ${run.id}] provider/model gagal (${model}), coba fallback...`);
   }
 
+  const secrets = [
+    login.email,
+    login.password,
+    TARGET_EMAIL,
+    TARGET_PASSWORD,
+    process.env.AI_RUN_EMAIL ?? "",
+    process.env.AI_RUN_PASSWORD ?? "",
+  ];
+  const redact = (text) => redactSecrets(text, secrets);
+
   const passed =
     execution.code === 0 && report?.run?.status === "passed";
   const summary = report?.run?.summary ?? {};
@@ -353,11 +383,13 @@ async function processRun(run) {
     console.error(`[run ${run.id}] e2e gagal. Output terakhir:\n${execution.output.slice(-4000)}`);
   }
   const providerFailed = !passed && isProviderError(`${errors}\n${execution.output.slice(-1500)}`);
-  const outcome = passed ? "pass" : providerFailed ? "error" : "fail";
+  // Tanpa report, kegagalan pasti di sisi infra/runner (crash sebelum report
+  // tertulis), bukan verdict terhadap aplikasi target.
+  const outcome = passed ? "pass" : report === null || providerFailed ? "error" : "fail";
   const diagnostic = passed ? "" : errors || execution.output.slice(-1500);
   const notes = passed
     ? `AI: ${run.goal}${run.success_criteria ? ` — kriteria: ${run.success_criteria}` : ""} (${summary.executed ?? 0} test lulus)`
-    : `AI: ${run.goal}${run.success_criteria ? ` — kriteria: ${run.success_criteria}` : ""}${diagnostic ? `\nDiagnostik: ${diagnostic}` : ""}`;
+    : `AI: ${run.goal}${run.success_criteria ? ` — kriteria: ${run.success_criteria}` : ""}${diagnostic ? `\nDiagnostik: ${redact(diagnostic)}` : ""}`;
 
   const screenshot = await findScreenshot(join(dir, ".e2e"), report);
   const runnerLog = [
@@ -365,21 +397,24 @@ async function processRun(run) {
     `provider=${PROVIDER} model=${usedModel} trail=${modelTrail.join(" -> ")}`,
     `use_login=${login.useLogin} login_url=${login.url ?? "-"} credentials=${login.hasCredentials ? "ada" : "tidak"}`,
     "",
-    execution.output,
-    report ? `\nREPORT:\n${JSON.stringify(report, null, 2)}` : "",
+    redact(execution.output),
+    report ? `\nREPORT:\n${redact(JSON.stringify(report, null, 2))}` : "",
   ].join("\n");
 
   try {
     await uploadResult(run.id, {
       outcome,
-      notes,
-      error: report ? errors || null : execution.output.slice(-4000),
+      notes: redact(notes),
+      error: report ? redact(errors) || null : redact(execution.output.slice(-4000)),
       severity: passed ? null : "medium",
       log: runnerLog,
     }, screenshot);
     console.log(`[run ${run.id}] ${passed ? "PASS" : outcome === "error" ? "ERROR" : "FAIL"} dikirim`);
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => undefined);
+  }
+  } finally {
+    clearInterval(heartbeat);
   }
 }
 

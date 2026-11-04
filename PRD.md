@@ -145,16 +145,16 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 
 ### F16 — AI Test Run
 - Halaman `/ai-test`: URL target (http/https), tujuan natural language, kriteria berhasil, fitur/peran/siklus, serta opsi **login target per-run** (URL login, email/password, instruksi, dan label field untuk login deterministik).
-- Run `queued` di `ai_test_runs`; runner eksternal mengambil lewat `GET /api/v1/ai-runs/next` dengan Bearer `AI_RUNNER_TOKEN` (atomik; run macet >15 menit dikembalikan ke antrean).
+- Run `queued` di `ai_test_runs`; runner eksternal mengambil lewat `GET /api/v1/ai-runs/next` dengan Bearer token runner (atomik; run macet >15 menit tanpa heartbeat dikembalikan ke antrean).
 - Saat run dibuat, server memicu `repository_dispatch` GitHub (`ai-run`) bila `GITHUB_DISPATCH_TOKEN` tersedia; tanpa token, schedule/manual menjadi fallback.
 - Runner menjalankan e2e TesterArmy (Chromium + model gratis OpenRouter/Google Gemini), mengambil screenshot, lalu `POST /api/v1/ai-runs/{id}/result`.
 - Hasil adalah **draft**: user klik `Konfirmasi` → `/pengujian-baru?ai_run=...` (form terisi hasil, severity, catatan, bukti) → submit memakai aturan retest/approval yang sama dan menandai run `confirmed`.
-- Setiap run menyimpan `runner_log` (stdout/stderr, error model, report e2e, maks 100.000 karakter); user dapat membuka **Log** di `/ai-test` untuk audit kegagalan login/selector. Log tidak memuat kredensial target.
+- Setiap run menyimpan `runner_log` (stdout/stderr, error model, report e2e, maks 100.000 karakter); user dapat membuka **Log** di `/ai-test` untuk audit kegagalan login/selector. Nilai kredensial disamarkan (`[redacted]`) sebelum disimpan.
 - Target publik/localhost/internal diperbolehkan karena browser berjalan di runner, bukan Vercel.
-- Kredensial login target **per-run** disimpan terenkripsi AES-256-GCM di `ai_test_runs.login_credentials_enc`, hanya dikirim ke runner saat run diklaim, tidak masuk prompt/model, dan dihapus saat hasil dikirim. Fallback `AI_TARGET_EMAIL/PASSWORD` hanya dipakai jika run meminta login tanpa kredensial per-run.
+- Kredensial login target **per-run** disimpan terenkripsi AES-256-GCM di `ai_test_runs.login_credentials_enc` (kunci `AI_CREDENTIALS_KEY`, wajib di produksi), hanya dikirim ke runner saat run diklaim, dan dihapus saat hasil dikirim. Bila ketiga label login tidak lengkap, agent AI login sendiri dan password **ikut terkirim ke provider model** — isi ketiga label agar login deterministik tanpa melibatkan model. Fallback `AI_TARGET_EMAIL/PASSWORD` hanya dipakai jika run meminta login tanpa kredensial per-run.
 - Login deterministik memakai label field (`login_email_label`, `login_password_label`, `login_submit_label`); jika label tidak lengkap, agent AI menjalankan `login_goal`.
 - Gratis: runner di VPS/laptop 24 jam atau GitHub Actions terjadwal tiap 5 menit; Vercel hanya antrean/UI.
-- Keamanan: token runner wajib sama di Vercel + runner; waspadai prompt injection dari halaman target, gunakan akun tester hak minimal.
+- Keamanan: token runner wajib sama di Vercel + runner (boleh beda per host via `AI_RUNNER_TOKENS`); waspadai prompt injection dari halaman target, gunakan akun tester hak minimal.
 
 ---
 

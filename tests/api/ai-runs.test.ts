@@ -4,6 +4,7 @@ import { GET as listRuns, POST as createRun } from "@/app/api/v1/ai-runs/route";
 import { GET as getRun } from "@/app/api/v1/ai-runs/[id]/route";
 import { GET as nextRun } from "@/app/api/v1/ai-runs/next/route";
 import { POST as submitResult } from "@/app/api/v1/ai-runs/[id]/result/route";
+import { POST as heartbeat } from "@/app/api/v1/ai-runs/[id]/heartbeat/route";
 import { POST as submitSession } from "@/app/api/v1/test-sessions/route";
 
 import { createUser, loginAs, resetDb, uid } from "./helpers";
@@ -269,6 +270,75 @@ describe("AI test runs", () => {
       }),
     );
     expect(wrong.status).toBe(401);
+  });
+
+  it("kuota MAX_PENDING tahan terhadap pembuatan bersamaan", async () => {
+    await resetDb();
+    const tester = await createUser(undefined, "tester");
+    const f = await feature();
+    await loginAs(tester.email);
+
+    const results = await Promise.all(
+      Array.from({ length: 5 }, (_, i) =>
+        createRun(
+          json({
+            target_url: "https://example.test/app",
+            goal: `uji konkuren ${i} pastikan antrean`,
+            feature_id: f.id,
+            tested_as_role: "tester",
+          }),
+        ),
+      ),
+    );
+    expect(results.filter((r) => r.status === 201)).toHaveLength(3);
+    expect(results.filter((r) => r.status === 422)).toHaveLength(2);
+  });
+
+  it("heartbeat memperbarui lease run yang berjalan", async () => {
+    await resetDb();
+    const tester = await createUser(undefined, "tester");
+    const f = await feature();
+    await loginAs(tester.email);
+
+    const created = (await (
+      await createRun(
+        json({
+          target_url: "https://example.test/app",
+          goal: "uji heartbeat run",
+          feature_id: f.id,
+          tested_as_role: "tester",
+        }),
+      )
+    ).json()) as { id: number };
+
+    const hbQueued = await heartbeat(
+      runnerRequest(`http://test/api/v1/ai-runs/${created.id}/heartbeat`, {
+        method: "POST",
+      }),
+      { params: Promise.resolve({ id: String(created.id) }) },
+    );
+    expect(hbQueued.status).toBe(404);
+
+    const claimed = await nextRun(
+      runnerRequest("http://test/api/v1/ai-runs/next"),
+    );
+    expect(claimed.status).toBe(200);
+
+    const hb = await heartbeat(
+      runnerRequest(`http://test/api/v1/ai-runs/${created.id}/heartbeat`, {
+        method: "POST",
+      }),
+      { params: Promise.resolve({ id: String(created.id) }) },
+    );
+    expect(hb.status).toBe(204);
+
+    const unauth = await heartbeat(
+      new Request(`http://test/api/v1/ai-runs/${created.id}/heartbeat`, {
+        method: "POST",
+      }),
+      { params: Promise.resolve({ id: String(created.id) }) },
+    );
+    expect(unauth.status).toBe(401);
   });
 
   it("hasil AI hanya boleh dikonfirmasi untuk fitur yang sama", async () => {

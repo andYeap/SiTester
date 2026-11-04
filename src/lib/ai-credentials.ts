@@ -7,14 +7,23 @@ import {
 
 type Credentials = { email: string; password: string };
 
-function key(): Buffer | null {
-  const raw =
-    process.env.AI_CREDENTIALS_KEY || process.env.AI_RUNNER_TOKEN || "";
-  if (raw.length < 20) return null;
+function derive(raw: string): Buffer {
   // Turunkan 32 byte dari secret yang sudah ada; tidak disimpan terpisah.
   return createHash("sha256")
     .update(`sitester-ai-credentials:${raw}`)
     .digest();
+}
+
+function key(): Buffer | null {
+  const dedicated = process.env.AI_CREDENTIALS_KEY ?? "";
+  if (dedicated.length >= 20) return derive(dedicated);
+  // Di produksi kunci khusus wajib: fallback ke token runner dimatikan agar
+  // rotasi token tidak diam-diam merusak dekripsi dan agar kompromi token
+  // tidak otomatis berarti kemampuan dekripsi DB.
+  if (process.env.NODE_ENV === "production") return null;
+  const raw = process.env.AI_RUNNER_TOKEN ?? "";
+  if (raw.length < 20) return null;
+  return derive(raw);
 }
 
 export function credentialsConfigured(): boolean {

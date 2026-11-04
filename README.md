@@ -119,12 +119,19 @@ berlaku).
 - Isi ketiga label (`Email`, `Kata sandi`, `Masuk`) untuk login **deterministik**
   memakai `getByLabel`/`getByRole`; kosongkan untuk menyerahkan login ke agent AI.
 - Kredensial disimpan **terenkripsi AES-256-GCM** di DB (`login_credentials_enc`),
-  hanya dikirim ke runner untuk run tersebut, tidak pernah masuk prompt/model,
-  dan dihapus saat hasil dikirim.
+  hanya dikirim ke runner untuk run tersebut, dan dihapus saat hasil dikirim.
+- **Perhatian**: bila ketiga label login tidak diisi lengkap, agent AI melakukan
+  login sendiri dan password target **dikirim ke provider model AI** (ikut dalam
+  instruksi agent). Isi ketiga label agar login deterministik tanpa melibatkan model.
+  Log runner disamarkan otomatis (`[redacted]`), tetapi jangan mengetik password
+  di kolom tujuan/instruksi.
 - Jika email/password per-run kosong, runner memakai fallback
   `AI_TARGET_EMAIL/PASSWORD`. Jika “Perlu login” tidak dicentang, login dilewati.
-- Kunci enkripsi memakai `AI_CREDENTIALS_KEY` bila ada; jika tidak, diturunkan
-  dari `AI_RUNNER_TOKEN`. Tidak perlu env baru agar tetap mudah.
+- Kunci enkripsi memakai `AI_CREDENTIALS_KEY` bila ada; di produksi kunci ini
+  **wajib** (fallback ke `AI_RUNNER_TOKEN` hanya untuk dev). Rotasi token runner
+  tanpa kunci khusus membuat kredensial lama tak terbaca.
+- Runner boleh memakai token sendiri-sendiri lewat `AI_RUNNER_TOKENS`
+  (daftar dipisah koma, tiap token ≥20 karakter) agar token tidak dipakai bersama.
 
 **Trigger otomatis (opsional, disarankan)**
 - Buat **fine-grained GitHub PAT** khusus repo `SiTester` dengan permission
@@ -138,10 +145,20 @@ berlaku).
   di-cache agar instalasi berikutnya lebih cepat.
 
 **Audit log**
+
 - Setiap run menyimpan output runner (stdout/stderr, error model, report e2e) di `ai_test_runs.runner_log` (maks 100.000 karakter).
 - Di `/ai-test`, klik **Log** pada baris run untuk melihat penyebab kegagalan, termasuk langkah login/selector yang gagal.
-- Log tidak memuat password/kredensial target. Log workflow lengkap juga tetap tersedia di GitHub Actions selama masa retensi artifact/log GitHub.
+- Log runner disamarkan otomatis: nilai kredensial diganti `[redacted]` sebelum
+  disimpan, tetapi jangan mengetik password di kolom tujuan/instruksi. Log workflow lengkap juga tetap tersedia di GitHub Actions selama masa retensi artifact/log GitHub.
 - Screenshot bukti tetap terpisah dan memerlukan Blob storage di produksi.
+
+**Hemat kuota model gratis**
+- Isi ketiga label login agar login deterministik — agent butuh langkah (token) jauh lebih sedikit.
+- Tulis tujuan singkat dan kriteria berhasil yang spesifik; hindari halaman raksasa sebagai target.
+- Urutkan `E2E_MODELS` dari yang paling murah/stabil; fallback otomatis hanya jalan saat error provider, bukan saat verdict `fail`.
+- Jangan antrekan ulang run `fail` membabi buta — perbaiki dulu selektor/tujuan yang gagal di Log.
+- Bila kuota harian OpenRouter habis, pindah `E2E_PROVIDER=google` (kuota gratis terpisah, tanpa kartu).
+- Jadwal GitHub Actions tiap 5 menit + `repository_dispatch` membuat run cepat diambil tanpa runner 24 jam.
 
 **Mengapa runner terpisah?** Vercel Functions tidak cocok menjalankan
 Chromium penuh (ukuran/timeout). Vercel hanya menyimpan antrean dan hasil.

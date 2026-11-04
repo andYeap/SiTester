@@ -321,6 +321,12 @@ export default function AiRunsView() {
                 Isi ketiga label untuk login deterministik (lebih cepat dan stabil).
                 Kosongkan semuanya jika ingin agent AI mencari field login sendiri.
               </p>
+              {(!loginEmailLabel.trim() || !loginPasswordLabel.trim() || !loginSubmitLabel.trim()) && (
+                <p className="hint sm:col-span-2" role="note">
+                  Label tidak lengkap: password target akan dikirim ke provider model AI saat agent login.
+                  Isi ketiga label agar kredensial tidak masuk ke model.
+                </p>
+              )}
             </div>
           )}
         </div>

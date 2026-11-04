@@ -104,3 +104,15 @@ npm run build
 - **Import append-only** — sengaja tidak menerapkan aturan retest (PRD F10).
 - **Tambah fitur baru** — tidak perlu; fitur PRD sudah tercakup.
 - **Refactor besar / ganti arsitektur** — tidak perlu; fokus pada P1/P2 dan minor di atas.
+
+---
+
+## Tindak lanjut AI Testing (2026-11-04)
+
+- [x] **A1 — Peringatan password ke model** — `AiRunsView.tsx`: hint saat label login tak lengkap; koreksi klaim "tidak pernah masuk prompt/model" di `README.md`/`PRD.md`.
+- [x] **A2 — Report hilang = error** — `scripts/ai-runner.mjs`: `report === null` → outcome `error`, bukan `fail`.
+- [x] **A3 — Redaksi kredensial di log** — `scripts/ai-runner.mjs`: nilai email/password disamarkan jadi `[redacted]` sebelum disimpan.
+- [x] **A4 — Kunci kredensial wajib di produksi** — `src/lib/ai-credentials.ts`: tanpa `AI_CREDENTIALS_KEY`, `NODE_ENV=production` → fail-closed.
+- [x] **A5 — Heartbeat runner** — `POST /api/v1/ai-runs/[id]/heartbeat` tiap 5 menit; reclaim 15 menit hanya untuk runner mati.
+- [x] **A6 — Token per-runner** — `AI_RUNNER_TOKENS` (koma) diterima `src/lib/runner-auth.ts`.
+- [x] **A7 — Kuota MAX_PENDING anti-balapan** — `pg_advisory_xact_lock` per user di `POST /api/v1/ai-runs` + tes konkuren.
