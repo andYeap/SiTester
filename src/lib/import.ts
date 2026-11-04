@@ -8,8 +8,8 @@ import { isIsoDate } from "@/lib/validation";
 
 export type ImportResult = "pass" | "fail" | "bug";
 
-export const IMPORT_MAX_BYTES = 4 * 1024 * 1024; // aman di bawah batas body Vercel ±4.5MB
-export const IMPORT_MAX_ROWS = 20_000;
+export const IMPORT_MAX_BYTES = 2 * 1024 * 1024; // aman commit ≤60s + body Vercel ±4.5MB
+export const IMPORT_MAX_ROWS = 5_000;
 export const IMPORT_PREVIEW_ROWS = 500;
 
 export type ImportField =

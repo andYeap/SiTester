@@ -4,8 +4,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-const MAX_BYTES = 4 * 1024 * 1024;
-const MAX_ROWS = 20_000;
+const MAX_BYTES = 2 * 1024 * 1024;
+const MAX_ROWS = 5_000;
 
 const FIELDS = [
   { key: "tested_at", label: "Tanggal", required: true },
@@ -118,7 +118,7 @@ export default function ImportView() {
       return null;
     }
     if (file.size > MAX_BYTES) {
-      setError("Ukuran file maksimal 4MB.");
+      setError("Ukuran file maksimal 2MB.");
       return null;
     }
     const fd = new FormData();
@@ -290,7 +290,7 @@ export default function ImportView() {
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-64 flex-1">
             <label htmlFor="import-file" className="label">
-              File .xlsx / .csv (maks 4MB, {MAX_ROWS.toLocaleString("id-ID")} baris)
+              File .xlsx / .csv (maks 2MB, {MAX_ROWS.toLocaleString("id-ID")} baris)
             </label>
             <input
               id="import-file"
@@ -306,7 +306,7 @@ export default function ImportView() {
             />
             <p className="hint">
               `.xls` lama tidak didukung — simpan ulang sebagai `.xlsx` atau `.csv`.
-              Batas 4MB karena batas body request Vercel.
+              Batas 2MB agar commit selesai dalam batas 60 detik Vercel.
             </p>
           </div>
           <button onClick={() => void doPreview()} disabled={!file || busy} className="btn-soft">

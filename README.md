@@ -1,7 +1,7 @@
 # SITester — pencatatan & kendali pengujian tim tester (Next.js + Postgres, siap Vercel)
 
 Rewrite dari aplikasi TestLab versi Laravel (`../testlab`). Paritas fitur penuh + deploy gratis.
-Lihat `PRD.md` (spesifikasi v3), `PLAN-v3.md` (rencana), dan `DESIGN.md`.
+Panduan pengguna: **`PANDUAN-PENGGUNAAN.md`**. Lihat `PRD.md` (spesifikasi v3), `PLAN-v3.md` (rencana), dan `DESIGN.md`.
 
 ## Fitur v3
 
@@ -11,7 +11,7 @@ Lihat `PRD.md` (spesifikasi v3), `PLAN-v3.md` (rencana), dan `DESIGN.md`.
 - **Test case** per fitur + **defect lifecycle** (open → fixed → verified → closed).
 - **Detail fitur**: test case, defect, dan timeline sesi.
 - Riwayat: sort, preset tanggal, filter tersimpan, kartu mobile.
-- **Import Excel/CSV** dengan pratinjau, mapping kolom, pilih sheet/header, skip baris error, error CSV, dedupe, dan riwayat batch (maks 4MB / 20.000 baris).
+- **Import Excel/CSV** dengan pratinjau, mapping kolom, pilih sheet/header, skip baris error, error CSV, dedupe, dan riwayat batch (maks 2MB / 5.000 baris).
 - Ekspor CSV/PDF **mengikuti filter** (PDF seluruh hasil, bukan satu halaman).
 - Akun: lupa password, reset password token 24 jam, tautan reset dari ketua.
 - Hardening: upload magic-bytes, rate limit email+IP, health check, CI, E2E.
@@ -137,6 +137,12 @@ berlaku).
 - GitHub-hosted runner tetap punya cold start ±30–90 detik; browser Chromium
   di-cache agar instalasi berikutnya lebih cepat.
 
+**Audit log**
+- Setiap run menyimpan output runner (stdout/stderr, error model, report e2e) di `ai_test_runs.runner_log` (maks 100.000 karakter).
+- Di `/ai-test`, klik **Log** pada baris run untuk melihat penyebab kegagalan, termasuk langkah login/selector yang gagal.
+- Log tidak memuat password/kredensial target. Log workflow lengkap juga tetap tersedia di GitHub Actions selama masa retensi artifact/log GitHub.
+- Screenshot bukti tetap terpisah dan memerlukan Blob storage di produksi.
+
 **Mengapa runner terpisah?** Vercel Functions tidak cocok menjalankan
 Chromium penuh (ukuran/timeout). Vercel hanya menyimpan antrean dan hasil.
 
@@ -182,7 +188,7 @@ Alur: `/ai-test` → antre → runner → hasil + bukti → `Konfirmasi` →
 ## Batas import
 
 - Format: `.xlsx` dan `.csv` (`.xls` lama tidak didukung).
-- Maks **4MB** dan **20.000 baris**. 4MB adalah batas aman karena Vercel membatasi body request Functions sekitar 4,5MB.
+- Maks **2MB** dan **5.000 baris**. 2MB adalah batas aman agar commit selesai dalam `maxDuration` 60 detik Vercel.
 - Untuk file lebih besar: pecah menjadi beberapa file, atau (perlu pengembangan) unggah langsung ke Vercel Blob lalu import dari URL.
 - Import hanya untuk ketua; baris duplikat (hash sama) otomatis dilewati.
 

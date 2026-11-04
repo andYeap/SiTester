@@ -101,7 +101,7 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 
 ### F10 — Import Excel/CSV (v2)
 - Halaman `/impor` (ketua) + template **CSV dan XLSX**.
-- Unggah **`.xlsx` atau `.csv`**, maks **4MB** dan **20.000 baris** (batas 4MB karena body request Vercel ±4.5MB; `.xls` lama tidak didukung).
+- Unggah **`.xlsx` atau `.csv`**, maks **2MB** dan **5.000 baris** (batas 2MB agar commit selesai dalam 60 detik; body request Vercel ±4.5MB; `.xls` lama tidak didukung).
 - Pilih **sheet** dan **baris header**; **mapping kolom** otomatis + dapat diubah manual, dengan preset mapping tersimpan di perangkat.
 - Kolom: Tanggal, Email Tester, Fitur, Hasil, Peran, Siklus, Test Case, Severity, Lingkungan, Diharapkan, Terjadi, Catatan, Bukti URL, Ulang.
 - **Pratinjau** maks 500 baris (valid/error per baris, header error, mapping terdeteksi).
