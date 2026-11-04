@@ -82,7 +82,7 @@ export default function DashboardView({
     { label: "Pengujian Bulan Ini", value: stats?.summary.total_bulan_ini ?? "—", top: "bg-neutral-950", text: "text-neutral-950" },
     { label: "Pass Bulan Ini", value: stats?.summary.pass_bulan_ini ?? "—", top: "bg-neutral-950", text: "text-neutral-950" },
     { label: "Fail / Bug Bulan Ini", value: stats?.summary.fail_bulan_ini ?? "—", top: "bg-neutral-400", text: "text-neutral-950" },
-    { label: "Fitur Belum Diuji", value: stats?.summary.fitur_belum_diuji ?? "—", top: "bg-neutral-300", text: "text-neutral-950" },
+    { label: "Fitur Belum Diuji" + (isKetua ? "" : " (tim)"), value: stats?.summary.fitur_belum_diuji ?? "—", top: "bg-neutral-300", text: "text-neutral-950" },
   ];
 
   return (
@@ -90,7 +90,7 @@ export default function DashboardView({
       <div>
         <h1 className="page-title">Dashboard</h1>
         <p className="page-subtitle">
-          Ringkasan masa dan hasil pengujian tim{stats?.cycle ? ` · Siklus ${stats.cycle}` : ""}.
+          Ringkasan hasil pengujian {isKetua ? "tim" : "Anda"}{stats?.cycle ? ` · Siklus ${stats.cycle}` : ""}.
         </p>
       </div>
       {error && <div className="alert-err" role="alert">{error}</div>}
@@ -141,15 +141,19 @@ export default function DashboardView({
               </p>
             )}
             {stats.myTasks.myPendingRequests.length === 0 ? (
-              <p className="text-sm text-neutral-500">Tidak ada permohonan menunggu.</p>
+              <p className="text-sm text-neutral-500">Tidak ada permohonan.</p>
             ) : (
               <ul className="space-y-1.5 text-sm">
                 {stats.myTasks.myPendingRequests.map((r) => (
                   <li key={r.id} className="flex items-center justify-between gap-2">
                     <span className="truncate text-neutral-700">{r.feature_name}</span>
-                    <span className="shrink-0 text-xs text-neutral-500">
-                      s.d. {new Date(r.expires_at).toLocaleDateString("id-ID")}
-                    </span>
+                    {r.expired ? (
+                      <span className="badge badge-outline shrink-0 text-[10px] text-neutral-500">Kedaluwarsa</span>
+                    ) : (
+                      <span className="shrink-0 text-xs text-neutral-500">
+                        s.d. {new Date(r.expires_at).toLocaleDateString("id-ID")}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

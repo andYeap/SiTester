@@ -306,4 +306,12 @@ describe("import v2", () => {
     expect(csv).toContain("2026-99-99");
     expect(csv.toLowerCase()).toContain("tanggal");
   });
+
+  it("file xlsx rusak di route errors mengembalikan 422", async () => {
+    await ketuaLogin();
+    const res = await errorsCsv(
+      importRequest("bukan xlsx", { filename: "rusak.xlsx" }),
+    );
+    expect(res.status).toBe(422);
+  });
 });

@@ -51,12 +51,36 @@ export async function GET(
       [cycle],
     );
     if (!cyc) return err("Siklus tidak valid.", 422);
+
+    const scoped = await queryOne<{ n: string }>(
+      `SELECT count(*)::text AS n FROM cycle_features cf
+        JOIN test_cycles c ON c.id = cf.cycle_id WHERE c.name=$1`,
+      [cycle],
+    );
+    if (Number(scoped?.n ?? 0) > 0) {
+      const inScope = await queryOne<{ n: string }>(
+        `SELECT count(*)::text AS n FROM cycle_features cf
+          JOIN test_cycles c ON c.id = cf.cycle_id
+         WHERE c.name=$1 AND cf.feature_id=$2`,
+        [cycle, featureId],
+      );
+      if (Number(inScope?.n ?? 0) === 0) {
+        return NextResponse.json({
+          allowed: false,
+          requiresApproval: false,
+          warning: `Fitur ini tidak termasuk dalam lingkup "${cycle}". Pilih fitur yang terdaftar di siklus tersebut, atau minta ketua tim menambahkannya.`,
+          lastResult: null,
+          hasPendingRequest: false,
+          duplicateWarning: null,
+        });
+      }
+    }
   }
 
   const last = await queryOne<{ result: "pass" | "fail" | "bug" }>(
     `SELECT result FROM test_sessions
       WHERE feature_id=$1 AND tested_as_role=$2
-        AND ($3::text IS NULL OR test_cycle IS NOT DISTINCT FROM $3)
+        AND test_cycle IS NOT DISTINCT FROM $3
       ORDER BY tested_at DESC, id DESC LIMIT 1`,
     [feature.id, role, cycle],
   );
@@ -95,7 +119,7 @@ export async function GET(
     hasPendingRequestOwn: ownPending[0].n !== "0",
     duplicateWarning:
       recent[0].n !== "0"
-        ? "Perhatian: fitur ini baru saja diuji oleh tester lain dalam 24 jam terakhir."
+        ? "Perhatian: fitur ini baru saja diuji oleh tester lain sejak kemarin."
         : null,
   });
 }

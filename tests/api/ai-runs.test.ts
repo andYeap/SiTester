@@ -270,4 +270,35 @@ describe("AI test runs", () => {
     );
     expect(wrong.status).toBe(401);
   });
+
+  it("hasil AI hanya boleh dikonfirmasi untuk fitur yang sama", async () => {
+    await resetDb();
+    const tester = await createUser(undefined, "tester");
+    const f1 = await feature();
+    const f2 = await feature();
+    await loginAs(tester.email);
+
+    const run = await query<{ id: number }>(
+      `INSERT INTO ai_test_runs
+        (created_by, target_url, goal, feature_id, tested_as_role, status, result)
+       VALUES ($1,'https://example.test','uji',$2,'tester','completed','pass')
+       RETURNING id`,
+      [tester.id, f1.id],
+    );
+
+    const form = new FormData();
+    form.set("tested_at", todayString());
+    form.set("feature_id", String(f2.id));
+    form.set("is_retest", "0");
+    form.set("tested_as_role", "tester");
+    form.set("result", "pass");
+    form.set("ai_run_id", String(run[0].id));
+    const res = await submitSession(
+      new Request("http://test/api/v1/test-sessions", {
+        method: "POST",
+        body: form,
+      }),
+    );
+    expect(res.status).toBe(422);
+  });
 });

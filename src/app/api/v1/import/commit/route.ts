@@ -246,9 +246,10 @@ export async function POST(request: Request) {
       `UPDATE import_batches SET status='failed' WHERE id=$1 RETURNING id`,
       [batchId],
     );
+    console.error("import commit gagal", e);
     return err(
-      e instanceof Error ? `Gagal menyimpan: ${e.message}` : "Gagal menyimpan.",
-      422,
+      "Gagal menyimpan hasil import. Coba lagi atau hubungi administrator.",
+      500,
     );
   }
 

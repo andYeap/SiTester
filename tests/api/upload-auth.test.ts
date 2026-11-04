@@ -35,5 +35,7 @@ describe("upload butuh login", () => {
     });
     expect(ok.status).toBe(200);
     expect(ok.headers.get("content-type")).toContain("image/png");
+    expect(ok.headers.get("cache-control")).toContain("private");
+    expect(ok.headers.get("cache-control")).toContain("no-store");
   });
 });

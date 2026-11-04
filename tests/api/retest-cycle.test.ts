@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { POST as submitSession } from "@/app/api/v1/test-sessions/route";
+import { GET as canTest } from "@/app/api/v1/features/[id]/can-test/route";
 import { PATCH as approve } from "@/app/api/v1/retest-requests/[id]/approve/route";
 import { POST as requestRetest } from "@/app/api/v1/retest-requests/route";
 
@@ -78,5 +79,46 @@ describe("retest scope siklus", () => {
       fd({ tested_at: "2026-10-29", feature_id: String(fid), is_retest: "1", tested_as_role: "tester", test_cycle: "SA", result: "pass" }),
     );
     expect(r.status).toBe(201);
+  });
+
+  it("scope tanpa siklus tidak dianggap sama dengan siklus mana pun", async () => {
+    await query(
+      `INSERT INTO test_cycles (name, is_active) VALUES ('R1',true),('R2',true) ON CONFLICT (name) DO NOTHING`,
+    );
+    const fid = await featureId();
+    await loginAs(testerEmail);
+
+    let r: Response = await submitSession(
+      fd({ tested_at: "2026-10-29", feature_id: String(fid), is_retest: "0", tested_as_role: "tester", test_cycle: "R1", result: "pass" }),
+    );
+    expect(r.status).toBe(201);
+
+    const check = await canTest(
+      new Request(`http://test/api/v1/features/${fid}/can-test?is_retest=0&role=tester`),
+      { params: Promise.resolve({ id: String(fid) }) },
+    );
+    expect(check.status).toBe(200);
+    expect(((await check.json()) as { allowed: boolean }).allowed).toBe(true);
+
+    r = await submitSession(
+      fd({ tested_at: "2026-10-29", feature_id: String(fid), is_retest: "0", tested_as_role: "tester", result: "pass" }),
+    );
+    expect(r.status).toBe(201);
+  });
+
+  it("permohonan retest tanpa siklus ditolak bila Pass hanya ada di siklus", async () => {
+    await query(
+      `INSERT INTO test_cycles (name, is_active) VALUES ('R1',true) ON CONFLICT (name) DO NOTHING`,
+    );
+    const fid = await featureId();
+    await loginAs(testerEmail);
+
+    let r: Response = await submitSession(
+      fd({ tested_at: "2026-10-29", feature_id: String(fid), is_retest: "0", tested_as_role: "tester", test_cycle: "R1", result: "pass" }),
+    );
+    expect(r.status).toBe(201);
+
+    r = await requestRetest(json({ feature_id: fid, tested_as_role: "tester" }));
+    expect(r.status).toBe(422);
   });
 });

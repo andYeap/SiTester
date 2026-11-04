@@ -22,16 +22,24 @@ export async function POST(request: Request) {
 
   let devResetUrl: string | undefined;
   if (user) {
-    const token = await createResetToken(user.id);
-    const url = resetUrl(new URL(request.url).origin, token);
-    const sent = await sendMail({
-      to: email,
-      subject: "Reset password SITester",
-      text: `Kami menerima permintaan reset password.\n\nBuka tautan berikut (berlaku 24 jam, satu kali pakai):\n${url}\n\nAbaikan email ini bila Anda tidak meminta reset.`,
-    });
-    // Di dev tanpa SMTP, tampilkan tautan agar alur tetap bisa dicoba.
-    if (!sent && !mailConfigured() && process.env.NODE_ENV !== "production") {
-      devResetUrl = url;
+    // Hindari token thrash + spam email: maksimal 3 permintaan / 15 menit.
+    const recent = await queryOne<{ n: string }>(
+      `SELECT count(*)::text AS n FROM password_reset_tokens
+        WHERE user_id=$1 AND created_at > now() - interval '15 minutes'`,
+      [user.id],
+    );
+    if (Number(recent?.n ?? 0) < 3) {
+      const token = await createResetToken(user.id);
+      const url = resetUrl(new URL(request.url).origin, token);
+      const sent = await sendMail({
+        to: email,
+        subject: "Reset password SITester",
+        text: `Kami menerima permintaan reset password.\n\nBuka tautan berikut (berlaku 24 jam, satu kali pakai):\n${url}\n\nAbaikan email ini bila Anda tidak meminta reset.`,
+      });
+      // Di dev tanpa SMTP, tampilkan tautan agar alur tetap bisa dicoba.
+      if (!sent && !mailConfigured() && process.env.NODE_ENV !== "production") {
+        devResetUrl = url;
+      }
     }
   }
 

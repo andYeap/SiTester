@@ -52,12 +52,24 @@ export async function saveEvidence(file: File): Promise<string> {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (token) {
     const { put } = await import("@vercel/blob");
-    const blob = await put(`evidence/${randomUUID()}.${image.ext}`, buffer, {
-      access: "public",
-      token,
-      contentType: image.mime,
-    });
-    return blob.url;
+    const name = `evidence/${randomUUID()}.${image.ext}`;
+    try {
+      const blob = await put(name, buffer, {
+        access: "private",
+        token,
+        contentType: image.mime,
+      });
+      return blob.pathname;
+    } catch {
+      // shortcut: store Blob publik belum mendukung akses privat; URL UUID
+      // tetap sulit ditebak. Upgrade ke store privat saat tersedia.
+      const blob = await put(name, buffer, {
+        access: "public",
+        token,
+        contentType: image.mime,
+      });
+      return blob.url;
+    }
   }
 
   if (process.env.NODE_ENV === "production") {

@@ -29,8 +29,12 @@ export async function PATCH(
     status: string;
     feature_id: number;
     title: string;
-  }>(`SELECT id, status, feature_id, title FROM defects WHERE id=$1`, [id]);
+    created_by: string;
+  }>(`SELECT id, status, feature_id, title, created_by FROM defects WHERE id=$1`, [id]);
   if (!existing) return err("Defect tidak ditemukan.", 404);
+  if (user.role !== "ketua_tim" && existing.created_by !== user.id) {
+    return err("Forbidden", 403);
+  }
 
   const body = (await request.json().catch(() => null)) as {
     status?: unknown;

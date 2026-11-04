@@ -118,5 +118,6 @@ describe("lingkup siklus", () => {
       { params: Promise.resolve({ id: String(fidB) }) },
     );
     expect(res.status).toBe(200);
+    expect(((await res.json()) as { allowed: boolean }).allowed).toBe(false);
   });
 });

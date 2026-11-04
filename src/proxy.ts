@@ -21,7 +21,7 @@ export default function proxy(request: NextRequest) {
     pathname.startsWith("/notifikasi") ||
     pathname.startsWith("/defect") ||
     pathname.startsWith("/impor") ||
-    pathname.startsWith("/profil");
+    pathname.startsWith("/ai-test");
 
   if (isAppRoute && !request.cookies.has("testlab_session")) {
     const login = new URL("/login", request.url);
@@ -50,6 +50,5 @@ export const config = {
     "/impor/:path*",
     "/aktivitas/:path*",
     "/notifikasi/:path*",
-    "/profil/:path*",
   ],
 };

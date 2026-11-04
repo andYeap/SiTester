@@ -45,11 +45,19 @@ export async function POST(request: Request) {
     Number.isInteger(headerRowRaw) && headerRowRaw > 0 ? headerRowRaw : 1;
   const mapping = parseMapping(form?.get("mapping") ?? null);
 
-  const result = await parseAndValidate(
-    Buffer.from(await file.arrayBuffer()),
-    file.name,
-    { sheet, headerRow, mapping },
-  );
+  let result;
+  try {
+    result = await parseAndValidate(
+      Buffer.from(await file.arrayBuffer()),
+      file.name,
+      { sheet, headerRow, mapping },
+    );
+  } catch (e) {
+    return err(
+      e instanceof Error ? `Gagal membaca file: ${e.message}` : "Gagal membaca file.",
+      422,
+    );
+  }
 
   if (result.headerErrors.length > 0) {
     return err(result.headerErrors.join(" "), 422);

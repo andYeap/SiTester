@@ -20,6 +20,7 @@ export type DashboardStats = {
       id: number;
       feature_name: string;
       expires_at: string;
+      expired: boolean;
     }[];
     readyApprovals: number;
     openDefects: {
@@ -225,11 +226,13 @@ export async function getDashboardStats(
     id: number;
     feature_name: string;
     expires_at: string;
+    expired: boolean;
   }>(
-    `SELECT r.id, f.name AS feature_name, r.expires_at::text AS expires_at
+    `SELECT r.id, f.name AS feature_name, r.expires_at::text AS expires_at,
+            (r.expires_at <= now()) AS expired
        FROM retest_requests r
        JOIN features f ON f.id = r.feature_id
-      WHERE r.user_id=$1 AND r.status='pending' AND r.expires_at > now()
+      WHERE r.user_id=$1 AND r.status='pending'
       ORDER BY r.created_at DESC LIMIT 10`,
     [userId],
   );

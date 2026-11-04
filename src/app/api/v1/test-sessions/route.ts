@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { err, needUser } from "@/lib/api";
+import { err, needUser, UserError } from "@/lib/api";
 import { query, queryOne, withTransaction } from "@/lib/db";
 import { getSessions, parseSessionFilters } from "@/lib/history";
 import { canTest, type TestResult } from "@/lib/retest";
@@ -168,6 +168,9 @@ export async function POST(request: Request) {
     id: number;
     created_by: string;
     status: string;
+    feature_id: number;
+    tested_as_role: string;
+    test_cycle: string | null;
     evidence_path: string | null;
     confirmed_session_id: number | null;
   } | null = null;
@@ -180,10 +183,14 @@ export async function POST(request: Request) {
       id: number;
       created_by: string;
       status: string;
+      feature_id: number;
+      tested_as_role: string;
+      test_cycle: string | null;
       evidence_path: string | null;
       confirmed_session_id: number | null;
     }>(
-      `SELECT id, created_by, status, evidence_path, confirmed_session_id
+      `SELECT id, created_by, status, feature_id, tested_as_role, test_cycle,
+              evidence_path, confirmed_session_id
          FROM ai_test_runs WHERE id=$1`,
       [aiRunId],
     );
@@ -193,6 +200,16 @@ export async function POST(request: Request) {
     }
     if (aiRun.status !== "completed" || aiRun.confirmed_session_id !== null) {
       return err("Hasil AI ini sudah dikonfirmasi atau belum selesai.", 422);
+    }
+    if (
+      Number(aiRun.feature_id) !== featureId ||
+      aiRun.tested_as_role !== role ||
+      (aiRun.test_cycle ?? null) !== cycle
+    ) {
+      return err(
+        "Hasil AI ini berasal dari fitur, peran, atau siklus yang berbeda.",
+        422,
+      );
     }
   }
 
@@ -217,7 +234,7 @@ export async function POST(request: Request) {
   const last = await queryOne<{ result: TestResult }>(
     `SELECT result FROM test_sessions
       WHERE feature_id=$1 AND tested_as_role=$2
-        AND ($3::text IS NULL OR test_cycle IS NOT DISTINCT FROM $3)
+        AND test_cycle IS NOT DISTINCT FROM $3
       ORDER BY tested_at DESC, id DESC LIMIT 1`,
     [featureId, role, cycle],
   );
@@ -242,27 +259,75 @@ export async function POST(request: Request) {
     );
   }
 
-  let saved: { sessionId: number; defectId: number | null } = {
+  let saved: { sessionId: number; defectId: number | null; deduped?: boolean } = {
     sessionId: 0,
     defectId: null,
   };
 
   try {
     saved = await withTransaction(async (client) => {
-      let approvalId: number | null = null;
-      if (needsApproval) {
-        const locked = await client.query<{ id: number }>(
-          `SELECT id FROM retest_approvals
-            WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND test_cycle IS NOT DISTINCT FROM $4 AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
-            ORDER BY id DESC LIMIT 1 FOR UPDATE`,
-          [featureId, user.id, role, cycle],
+      // Kunci scope agar dua submit bersamaan tidak sama-sama lolos cek last.
+      await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
+        `test:${featureId}:${role}:${cycle ?? ""}`,
+      ]);
+
+      if (idempotencyKey) {
+        const winner = await client.query<{
+          id: number;
+          defect_id: number | null;
+        }>(
+          `SELECT s.id, (SELECT d.id FROM defects d WHERE d.session_id=s.id ORDER BY d.id LIMIT 1) AS defect_id
+             FROM test_sessions s
+            WHERE s.idempotency_key=$1 AND s.user_id=$2
+            LIMIT 1`,
+          [idempotencyKey, user.id],
         );
-        if (locked.rows.length === 0) {
-          throw new Error(
+        if (winner.rows.length > 0) {
+          return {
+            sessionId: Number(winner.rows[0].id),
+            defectId:
+              winner.rows[0].defect_id !== null
+                ? Number(winner.rows[0].defect_id)
+                : null,
+            deduped: true,
+          };
+        }
+      }
+
+      const lastLocked = await client.query<{ result: TestResult }>(
+        `SELECT result FROM test_sessions
+          WHERE feature_id=$1 AND tested_as_role=$2
+            AND test_cycle IS NOT DISTINCT FROM $3
+          ORDER BY tested_at DESC, id DESC LIMIT 1`,
+        [featureId, role, cycle],
+      );
+      const approvalLocked = await client.query<{ id: number }>(
+        `SELECT id FROM retest_approvals
+          WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3
+            AND test_cycle IS NOT DISTINCT FROM $4
+            AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
+          ORDER BY id DESC LIMIT 1 FOR UPDATE`,
+        [featureId, user.id, role, cycle],
+      );
+      const checkLocked = canTest(
+        lastLocked.rows[0]?.result ?? null,
+        isRetest,
+        approvalLocked.rows.length > 0,
+      );
+      if (!checkLocked.allowed) {
+        throw new UserError(
+          checkLocked.warning ?? "Pengujian tidak diizinkan.",
+        );
+      }
+
+      let approvalId: number | null = null;
+      if (isRetest && lastLocked.rows[0]?.result === "pass") {
+        if (approvalLocked.rows.length === 0) {
+          throw new UserError(
             "Pengujian ulang memerlukan persetujuan ketua tim yang masih berlaku.",
           );
         }
-        approvalId = locked.rows[0].id;
+        approvalId = approvalLocked.rows[0].id;
         await client.query(`UPDATE retest_approvals SET used_at=now() WHERE id=$1`, [
           approvalId,
         ]);
@@ -293,7 +358,7 @@ export async function POST(request: Request) {
           [sessionId, aiRun.id],
         );
         if (confirmed.rows.length === 0) {
-          throw new Error("Hasil AI ini sudah dikonfirmasi pengguna lain.");
+          throw new UserError("Hasil AI ini sudah dikonfirmasi pengguna lain.");
         }
       }
 
@@ -330,7 +395,25 @@ export async function POST(request: Request) {
         );
       }
     }
-    return err(e instanceof Error ? e.message : "Gagal menyimpan.", 422);
+    if (e instanceof UserError) return err(e.message, e.status);
+    console.error("test-sessions POST gagal", e);
+    return err(
+      "Gagal menyimpan pengujian. Coba lagi atau hubungi administrator.",
+      500,
+    );
+  }
+
+  if (saved.deduped) {
+    return NextResponse.json(
+      {
+        ok: true,
+        sessionId: saved.sessionId,
+        defectId: saved.defectId,
+        deduped: true,
+        warning: null,
+      },
+      { status: 200 },
+    );
   }
 
   const recent = await query<{ n: string }>(
@@ -347,7 +430,7 @@ export async function POST(request: Request) {
       defectId: saved.defectId,
       warning:
         recent[0].n !== "0"
-          ? "Perhatian: fitur ini baru saja diuji oleh tester lain dalam 24 jam terakhir."
+          ? "Perhatian: fitur ini baru saja diuji oleh tester lain sejak kemarin."
           : null,
     },
     { status: 201 },

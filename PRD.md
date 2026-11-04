@@ -134,10 +134,12 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 ### F14 — Keamanan Upload (diperbarui)
 - Produksi **wajib** `BLOB_READ_WRITE_TOKEN`; tanpa itu unggah ditolak dengan pesan jelas (tidak jatuh ke disk ephemeral).
 - Validasi isi file lewat magic bytes (PNG/JPEG/WebP/GIF); ekstensi ditentukan server, bukan nama file.
-- Route bukti mengirim `X-Content-Type-Options: nosniff` dan `Content-Disposition: inline`.
+- Route bukti mengirim `X-Content-Type-Options: nosniff`, `Content-Disposition: inline`, dan `Cache-Control: private, no-store`; akses wajib login.
+- Bila store Vercel Blob mendukung, bukti disimpan privat dan disajikan lewat route proxy ber-auth; store publik memakai URL UUID sebagai fallback.
 
 ### F15 — Rate Limit & Sesi
 - Login dibatasi per email (10 gagal/15 menit) **dan** per IP (30 gagal/15 menit), respons 429 + `Retry-After`.
+- Permintaan reset password dibatasi maksimal 3 token per email dalam 15 menit; respons tetap generik.
 - IP diambil dari `x-real-ip` (Vercel) lalu entri TERAKHIR `x-forwarded-for` (ditambahkan proxy tepercaya; entri awal bisa dipalsukan klien).
 - Tetap satu sesi aktif per akun (BR-10); reset password mencabut semua sesi.
 
@@ -171,6 +173,7 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 | BR-19 | Rate limit login: 10/15 menit per email, 30/15 menit per IP |
 | BR-20 | Kredensial login target per-run disimpan terenkripsi AES-256-GCM, tidak pernah dikirim ke model, dan dihapus saat hasil AI run dikirim |
 | BR-21 | Log runner disimpan per AI run (maks 100.000 karakter), dapat dibaca pembuat run/ketua, dan tidak memuat kredensial target |
+| BR-22 | Permohonan reset password maksimal 3 token per email dalam 15 menit; respons selalu generik |
 
 Aturan BR-1..BR-10 dari v2 tetap berlaku.
 

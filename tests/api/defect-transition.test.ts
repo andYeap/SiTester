@@ -55,4 +55,33 @@ describe("defect transition", () => {
     r = await patch(d1[0].id, "closed");
     expect(r.status).toBe(200);
   });
+
+  it("tester lain tidak boleh mengubah defect milik tester pertama", async () => {
+    const owner = await createUser(undefined, "tester");
+    const other = await createUser(undefined, "tester");
+    const ketua = await createUser(undefined, "ketua_tim");
+    const f = await query<{ id: number }>(
+      `INSERT INTO features (name, is_active, verified) VALUES ('F-owner',true,true) RETURNING id`,
+    );
+    const d = await query<{ id: number }>(
+      `INSERT INTO defects (feature_id, title, status, created_by) VALUES ($1,'D-owner','open',$2) RETURNING id`,
+      [f[0].id, owner.id],
+    );
+
+    const notePatch = (note: string) =>
+      updateDefect(
+        new Request("http://test/x", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note }),
+        }),
+        { params: Promise.resolve({ id: String(d[0].id) }) },
+      );
+
+    await loginAs(other.email);
+    expect((await notePatch("diubah tester lain")).status).toBe(403);
+
+    await loginAs(ketua.email);
+    expect((await notePatch("diubah ketua")).status).toBe(200);
+  });
 });

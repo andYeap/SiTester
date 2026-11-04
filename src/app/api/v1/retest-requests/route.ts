@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       const last = await client.query<{ result: string }>(
         `SELECT result FROM test_sessions
           WHERE feature_id=$1 AND tested_as_role=$2
-            AND ($3::text IS NULL OR test_cycle IS NOT DISTINCT FROM $3)
+            AND test_cycle IS NOT DISTINCT FROM $3
           ORDER BY tested_at DESC, id DESC LIMIT 1`,
         [featureId, role, cycle],
       );

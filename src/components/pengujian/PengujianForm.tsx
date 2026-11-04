@@ -141,6 +141,7 @@ export default function PengujianForm({
   const [notes, setNotes] = useState(initialAiRun?.notes ?? "");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [retestReason, setRetestReason] = useState("");
 
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [check, setCheck] = useState<Check | null>(null);
@@ -155,6 +156,7 @@ export default function PengujianForm({
 
   const [draftAvailable, setDraftAvailable] = useState(false);
   const mounted = useRef(false);
+  const skipDraftSave = useRef(false);
   const router = useRouter();
   const draftKey = useMemo(() => draftKeyFor(userId), [userId]);
   // Satu kunci per upaya simpan: retry/network memakai kunci sama, sukses me-reset.
@@ -262,6 +264,10 @@ export default function PengujianForm({
   // Simpan draft otomatis setelah mount.
   useEffect(() => {
     if (!mounted.current) return;
+    if (skipDraftSave.current) {
+      skipDraftSave.current = false;
+      return;
+    }
     const draft: Draft = {
       testedAt, isRetest, featureId, role, cycle, testCaseId, result, severity,
       environment, expected, actual, notes, evidenceUrl,
@@ -296,6 +302,7 @@ export default function PengujianForm({
     setActual("");
     setNotes("");
     setEvidenceUrl("");
+    setRetestReason("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftKey]);
 
@@ -403,6 +410,7 @@ export default function PengujianForm({
         router.refresh();
         return;
       }
+      skipDraftSave.current = true;
       setResult("");
       setSeverity("");
       setNotes("");
@@ -511,7 +519,7 @@ export default function PengujianForm({
   async function requestRetest(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const reason = "";
+    const reason = retestReason.trim();
     try {
       const res = await fetch("/api/v1/retest-requests", {
         method: "POST",
@@ -529,6 +537,7 @@ export default function PengujianForm({
         return;
       }
       setOk("Permohonan pengujian ulang telah dikirim. Menunggu persetujuan ketua tim.");
+      setRetestReason("");
       checkNow();
     } catch {
       setError("Tidak dapat menghubungi server.");
@@ -808,6 +817,10 @@ export default function PengujianForm({
         <form onSubmit={requestRetest} className="card-pad space-y-4 border-2 border-neutral-950">
           <h3 className="font-semibold text-neutral-950">Ajukan Permohonan Pengujian Ulang</h3>
           <p className="text-sm text-neutral-700">Hasil terakhir untuk kombinasi ini sudah Pass. Permohonan akan dikirim ke ketua tim untuk disetujui sebelum Anda bisa menguji ulang.</p>
+          <div>
+            <label className="label" htmlFor="retest-reason">Alasan <span className="font-normal text-neutral-400">(opsional)</span></label>
+            <textarea id="retest-reason" value={retestReason} onChange={(e) => setRetestReason(e.target.value)} rows={3} maxLength={1000} className="input" />
+          </div>
           <button className="btn-dark">Kirim Permohonan</button>
         </form>
       )}
