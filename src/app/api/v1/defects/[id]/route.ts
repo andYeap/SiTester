@@ -8,9 +8,9 @@ import { parsePositiveInt } from "@/lib/validation";
 const STATUSES = ["open", "fixed", "verified", "closed", "reopened"];
 
 const TRANSITIONS: Record<string, string[]> = {
-  open: ["fixed", "closed", "reopened"],
-  reopened: ["fixed", "closed"],
-  fixed: ["verified", "reopened", "closed"],
+  open: ["fixed"],
+  reopened: ["fixed"],
+  fixed: ["verified", "reopened"],
   verified: ["closed", "reopened"],
   closed: ["reopened"],
 };

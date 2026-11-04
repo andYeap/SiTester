@@ -21,6 +21,16 @@ type Defect = {
 
 const STATUSES = ["open", "reopened", "fixed", "verified", "closed"];
 
+const TRANSITIONS: Record<string, string[]> = {
+  open: ["fixed"],
+  reopened: ["fixed"],
+  fixed: ["verified", "reopened"],
+  verified: ["closed", "reopened"],
+  closed: ["reopened"],
+};
+
+const allowedNext = (s: string) => TRANSITIONS[s] ?? [];
+
 export default function DefectView({ isKetua }: { isKetua: boolean }) {
   const [defects, setDefects] = useState<Defect[]>([]);
   const [status, setStatus] = useState("");
@@ -164,11 +174,19 @@ export default function DefectView({ isKetua }: { isKetua: boolean }) {
                           }}
                           className="input mt-0 w-auto text-xs"
                         >
-                          {STATUSES.map((s) => (
-                            <option key={s} value={s} disabled={s === "verified" && !isKetua}>
-                              {s}
-                            </option>
-                          ))}
+                          {STATUSES.map((s) => {
+                            const allowed = s === d.status || allowedNext(d.status).includes(s);
+                            return (
+                              <option
+                                key={s}
+                                value={s}
+                                disabled={!allowed || (s === "verified" && !isKetua)}
+                              >
+                                {s}
+                                {!allowed ? " (tidak diizinkan)" : ""}
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
                     </td>

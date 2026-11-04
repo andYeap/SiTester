@@ -123,7 +123,7 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 
 ### F12 — Siklus Hidup Defect (baru)
 - Hasil **Fail/Bug** otomatis membuat defect (`open`) yang terhubung ke sesi.
-- Status: `open → fixed → verified → closed`; juga `reopened`.
+- Status: `open → fixed → verified → closed`; `reopened` hanya dari `fixed`/`verified`/`closed` (tidak dari `open`), dan `closed` hanya dari `verified`.
 - Field: judul, severity, assignee (teks), referensi fix, catatan verifikasi, verified_by/at.
 - Halaman `/defect` (semua role) dengan filter status/severity/fitur; ketua/tester dapat memperbarui status (audit).
 - Defect terbuka tampil di detail fitur dan Tugas Saya.
@@ -146,6 +146,7 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 - Saat run dibuat, server memicu `repository_dispatch` GitHub (`ai-run`) bila `GITHUB_DISPATCH_TOKEN` tersedia; tanpa token, schedule/manual menjadi fallback.
 - Runner menjalankan e2e TesterArmy (Chromium + model gratis OpenRouter/Google Gemini), mengambil screenshot, lalu `POST /api/v1/ai-runs/{id}/result`.
 - Hasil adalah **draft**: user klik `Konfirmasi` → `/pengujian-baru?ai_run=...` (form terisi hasil, severity, catatan, bukti) → submit memakai aturan retest/approval yang sama dan menandai run `confirmed`.
+- Setiap run menyimpan `runner_log` (stdout/stderr, error model, report e2e, maks 100.000 karakter); user dapat membuka **Log** di `/ai-test` untuk audit kegagalan login/selector. Log tidak memuat kredensial target.
 - Target publik/localhost/internal diperbolehkan karena browser berjalan di runner, bukan Vercel.
 - Kredensial login target **per-run** disimpan terenkripsi AES-256-GCM di `ai_test_runs.login_credentials_enc`, hanya dikirim ke runner saat run diklaim, tidak masuk prompt/model, dan dihapus saat hasil dikirim. Fallback `AI_TARGET_EMAIL/PASSWORD` hanya dipakai jika run meminta login tanpa kredensial per-run.
 - Login deterministik memakai label field (`login_email_label`, `login_password_label`, `login_submit_label`); jika label tidak lengkap, agent AI menjalankan `login_goal`.
@@ -168,6 +169,7 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 | BR-18 | Bukti upload divalidasi magic bytes; produksi tanpa Blob = tolak |
 | BR-19 | Rate limit login: 10/15 menit per email, 30/15 menit per IP |
 | BR-20 | Kredensial login target per-run disimpan terenkripsi AES-256-GCM, tidak pernah dikirim ke model, dan dihapus saat hasil AI run dikirim |
+| BR-21 | Log runner disimpan per AI run (maks 100.000 karakter), dapat dibaca pembuat run/ketua, dan tidak memuat kredensial target |
 
 Aturan BR-1..BR-10 dari v2 tetap berlaku.
 
