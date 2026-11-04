@@ -55,6 +55,7 @@ export default async function PengujianBaruPage({
 
   return (
     <PengujianForm
+      userId={user.id}
       initialFeatures={features}
       initialRoles={roles.length > 0 ? roles : [{ name: "tester", label: "Tester" }]}
       initialCycles={cycles}

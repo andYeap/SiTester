@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { todayString } from "@/lib/time";
+import { draftKeyFor } from "@/lib/draft";
 import FeatureCombobox from "./FeatureCombobox";
 
 type Feature = { id: number; name: string; project_name: string | null; description: string | null };
@@ -62,8 +63,6 @@ type AiRunInitial = {
   evidencePath: string | null;
 };
 
-const DRAFT_KEY = "sitester:draft-v3";
-
 const RESULTS = [
   { value: "pass", label: "Pass" },
   { value: "fail", label: "Fail" },
@@ -87,6 +86,7 @@ export default function PengujianForm({
   initialFeatureId,
   initialCycle,
   initialAiRun,
+  userId,
 }: {
   initialFeatures: Feature[];
   initialRoles: Role[];
@@ -95,6 +95,7 @@ export default function PengujianForm({
   initialFeatureId?: string;
   initialCycle?: string;
   initialAiRun?: AiRunInitial;
+  userId?: string;
 }) {
   const [features] = useState<Feature[]>(initialFeatures);
   const [roles] = useState<Role[]>(initialRoles);
@@ -149,6 +150,7 @@ export default function PengujianForm({
   const [draftAvailable, setDraftAvailable] = useState(false);
   const mounted = useRef(false);
   const router = useRouter();
+  const draftKey = useMemo(() => draftKeyFor(userId), [userId]);
 
   const needsTriage = result === "fail" || result === "bug";
 
@@ -220,8 +222,15 @@ export default function PengujianForm({
       void runCheckWith(startFeature, false, startRole, startCycle);
       void loadTestCases(startFeature);
     }
-    const raw = localStorage.getItem(DRAFT_KEY);
+    const raw = localStorage.getItem(draftKey);
     if (raw) setDraftAvailable(true);
+    try {
+      if (localStorage.getItem("sitester:draft-v3") !== null && draftKey !== "sitester:draft-v3") {
+        localStorage.removeItem("sitester:draft-v3");
+      }
+    } catch {
+      /* abaikan */
+    }
     mounted.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -233,14 +242,42 @@ export default function PengujianForm({
       testedAt, isRetest, featureId, role, cycle, testCaseId, result, severity,
       environment, expected, actual, notes, evidenceUrl,
     };
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    localStorage.setItem(draftKey, JSON.stringify(draft));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    draftKey,
     testedAt, isRetest, featureId, role, cycle, testCaseId, result, severity,
     environment, expected, actual, notes, evidenceUrl,
   ]);
 
+  // Ganti pengguna: jangan bocorkan draft pengguna lama. Muat draft milik
+  // pengguna baru bila ada, sonst reset ke kosong.
+  useEffect(() => {
+    if (!mounted.current) return;
+    const raw = localStorage.getItem(draftKey);
+    if (raw) {
+      setDraftAvailable(true);
+      return;
+    }
+    setDraftAvailable(false);
+    setTestedAt(today());
+    setIsRetest(false);
+    setFeatureId(initialFeatureId ?? "");
+    setRole(initialRoles[0]?.name ?? "tester");
+    setCycle(initialCycle ?? "");
+    setTestCaseId("");
+    setResult("");
+    setSeverity("");
+    setEnvironment("");
+    setExpected("");
+    setActual("");
+    setNotes("");
+    setEvidenceUrl("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey]);
+
   function restoreDraft() {
-    const raw = localStorage.getItem(DRAFT_KEY);
+    const raw = localStorage.getItem(draftKey);
     if (!raw) return;
     try {
       const d = JSON.parse(raw) as Partial<Draft>;
@@ -264,12 +301,12 @@ export default function PengujianForm({
       }
       setDraftAvailable(false);
     } catch {
-      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(draftKey);
     }
   }
 
   function discardDraft() {
-    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(draftKey);
     setDraftAvailable(false);
   }
 
@@ -340,7 +377,7 @@ export default function PengujianForm({
       setEvidenceFile(null);
       setEvidenceUrl("");
       setTestCaseId("");
-      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(draftKey);
       checkNow();
     } catch {
       setError("Tidak dapat menghubungi server.");
@@ -423,7 +460,7 @@ export default function PengujianForm({
     setSaving(false);
     if (success > 0) {
       setOk(`${success} hasil tersimpan${failed.length ? `, ${failed.length} gagal` : ""}.`);
-      localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem(draftKey);
       setDraftAvailable(false);
     }
   }
