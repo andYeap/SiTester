@@ -3,17 +3,11 @@ import { NextResponse } from "next/server";
 import { err, needKetua, needUser } from "@/lib/api";
 import { query, queryOne, withTransaction } from "@/lib/db";
 import { notifyRole } from "@/lib/notify";
+import { getPendingRetestRequests } from "@/lib/retest-requests";
 
 export async function GET() {
   if (!(await needKetua())) return err("Forbidden", 403);
-  const pending = await query(
-    `SELECT r.id, r.reason, r.created_at, r.tested_as_role, r.test_cycle,
-            f.name AS feature_name, u.name AS user_name
-       FROM retest_requests r
-       JOIN features f ON f.id = r.feature_id
-       JOIN users u ON u.id = r.user_id
-      WHERE r.status='pending' AND r.expires_at > now() ORDER BY r.created_at DESC`,
-  );
+  const pending = await getPendingRetestRequests();
   const reviewed = await query(
     `SELECT r.id, r.status, r.reason, r.rejection_reason, r.reviewed_at, r.tested_as_role, r.test_cycle,
             f.name AS feature_name, u.name AS user_name, rv.name AS reviewer_name
