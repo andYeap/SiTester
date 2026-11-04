@@ -39,6 +39,22 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lensa
+          POSTGRES_PASSWORD: lensa
+          POSTGRES_DB: postgres
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U lensa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      E2E_DATABASE_URL: postgres://lensa:lensa@127.0.0.1:55432/testlab_e2e
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -28,6 +28,13 @@ const pool = new Pool({
 
 const passwordHash = await hashPassword("password");
 
+// Proyek seed harus ada dulu: migrasi 0003 menegakkan FK
+// features.project_name -> projects(name).
+await pool.query(
+  `INSERT INTO projects (name, is_active) VALUES ('Proyek Utama', true)
+   ON CONFLICT (name) DO NOTHING`,
+);
+
 await pool.query(
   `INSERT INTO users (name, email, password_hash, role) VALUES
      ('Ketua Tim','ketua@testlab.test',$1,'ketua_tim'),

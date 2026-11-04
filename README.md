@@ -237,7 +237,7 @@ docker run --rm -i --add-host=host.docker.internal:host-gateway \
 | `npm run build` / `npm start` | Build + production server |
 | `npm test` | Semua test: unit + API (butuh Postgres; default DB `testlab_test` lokal, override via `TEST_DATABASE_URL`) |
 | `npm run test:api` | Hanya test API |
-| `npm run test:e2e` | Playwright E2E (login/proteksi route) |
+| `npm run test:e2e` | Playwright E2E (login/proteksi route + regresi UI M4/M5/M8; DB terisolasi `testlab_e2e`, disiapkan otomatis) |
 | `npm run db:migrate` | Terapkan migrasi berversi (`db/migrations/*.sql`, tercatat di `schema_migrations`) |
 | `npm run db:seed` | Data demo (idempoten) |
 | `npm run db:cleanup` | Hapus token/permohonan/login_attempts kedaluwarsa |
