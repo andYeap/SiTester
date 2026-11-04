@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { createSession, verifyCredentials } from "@/lib/auth";
+import { clientIp } from "@/lib/audit";
 import { query, queryOne } from "@/lib/db";
 
 const MAX_FAILS = 10;
 const MAX_IP_FAILS = 30;
 const WINDOW_MINUTES = 15;
-
-function clientIp(request: Request): string | null {
-  const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim().slice(0, 45) || null;
-  return null;
-}
 
 async function failuresSince(email: string): Promise<number> {
   const row = await queryOne<{ n: string }>(

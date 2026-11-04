@@ -137,7 +137,8 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 - Route bukti mengirim `X-Content-Type-Options: nosniff` dan `Content-Disposition: inline`.
 
 ### F15 — Rate Limit & Sesi
-- Login dibatasi per email **dan** per IP (30 gagal/15 menit), respons 429 + `Retry-After`.
+- Login dibatasi per email (10 gagal/15 menit) **dan** per IP (30 gagal/15 menit), respons 429 + `Retry-After`.
+- IP diambil dari `x-real-ip` (Vercel) lalu entri TERAKHIR `x-forwarded-for` (ditambahkan proxy tepercaya; entri awal bisa dipalsukan klien).
 - Tetap satu sesi aktif per akun (BR-10); reset password mencabut semua sesi.
 
 ### F16 — AI Test Run
