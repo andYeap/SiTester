@@ -12,6 +12,7 @@
     "test": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://lensa:lensa@127.0.0.1:55432/testlab_test} vitest run",
     "test:api": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://lensa:lensa@127.0.0.1:55432/testlab_test} vitest run tests/api",
     "db:cleanup": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/cleanup.mjs",
+    "load:smoke": "node scripts/load-smoke.mjs",
     "test:e2e": "playwright test",
     "preview": "npm run build && next start",
     "test:e2e:ai": "E2E_TELEMETRY_DISABLED=1 NODE_ENV=development e2e run",

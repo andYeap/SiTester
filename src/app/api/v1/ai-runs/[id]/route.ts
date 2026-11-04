@@ -46,11 +46,11 @@ export async function GET(
   );
 
   if (!row) return err("AI run tidak ditemukan.", 404);
-  if (row.created_by !== user.id && user.role !== "ketua_tim") {
+  const { created_by: owner, ...run } = row;
+  if (owner !== user.id && user.role !== "ketua_tim") {
     return err("AI run tidak ditemukan.", 404);
   }
 
-  const { created_by, ...run } = row;
   return NextResponse.json({
     run: { ...run, id: Number(run.id) },
   });

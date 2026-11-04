@@ -193,8 +193,11 @@ AI_TARGET_PASSWORD=...
 - **Wajib di Vercel**: Project → Settings → Environment Variables →
   `AI_RUNNER_TOKEN` (Production/Preview/Development), lalu redeploy. Tanpa ini
   endpoint AI mengembalikan 401 dan workflow runner dilewati dengan peringatan.
-- Target boleh publik atau localhost/internal — karena browser berjalan di
-  mesin runner, bukan Vercel.
+- **Isolasi egress runner**: browser runner menolak endpoint metadata cloud
+  (`169.254.169.254`, dsb.) dan IP/host privat sebelum memakai model — run yang
+  diblokir dicatat `error` tanpa biaya model. Set
+  `AI_RUNNER_ALLOW_PRIVATE_TARGETS=1` pada runner yang memang menguji target
+  internal (localhost/intranet).
 - **Keamanan**: agent dapat dipengaruhi konten website target (prompt
   injection). Gunakan akun tester khusus dengan hak minimal; jangan pakai akun
   admin produksi. Jangan menguji situs yang tidak Anda miliki/izin.

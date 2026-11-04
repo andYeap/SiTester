@@ -61,6 +61,11 @@ export async function saveEvidence(file: File): Promise<string> {
       });
       return blob.pathname;
     } catch {
+      if (process.env.BLOB_REQUIRE_PRIVATE === "1") {
+        throw new Error(
+          "Blob privat tidak didukung store ini dan BLOB_REQUIRE_PRIVATE=1. Buat Blob store privat baru lalu ganti tokennya.",
+        );
+      }
       // shortcut: store Blob publik belum mendukung akses privat; URL UUID
       // tetap sulit ditebak. Upgrade ke store privat saat tersedia.
       console.warn(

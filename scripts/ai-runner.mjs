@@ -6,6 +6,8 @@ import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 
+import { checkRunnerTarget } from "./ai-target-guard.mjs";
+
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
 const API = (process.env.SITESTER_URL ?? "http://localhost:3000").replace(/\/$/, "");
@@ -313,6 +315,24 @@ async function processRun(run) {
   const dir = join(".ai-runner", `run-${run.id}`);
   await mkdir(join(dir, "tests"), { recursive: true });
   const login = buildLogin(run);
+
+  // Gerbang egress: tolak target metadata cloud / privat sebelum memakai model.
+  const allowPrivate = process.env.AI_RUNNER_ALLOW_PRIVATE_TARGETS === "1";
+  for (const target of [run.target_url, login.url]) {
+    if (!target) continue;
+    const gate = await checkRunnerTarget(target, { allowPrivate });
+    if (!gate.ok) {
+      await uploadResult(run.id, {
+        outcome: "error",
+        notes: `AI: ${run.goal}`,
+        error: gate.reason,
+        log: `[run ${run.id}] target diblokir sebelum eksekusi: ${gate.reason}\ntarget=${run.target_url}`,
+      }, null).catch(() => undefined);
+      console.log(`[run ${run.id}] ERROR dikirim (target diblokir)`);
+      await rm(dir, { recursive: true, force: true }).catch(() => undefined);
+      return;
+    }
+  }
 
   if (login.useLogin && !login.hasCredentials) {
     await uploadResult(run.id, {

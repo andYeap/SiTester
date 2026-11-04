@@ -10,6 +10,9 @@ export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
+  // Serial: satu akun dipakai bareng antar test; login paralel akan
+  // saling mencabut sesi (satu sesi aktif per akun).
+  workers: 1,
   globalSetup: "./tests/e2e/global-setup.ts",
   use: {
     baseURL: "http://127.0.0.1:3100",

@@ -116,3 +116,11 @@ npm run build
 - [x] **A5 — Heartbeat runner** — `POST /api/v1/ai-runs/[id]/heartbeat` tiap 5 menit; reclaim 15 menit hanya untuk runner mati.
 - [x] **A6 — Token per-runner** — `AI_RUNNER_TOKENS` (koma) diterima `src/lib/runner-auth.ts`.
 - [x] **A7 — Kuota MAX_PENDING anti-balapan** — `pg_advisory_xact_lock` per user di `POST /api/v1/ai-runs` + tes konkuren.
+
+## Menuju A (2026-11-04)
+
+- [x] **Isolasi egress runner** — `scripts/ai-target-guard.mjs`: metadata cloud selalu diblokir, IP privat butuh `AI_RUNNER_ALLOW_PRIVATE_TARGETS=1`; run terblokir = `error` tanpa biaya model + tes.
+- [x] **Blob privat ketat** — `BLOB_REQUIRE_PRIVATE=1` menolak fallback URL publik.
+- [x] **E2E defect + import** — `tests/e2e/flows.spec.ts`: fail → defect OPEN → fixed ketua; CSV pratinjau → commit.
+- [x] **Smoke beban** — `scripts/load-smoke.mjs` (`npm run load:smoke`): 100 req/10 konkuren, p95 + 0-error gate.
+- [x] **Nol warning lint** — rapikan destruktur `created_by` di `GET /api/v1/ai-runs/[id]`.
