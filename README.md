@@ -126,6 +126,17 @@ berlaku).
 - Kunci enkripsi memakai `AI_CREDENTIALS_KEY` bila ada; jika tidak, diturunkan
   dari `AI_RUNNER_TOKEN`. Tidak perlu env baru agar tetap mudah.
 
+**Trigger otomatis (opsional, disarankan)**
+- Buat **fine-grained GitHub PAT** khusus repo `SiTester` dengan permission
+  **Contents: Read and write** (dibutuhkan untuk `repository_dispatch`).
+- Set di Vercel: `GITHUB_DISPATCH_TOKEN=<PAT>` (Production/Preview/Development),
+  opsional `GITHUB_REPO=andYeap/SiTester`; lalu redeploy.
+- Setiap `POST /api/v1/ai-runs` akan memicu workflow `repository_dispatch`
+  (`ai-run`) sehingga runner mulai tanpa menunggu cron.
+- Tanpa token, run tetap masuk antrean dan diambil oleh schedule/manual.
+- GitHub-hosted runner tetap punya cold start ±30–90 detik; browser Chromium
+  di-cache agar instalasi berikutnya lebih cepat.
+
 **Mengapa runner terpisah?** Vercel Functions tidak cocok menjalankan
 Chromium penuh (ukuran/timeout). Vercel hanya menyimpan antrean dan hasil.
 
@@ -133,6 +144,8 @@ Chromium penuh (ukuran/timeout). Vercel hanya menyimpan antrean dan hasil.
 ```env
 # .env.local (lokal) dan Vercel (endpoint antrean)
 AI_RUNNER_TOKEN=<string acak >= 20 karakter>
+GITHUB_DISPATCH_TOKEN=<fine-grained PAT, Contents: Read and write>
+GITHUB_REPO=andYeap/SiTester   # opsional
 
 # .env.local runner / GitHub Secrets (jangan di Vercel)
 E2E_PROVIDER=openrouter          # atau google

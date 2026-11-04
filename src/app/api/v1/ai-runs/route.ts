@@ -5,6 +5,7 @@ import {
   credentialsConfigured,
   encryptCredentials,
 } from "@/lib/ai-credentials";
+import { dispatchAiRunner } from "@/lib/ai-runner-dispatch";
 import { query, queryOne } from "@/lib/db";
 
 const MAX_PENDING = 3;
@@ -234,5 +235,8 @@ export async function POST(request: Request) {
     ],
   );
 
-  return NextResponse.json({ ok: true, id: Number(inserted?.id) }, { status: 201 });
+  const runId = Number(inserted?.id);
+  await dispatchAiRunner(runId);
+
+  return NextResponse.json({ ok: true, id: runId }, { status: 201 });
 }

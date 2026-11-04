@@ -1,6 +1,8 @@
 name: AI runner
 
 on:
+  repository_dispatch:
+    types: [ai-run]
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
@@ -9,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ai-runner
+  group: ai-runner-${{ github.event.client_payload.run_id || github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -38,6 +40,12 @@ jobs:
           cache: npm
       - run: npm ci
         if: steps.preflight.outputs.skip != 'true'
+      - name: Cache Playwright browsers
+        if: steps.preflight.outputs.skip != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install e2e web browser
         if: steps.preflight.outputs.skip != 'true'
         run: npx e2e-web install chromium --with-deps
