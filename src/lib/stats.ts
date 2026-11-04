@@ -123,7 +123,8 @@ export async function getDashboardStats(
       ...f.vals,
     ),
     queryOne<{ n: string }>(
-      `SELECT count(*)::text AS n FROM retest_requests WHERE status='pending'`,
+      `SELECT count(*)::text AS n FROM retest_requests
+        WHERE status='pending' AND expires_at > now()`,
     ),
   ]);
 

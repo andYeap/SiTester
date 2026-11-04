@@ -38,4 +38,15 @@ describe("upload butuh login", () => {
     expect(ok.headers.get("cache-control")).toContain("private");
     expect(ok.headers.get("cache-control")).toContain("no-store");
   });
+
+  it("menolak path traversal", async () => {
+    const tester = await createUser(undefined, "tester");
+    await loginAs(tester.email);
+    const res = await GET(new Request("http://test/x"), {
+      params: Promise.resolve({
+        path: [...Array(12).fill(".."), "etc", "passwd"],
+      }),
+    });
+    expect(res.status).toBe(404);
+  });
 });

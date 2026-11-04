@@ -63,6 +63,9 @@ export async function saveEvidence(file: File): Promise<string> {
     } catch {
       // shortcut: store Blob publik belum mendukung akses privat; URL UUID
       // tetap sulit ditebak. Upgrade ke store privat saat tersedia.
+      console.warn(
+        "Blob privat tidak didukung store ini; bukti disimpan sebagai URL publik UUID.",
+      );
       const blob = await put(name, buffer, {
         access: "public",
         token,

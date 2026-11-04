@@ -68,8 +68,13 @@ export async function POST(
         evidencePath = await saveEvidence(evidence);
       } catch (e) {
         // Bukti bersifat best-effort: hasil tetap disimpan walau storage belum siap.
-        evidenceWarning =
-          e instanceof Error ? e.message : "Gagal menyimpan bukti.";
+        const message = e instanceof Error ? e.message : "";
+        evidenceWarning = message.startsWith("Bukti harus")
+          ? message
+          : "Gagal menyimpan bukti AI.";
+        if (!message.startsWith("Bukti harus")) {
+          console.error("saveEvidence AI gagal", e);
+        }
       }
     }
   }

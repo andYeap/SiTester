@@ -37,7 +37,12 @@ export async function GET(
   const { path } = await params;
   if (
     !path?.length ||
-    path.some((part) => !/^[A-Za-z0-9._-]+$/.test(part))
+    path.some(
+      (part) =>
+        part === "." ||
+        part === ".." ||
+        !/^[A-Za-z0-9._-]+$/.test(part),
+    )
   ) {
     return new Response("Not found", { status: 404 });
   }

@@ -221,9 +221,12 @@ export async function POST(request: Request) {
     try {
       evidencePath = await saveEvidence(evidence);
     } catch (e) {
+      const message = e instanceof Error ? e.message : "";
+      if (message.startsWith("Bukti harus")) return err(message, 422);
+      console.error("saveEvidence gagal", e);
       return err(
-        e instanceof Error ? e.message : "Gagal menyimpan bukti.",
-        422,
+        "Gagal menyimpan bukti. Coba lagi atau hubungi administrator.",
+        500,
       );
     }
   }

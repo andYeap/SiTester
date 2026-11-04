@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     String(form?.get("skip_invalid") ?? "") === "1" ||
     String(form?.get("skip_invalid") ?? "") === "true";
 
-  let result;
+  let result: Awaited<ReturnType<typeof parseAndValidate>>;
   try {
     result = await parseAndValidate(
       Buffer.from(await file.arrayBuffer()),
@@ -71,10 +71,8 @@ export async function POST(request: Request) {
       { sheet, headerRow, mapping },
     );
   } catch (e) {
-    return err(
-      e instanceof Error ? `Gagal membaca file: ${e.message}` : "Gagal membaca file.",
-      422,
-    );
+    console.error("import commit parse gagal", e);
+    return err("Gagal membaca file. Pastikan format Excel/CSV valid.", 422);
   }
 
   if (result.total === 0) return err("File tidak berisi baris data.", 422);

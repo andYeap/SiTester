@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     Number.isInteger(headerRowRaw) && headerRowRaw > 0 ? headerRowRaw : 1;
   const mapping = parseMapping(form?.get("mapping") ?? null);
 
-  let result;
+  let result: Awaited<ReturnType<typeof parseAndValidate>>;
   try {
     result = await parseAndValidate(
       Buffer.from(await file.arrayBuffer()),
@@ -53,10 +53,8 @@ export async function POST(request: Request) {
       { sheet, headerRow, mapping },
     );
   } catch (e) {
-    return err(
-      e instanceof Error ? `Gagal membaca file: ${e.message}` : "Gagal membaca file.",
-      422,
-    );
+    console.error("import errors parse gagal", e);
+    return err("Gagal membaca file. Pastikan format Excel/CSV valid.", 422);
   }
 
   if (result.headerErrors.length > 0) {

@@ -411,6 +411,7 @@ export default function PengujianForm({
         return;
       }
       skipDraftSave.current = true;
+      setFeatureId("");
       setResult("");
       setSeverity("");
       setNotes("");
@@ -419,7 +420,8 @@ export default function PengujianForm({
       setEvidenceFile(null);
       setEvidenceUrl("");
       setTestCaseId("");
-      checkNow();
+      setTestCases([]);
+      checkNow("");
     } catch {
       setError("Tidak dapat menghubungi server.");
     } finally {
