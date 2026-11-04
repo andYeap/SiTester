@@ -63,22 +63,22 @@ export async function GET(
 
   const approval = await queryOne<{ id: number }>(
     `SELECT id FROM retest_approvals
-      WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
+      WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND test_cycle IS NOT DISTINCT FROM $4 AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
       ORDER BY id DESC LIMIT 1`,
-    [feature.id, user.id, role],
+    [feature.id, user.id, role, cycle],
   );
 
   const check = canTest(last?.result ?? null, isRetest, approval !== null);
 
   const pending = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM retest_requests
-      WHERE feature_id=$1 AND tested_as_role=$2 AND status='pending' AND expires_at > now()`,
-    [feature.id, role],
+      WHERE feature_id=$1 AND tested_as_role=$2 AND test_cycle IS NOT DISTINCT FROM $3 AND status='pending' AND expires_at > now()`,
+    [feature.id, role, cycle],
   );
   const ownPending = await query<{ n: string }>(
     `SELECT count(*)::text AS n FROM retest_requests
-      WHERE feature_id=$1 AND user_id=$2 AND tested_as_role=$3 AND status='pending' AND expires_at > now()`,
-    [feature.id, user.id, role],
+      WHERE feature_id=$1 AND user_id=$2 AND tested_as_role=$3 AND test_cycle IS NOT DISTINCT FROM $4 AND status='pending' AND expires_at > now()`,
+    [feature.id, user.id, role, cycle],
   );
 
   const recent = await query<{ n: string }>(

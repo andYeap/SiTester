@@ -7,6 +7,7 @@ type Req = {
   reason: string | null;
   created_at?: string | null;
   tested_as_role: string;
+  test_cycle?: string | null;
   feature_name: string;
   user_name: string;
   status?: string;
@@ -88,7 +89,7 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
               <div className="space-y-1">
                 <div className="font-semibold text-neutral-900">{r.feature_name}</div>
                 <div className="text-sm text-neutral-600">
-                  Diminta oleh {r.user_name} · peran {r.tested_as_role} · {r.created_at ? new Date(r.created_at).toLocaleString("id-ID") : ""}
+                  Diminta oleh {r.user_name} · peran {r.tested_as_role}{r.test_cycle ? ` · siklus ${r.test_cycle}` : ""} · {r.created_at ? new Date(r.created_at).toLocaleString("id-ID") : ""}
                 </div>
                 {r.reason && <div className="text-sm text-neutral-600">Alasan: {r.reason}</div>}
               </div>
@@ -138,7 +139,7 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
             <div key={r.id} className="flex flex-col gap-2 p-5 text-sm md:flex-row md:items-center md:justify-between">
               <div>
                 <span className="font-semibold text-neutral-900">{r.feature_name}</span>
-                <span className="text-neutral-500"> · {r.user_name} · {r.tested_as_role}</span>
+                <span className="text-neutral-500"> · {r.user_name} · {r.tested_as_role}{r.test_cycle ? ` · ${r.test_cycle}` : ""}</span>
                 {r.rejection_reason && <div className="mt-1 text-neutral-500">Alasan ditolak: {r.rejection_reason}</div>}
               </div>
               <div className="flex items-center gap-3 text-xs">

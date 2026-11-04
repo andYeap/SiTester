@@ -439,6 +439,7 @@ export default function PengujianForm({
         body: JSON.stringify({
           feature_id: Number(featureId),
           tested_as_role: role,
+          test_cycle: cycle || null,
           reason: reason || null,
         }),
       });

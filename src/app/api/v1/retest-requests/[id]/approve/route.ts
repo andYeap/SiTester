@@ -30,10 +30,11 @@ export async function PATCH(
         user_id: string;
         feature_id: number;
         tested_as_role: string;
+        test_cycle: string | null;
         status: string;
         expires_at: string;
       }>(
-        `SELECT id, user_id, feature_id, tested_as_role, status, expires_at FROM retest_requests WHERE id=$1 FOR UPDATE`,
+        `SELECT id, user_id, feature_id, tested_as_role, test_cycle, status, expires_at FROM retest_requests WHERE id=$1 FOR UPDATE`,
         [requestId],
       );
       if (found.rows.length === 0) {
@@ -52,9 +53,9 @@ export async function PATCH(
         [ketua.id, req.id],
       );
       await client.query(
-        `INSERT INTO retest_approvals (feature_id, requested_by, approved_by, scope_role, expires_at, note)
-         VALUES ($1,$2,$3,$4, now() + make_interval(days => 7), $5)`,
-        [req.feature_id, req.user_id, ketua.id, req.tested_as_role, note],
+        `INSERT INTO retest_approvals (feature_id, requested_by, approved_by, scope_role, test_cycle, expires_at, note)
+         VALUES ($1,$2,$3,$4,$5, now() + make_interval(days => 7), $6)`,
+        [req.feature_id, req.user_id, ketua.id, req.tested_as_role, req.test_cycle, note],
       );
 
       await notifyUser(req.user_id, {

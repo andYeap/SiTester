@@ -7,7 +7,7 @@ import { notifyRole } from "@/lib/notify";
 export async function GET() {
   if (!(await needKetua())) return err("Forbidden", 403);
   const pending = await query(
-    `SELECT r.id, r.reason, r.created_at, r.tested_as_role,
+    `SELECT r.id, r.reason, r.created_at, r.tested_as_role, r.test_cycle,
             f.name AS feature_name, u.name AS user_name
        FROM retest_requests r
        JOIN features f ON f.id = r.feature_id
@@ -15,7 +15,7 @@ export async function GET() {
       WHERE r.status='pending' AND r.expires_at > now() ORDER BY r.created_at DESC`,
   );
   const reviewed = await query(
-    `SELECT r.id, r.status, r.reason, r.rejection_reason, r.reviewed_at, r.tested_as_role,
+    `SELECT r.id, r.status, r.reason, r.rejection_reason, r.reviewed_at, r.tested_as_role, r.test_cycle,
             f.name AS feature_name, u.name AS user_name, rv.name AS reviewer_name
        FROM retest_requests r
        JOIN features f ON f.id = r.feature_id
@@ -34,10 +34,12 @@ export async function POST(request: Request) {
     feature_id?: unknown;
     tested_as_role?: unknown;
     reason?: unknown;
+    test_cycle?: unknown;
   } | null;
 
   const featureId = Number(body?.feature_id);
   const role = typeof body?.tested_as_role === "string" ? body.tested_as_role : "tester";
+  const cycle = typeof body?.test_cycle === "string" && body.test_cycle.trim() !== "" ? body.test_cycle.trim() : null;
   const reason =
     typeof body?.reason === "string" && body.reason.trim() !== ""
       ? body.reason.trim().slice(0, 1000)
@@ -59,6 +61,14 @@ export async function POST(request: Request) {
   );
   if (!roleOk) return err("Peran pengujian tidak valid.", 422);
 
+  if (cycle) {
+    const cyc = await queryOne<{ name: string }>(
+      `SELECT name FROM test_cycles WHERE name=$1 AND is_active=true`,
+      [cycle],
+    );
+    if (!cyc) return err("Siklus tidak valid.", 422);
+  }
+
   let createdId: number;
   try {
     createdId = await withTransaction(async (client) => {
@@ -70,8 +80,9 @@ export async function POST(request: Request) {
       const last = await client.query<{ result: string }>(
         `SELECT result FROM test_sessions
           WHERE feature_id=$1 AND tested_as_role=$2
+            AND ($3::text IS NULL OR test_cycle IS NOT DISTINCT FROM $3)
           ORDER BY tested_at DESC, id DESC LIMIT 1`,
-        [featureId, role],
+        [featureId, role, cycle],
       );
       if (last.rows.length === 0 || last.rows[0].result !== "pass") {
         throw Object.assign(
@@ -85,9 +96,10 @@ export async function POST(request: Request) {
       const approval = await client.query<{ id: number }>(
         `SELECT id FROM retest_approvals
           WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3
+            AND test_cycle IS NOT DISTINCT FROM $4
             AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
           LIMIT 1`,
-        [featureId, user.id, role],
+        [featureId, user.id, role, cycle],
       );
       if (approval.rows.length > 0) {
         throw Object.assign(
@@ -98,8 +110,8 @@ export async function POST(request: Request) {
 
       const dupInside = await client.query<{ n: string }>(
         `SELECT count(*)::text AS n FROM retest_requests
-          WHERE feature_id=$1 AND tested_as_role=$2 AND status='pending' AND expires_at > now()`,
-        [featureId, role],
+          WHERE feature_id=$1 AND tested_as_role=$2 AND test_cycle IS NOT DISTINCT FROM $3 AND status='pending' AND expires_at > now()`,
+        [featureId, role, cycle],
       );
       if (dupInside.rows[0].n !== "0") {
         throw Object.assign(
@@ -111,9 +123,9 @@ export async function POST(request: Request) {
       }
 
       const inserted = await client.query<{ id: number }>(
-        `INSERT INTO retest_requests (user_id, feature_id, tested_as_role, reason, status)
-         VALUES ($1,$2,$3,$4,'pending') RETURNING id`,
-        [user.id, featureId, role, reason],
+        `INSERT INTO retest_requests (user_id, feature_id, tested_as_role, test_cycle, reason, status)
+         VALUES ($1,$2,$3,$4,$5,'pending') RETURNING id`,
+        [user.id, featureId, role, cycle, reason],
       );
       return Number(inserted.rows[0].id);
     });

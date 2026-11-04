@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS retest_requests (
   user_id          uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   feature_id       bigint NOT NULL REFERENCES features(id) ON DELETE CASCADE,
   tested_as_role   text NOT NULL DEFAULT 'tester' REFERENCES testing_roles(name) ON UPDATE CASCADE,
+  test_cycle       text REFERENCES test_cycles(name) ON UPDATE CASCADE,
   reason           text,
   status           text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
   reviewed_by      uuid REFERENCES users(id) ON DELETE SET NULL,
@@ -102,6 +103,7 @@ CREATE TABLE IF NOT EXISTS retest_requests (
   updated_at       timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS retest_requests_feature_role_status_idx ON retest_requests (feature_id, tested_as_role, status);
+CREATE INDEX IF NOT EXISTS retest_requests_feature_role_status_cycle_idx ON retest_requests (feature_id, tested_as_role, status, test_cycle);
 
 CREATE TABLE IF NOT EXISTS retest_approvals (
   id           bigserial PRIMARY KEY,
@@ -109,9 +111,11 @@ CREATE TABLE IF NOT EXISTS retest_approvals (
   requested_by uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   approved_by  uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   scope_role   text REFERENCES testing_roles(name) ON UPDATE CASCADE,
+  test_cycle   text REFERENCES test_cycles(name) ON UPDATE CASCADE,
   used_at      timestamptz,
   created_at   timestamptz NOT NULL DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS retest_approvals_feature_user_role_cycle_idx ON retest_approvals (feature_id, requested_by, scope_role, test_cycle);
 
 DO $$
 BEGIN

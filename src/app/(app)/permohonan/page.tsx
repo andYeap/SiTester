@@ -14,10 +14,11 @@ export default async function PermohonanPage() {
     reason: string | null;
     created_at: string;
     tested_as_role: string;
+    test_cycle: string | null;
     feature_name: string;
     user_name: string;
   }>(
-    `SELECT r.id, r.reason, r.created_at, r.tested_as_role,
+    `SELECT r.id, r.reason, r.created_at, r.tested_as_role, r.test_cycle,
             f.name AS feature_name, u.name AS user_name
        FROM retest_requests r
        JOIN features f ON f.id = r.feature_id
@@ -31,11 +32,12 @@ export default async function PermohonanPage() {
     rejection_reason: string | null;
     reviewed_at: string | null;
     tested_as_role: string;
+    test_cycle: string | null;
     feature_name: string;
     user_name: string;
     reviewer_name: string | null;
   }>(
-    `SELECT r.id, r.status, r.reason, r.rejection_reason, r.reviewed_at, r.tested_as_role,
+    `SELECT r.id, r.status, r.reason, r.rejection_reason, r.reviewed_at, r.tested_as_role, r.test_cycle,
             f.name AS feature_name, u.name AS user_name, rv.name AS reviewer_name
        FROM retest_requests r
        JOIN features f ON f.id = r.feature_id

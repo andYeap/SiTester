@@ -207,9 +207,9 @@ export async function POST(request: Request) {
 
   const approval = await queryOne<{ id: number }>(
     `SELECT id FROM retest_approvals
-      WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
+      WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND test_cycle IS NOT DISTINCT FROM $4 AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
       ORDER BY id DESC LIMIT 1`,
-    [featureId, user.id, role],
+    [featureId, user.id, role, cycle],
   );
 
   const check = canTest(last?.result ?? null, isRetest, approval !== null);
@@ -236,9 +236,9 @@ export async function POST(request: Request) {
       if (needsApproval) {
         const locked = await client.query<{ id: number }>(
           `SELECT id FROM retest_approvals
-            WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
+            WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND test_cycle IS NOT DISTINCT FROM $4 AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
             ORDER BY id DESC LIMIT 1 FOR UPDATE`,
-          [featureId, user.id, role],
+          [featureId, user.id, role, cycle],
         );
         if (locked.rows.length === 0) {
           throw new Error(
