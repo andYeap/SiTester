@@ -48,6 +48,11 @@ type QueueRow = {
   result: string;
   severity: string;
   notes: string;
+  testedAt: string;
+  isRetest: boolean;
+  role: string;
+  cycle: string;
+  environment: string;
 };
 
 type AiRunInitial = {
@@ -154,6 +159,13 @@ export default function PengujianForm({
   const draftKey = useMemo(() => draftKeyFor(userId), [userId]);
   // Satu kunci per upaya simpan: retry/network memakai kunci sama, sukses me-reset.
   const idemRef = useRef<string | null>(null);
+  // Edit setelah gagal = operasi baru: kunci lama dibuang agar retry
+  // tidak mengembalikan sesi lama dan menghilangkan editan diam-diam.
+  // (Double-click tanpa edit tetap memakai kunci yang sama.)
+  useEffect(() => {
+    if (!saving) idemRef.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [testedAt, featureId, isRetest, role, cycle, testCaseId, result, severity, environment, expected, actual, notes, evidenceUrl]);
   const nextIdemKey = () => {
     if (!idemRef.current) {
       idemRef.current =
@@ -333,17 +345,23 @@ export default function PengujianForm({
     result: string;
     severity: string;
     notes: string;
+    testedAt?: string;
+    isRetest?: boolean;
+    role?: string;
+    cycle?: string;
+    environment?: string;
   }) {
     const fd = new FormData();
-    fd.set("tested_at", testedAt);
+    fd.set("tested_at", row.testedAt ?? testedAt);
     fd.set("feature_id", row.featureId);
-    fd.set("is_retest", isRetest ? "1" : "0");
-    fd.set("tested_as_role", role);
-    if (cycle) fd.set("test_cycle", cycle);
+    fd.set("is_retest", (row.isRetest ?? isRetest) ? "1" : "0");
+    fd.set("tested_as_role", row.role ?? role);
+    const rowCycle = row.cycle ?? cycle;
+    if (rowCycle) fd.set("test_cycle", rowCycle);
     if (row.testCaseId) fd.set("test_case_id", row.testCaseId);
     fd.set("result", row.result);
     if (row.severity) fd.set("severity", row.severity);
-    if (environment) fd.set("environment", environment);
+    if (row.environment ?? environment) fd.set("environment", row.environment ?? environment);
     if (expected) fd.set("expected", expected);
     if (actual) fd.set("actual", actual);
     if (row.notes) fd.set("notes", row.notes);
@@ -378,6 +396,8 @@ export default function PengujianForm({
       setOk("Hasil pengujian berhasil disimpan.");
       idemRef.current = null;
       if (data.warning) setWarn(data.warning);
+      localStorage.removeItem(draftKey);
+      setDraftAvailable(false);
       if (initialAiRun) {
         router.push("/riwayat");
         router.refresh();
@@ -391,7 +411,6 @@ export default function PengujianForm({
       setEvidenceFile(null);
       setEvidenceUrl("");
       setTestCaseId("");
-      localStorage.removeItem(draftKey);
       checkNow();
     } catch {
       setError("Tidak dapat menghubungi server.");
@@ -435,6 +454,11 @@ export default function PengujianForm({
         result,
         severity,
         notes,
+        testedAt,
+        isRetest,
+        role,
+        cycle,
+        environment,
       },
     ]);
     setFeatureId("");
