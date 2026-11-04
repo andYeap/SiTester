@@ -243,7 +243,6 @@ export default function PengujianForm({
       environment, expected, actual, notes, evidenceUrl,
     };
     localStorage.setItem(draftKey, JSON.stringify(draft));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     draftKey,
     testedAt, isRetest, featureId, role, cycle, testCaseId, result, severity,
