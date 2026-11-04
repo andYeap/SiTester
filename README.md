@@ -167,6 +167,12 @@ Chromium penuh (ukuran/timeout). Vercel hanya menyimpan antrean dan hasil.
 ```env
 # .env.local (lokal) dan Vercel (endpoint antrean)
 AI_RUNNER_TOKEN=<string acak >= 20 karakter>
+# Wajib di produksi: kunci enkripsi kredensial login target (tanpa ini
+# pembuatan run berkredensial ditolak dengan 422)
+AI_CREDENTIALS_KEY=<string acak >= 20 karakter>
+# Set 1 bila bukti wajib privat (butuh Blob store privat; tanpa ini fallback
+# URL publik dipakai bila store tidak mendukung akses privat)
+BLOB_REQUIRE_PRIVATE=
 GITHUB_DISPATCH_TOKEN=<fine-grained PAT, Contents: Read and write>
 GITHUB_REPO=andYeap/SiTester   # opsional
 
@@ -175,6 +181,11 @@ E2E_PROVIDER=openrouter          # atau google
 OPENROUTER_API_KEY=...           # jika provider openrouter
 GOOGLE_GENERATIVE_AI_API_KEY=... # jika provider google
 E2E_MODEL=nvidia/nemotron-3.5-super-vl:free   # google: gemini-3.8-flash
+# Opsional: token tambahan per host runner, dipisah koma
+AI_RUNNER_TOKENS=
+# Set 1 pada runner yang memang menguji target internal; tanpa ini
+# metadata cloud dan IP/host privat diblokir sebelum memakai model
+AI_RUNNER_ALLOW_PRIVATE_TARGETS=
 
 # opsional, fallback kredensial login target untuk semua run
 # (dipakai hanya jika run mencentang "Perlu login" dan tidak mengisi kredensial)
@@ -188,11 +199,14 @@ AI_TARGET_PASSWORD=...
 - **VPS gratis 24 jam**: Oracle Cloud Always Free (ARM) cocok untuk
   `npm run ai-runner` sebagai service systemd. GitHub Actions lebih mudah
   tetapi tidak real-time.
-- Endpoint runner memakai `Authorization: Bearer AI_RUNNER_TOKEN`; token harus
-  sama di Vercel dan runner/GitHub.
+- Endpoint runner memakai `Authorization: Bearer` token runner; samakan
+  `AI_RUNNER_TOKEN` di Vercel dan runner/GitHub, atau beri tiap host token
+  sendiri via `AI_RUNNER_TOKENS`.
 - **Wajib di Vercel**: Project → Settings → Environment Variables →
-  `AI_RUNNER_TOKEN` (Production/Preview/Development), lalu redeploy. Tanpa ini
-  endpoint AI mengembalikan 401 dan workflow runner dilewati dengan peringatan.
+  `AI_RUNNER_TOKEN` + `AI_CREDENTIALS_KEY` (Production/Preview/Development),
+  lalu redeploy. Tanpa ini endpoint AI mengembalikan 401 dan workflow runner
+  dilewati dengan peringatan; tanpa kunci kredensial, pembuatan run berkredensial
+  ditolak.
 - **Isolasi egress runner**: browser runner menolak endpoint metadata cloud
   (`169.254.169.254`, dsb.) dan IP/host privat sebelum memakai model — run yang
   diblokir dicatat `error` tanpa biaya model. Set
@@ -257,7 +271,8 @@ docker run --rm -i --add-host=host.docker.internal:host-gateway \
 | `npm run build` / `npm start` | Build + production server |
 | `npm test` | Semua test: unit + API (butuh Postgres; default DB `testlab_test` lokal, override via `TEST_DATABASE_URL`) |
 | `npm run test:api` | Hanya test API |
-| `npm run test:e2e` | Playwright E2E (login/proteksi route + regresi UI M4/M5/M8; DB terisolasi `testlab_e2e`, disiapkan otomatis) |
+| `npm run test:e2e` | Playwright E2E (login/proteksi route, regresi UI M4/M5/M8, defect, import; DB terisolasi `testlab_e2e`, disiapkan otomatis, jalan serial) |
+| `npm run load:smoke` | Smoke beban: 100 req dashboard/10 konkuren, gate p95 + 0 error (butuh dev server + `LOAD_EMAIL`/`LOAD_PASSWORD`) |
 | `npm run db:migrate` | Terapkan migrasi berversi (`db/migrations/*.sql`, tercatat di `schema_migrations`) |
 | `npm run db:seed` | Data demo (idempoten) |
 | `npm run db:cleanup` | Hapus token/permohonan/login_attempts kedaluwarsa |

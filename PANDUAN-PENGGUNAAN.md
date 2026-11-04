@@ -2,7 +2,7 @@
 
 **Aplikasi:** SITester — Pencatatan Pengujian Tim  
 **URL produksi:** https://sitester-one.vercel.app  
-**Versi dokumen:** 1.0 · 4 November 2026  
+**Versi dokumen:** 1.1 · 4 November 2026
 **Untuk:** Tester dan Ketua Tim
 
 Dokumen ini menjelaskan cara memakai SITester sehari-hari: mencatat hasil uji,
@@ -272,13 +272,16 @@ melakukan **login deterministik** dengan locator. Cara ini lebih cepat dan
 stabil daripada menyerahkan login ke AI.
 
 Jika label dikosongkan, agent AI akan mencari field login sendiri. Cara ini
-lebih fleksibel tetapi lebih lambat dan bisa timeout.
+lebih fleksibel tetapi lebih lambat, bisa timeout, dan **password target akan
+dikirim ke provider model AI**. Isi ketiga label agar login deterministik
+tanpa melibatkan model.
 
 Keamanan kredensial:
 
-- password tidak pernah dikirim ke model AI,
 - kredensial disimpan terenkripsi di database,
-- kredensial dihapus setelah hasil run dikirim.
+- kredensial dihapus setelah hasil run dikirim,
+- nilai kredensial di log disamarkan (`[redacted]`) — tetapi jangan mengetik
+  password di kolom tujuan/instruksi.
 
 ### 6.3 Antrean dan status
 
@@ -317,7 +320,8 @@ Klik **Log** pada baris run. Log berisi:
 - output e2e dan error model,
 - report pengujian.
 
-Log tidak berisi password target. Tombol Log hanya muncul untuk run yang
+Log menyamarkan nilai kredensial (`[redacted]`), tetapi jangan mengetik
+password di kolom tujuan/instruksi. Tombol Log hanya muncul untuk run yang
 memiliki log; run lama sebelum fitur log aktif tidak memiliki log.
 
 Penyebab umum kegagalan AI:
@@ -337,7 +341,9 @@ Tanpa token, hasil tetap disimpan tetapi screenshot dilewati dan muncul catatan
 sistem.
 
 URL bukti saat ini bersifat publik dengan nama acak. Jangan mengunggah
-screenshot yang berisi data sensitif.
+screenshot yang berisi data sensitif. Minta administrator mengaktifkan mode
+privat (`BLOB_REQUIRE_PRIVATE=1` + Blob store privat) bila bukti tidak boleh
+diakses publik.
 
 ### 6.7 Batasan AI Test
 
@@ -348,6 +354,8 @@ screenshot yang berisi data sensitif.
 - Gunakan akun tester khusus dengan hak minimal; jangan memakai akun admin
   produksi.
 - Jangan menguji situs yang bukan milik/tidak Anda punya izin.
+- Target internal (localhost/intranet) hanya bisa diuji runner yang
+  mengizinkannya; metadata cloud selalu ditolak.
 
 ---
 
@@ -453,6 +461,7 @@ master, approval, import, dan perubahan data sensitif lainnya.
 | Import gagal | File >2MB, >5.000 baris, atau baris invalid | Pecah file, perbaiki error CSV |
 | AI Test lama `queued` | Runner tidak aktif / dispatch token belum diset | Cek Log/Actions; operator jalankan workflow |
 | AI Test FAIL `high demand` | Model gratis sedang sibuk | Ulangi atau ganti model |
+| AI Test langsung `error` target diblokir | Target metadata cloud/IP privat | Untuk target internal, operator set `AI_RUNNER_ALLOW_PRIVATE_TARGETS=1` di runner |
 | AI Test timeout | Tujuan terlalu kompleks / model lambat | Sederhanakan goal, pakai login deterministik |
 | Tombol Log tidak ada | Run lama sebelum fitur log / log kosong | Gunakan log GitHub Actions untuk run lama |
 | Screenshot tidak muncul | Blob belum dikonfigurasi | Set `BLOB_READ_WRITE_TOKEN`, redeploy |

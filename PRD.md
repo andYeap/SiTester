@@ -1,7 +1,7 @@
 # PRD: SITester (Sistem Pengujian Tim Tester) — v3
 
 **Versi:** 3.0 · **Tanggal:** 2 November 2026 · **Stack:** Next.js 16 + Postgres + Vercel
-**Status:** Terimplementasi & terverifikasi (`75 tests` API/unit, E2E 3 lulus, build hijau) · **Supersedes:** PRD v2.0
+**Status:** Terimplementasi & terverifikasi (`113 tests` API/unit, E2E 7 lulus, build hijau) · **Supersedes:** PRD v2.0
 
 **Riwayat perubahan:**
 - v2.0: Form pengujian, retest per (fitur, peran, siklus), approval, dashboard, riwayat, ekspor CSV/PDF, master fitur/peran/proyek/siklus/pengguna, audit, multi-sesi login, rate limit.
@@ -135,7 +135,7 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 - Produksi **wajib** `BLOB_READ_WRITE_TOKEN`; tanpa itu unggah ditolak dengan pesan jelas (tidak jatuh ke disk ephemeral).
 - Validasi isi file lewat magic bytes (PNG/JPEG/WebP/GIF); ekstensi ditentukan server, bukan nama file.
 - Route bukti mengirim `X-Content-Type-Options: nosniff`, `Content-Disposition: inline`, dan `Cache-Control: private, no-store`; akses wajib login.
-- Bila store Vercel Blob mendukung, bukti disimpan privat dan disajikan lewat route proxy ber-auth; store publik memakai URL UUID sebagai fallback.
+- Bila store Vercel Blob mendukung, bukti disimpan privat dan disajikan lewat route proxy ber-auth; store publik memakai URL UUID sebagai fallback. Set `BLOB_REQUIRE_PRIVATE=1` untuk menolak fallback publik (wajib Blob store privat).
 
 ### F15 — Rate Limit & Sesi
 - Login dibatasi per email (10 gagal/15 menit) **dan** per IP (30 gagal/15 menit), respons 429 + `Retry-After`.
@@ -145,7 +145,7 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 
 ### F16 — AI Test Run
 - Halaman `/ai-test`: URL target (http/https), tujuan natural language, kriteria berhasil, fitur/peran/siklus, serta opsi **login target per-run** (URL login, email/password, instruksi, dan label field untuk login deterministik).
-- Run `queued` di `ai_test_runs`; runner eksternal mengambil lewat `GET /api/v1/ai-runs/next` dengan Bearer token runner (atomik; run macet >15 menit tanpa heartbeat dikembalikan ke antrean).
+- Run `queued` di `ai_test_runs`; runner eksternal mengambil lewat `GET /api/v1/ai-runs/next` dengan Bearer token runner (atomik; run macet >15 menit tanpa heartbeat dikembalikan ke antrean). Kuota 3 run aktif per pengguna ditegakkan atomik (advisory lock).
 - Saat run dibuat, server memicu `repository_dispatch` GitHub (`ai-run`) bila `GITHUB_DISPATCH_TOKEN` tersedia; tanpa token, schedule/manual menjadi fallback.
 - Runner menjalankan e2e TesterArmy (Chromium + model gratis OpenRouter/Google Gemini), mengambil screenshot, lalu `POST /api/v1/ai-runs/{id}/result`.
 - Hasil adalah **draft**: user klik `Konfirmasi` → `/pengujian-baru?ai_run=...` (form terisi hasil, severity, catatan, bukti) → submit memakai aturan retest/approval yang sama dan menandai run `confirmed`.
@@ -171,7 +171,7 @@ Fitur/peran/siklus/pengguna seperti v2. Tambahan:
 | BR-17 | PDF mengikuti filter yang sama dengan CSV (semua hasil terfilter, maks 5000) |
 | BR-18 | Bukti upload divalidasi magic bytes; produksi tanpa Blob = tolak |
 | BR-19 | Rate limit login: 10/15 menit per email, 30/15 menit per IP |
-| BR-20 | Kredensial login target per-run disimpan terenkripsi AES-256-GCM, tidak pernah dikirim ke model, dan dihapus saat hasil AI run dikirim |
+| BR-20 | Kredensial login target per-run disimpan terenkripsi AES-256-GCM, tidak dikirim ke model pada login deterministik (tiga label lengkap), dan dihapus saat hasil AI run dikirim |
 | BR-21 | Log runner disimpan per AI run (maks 100.000 karakter), dapat dibaca pembuat run/ketua, dan tidak memuat kredensial target |
 | BR-22 | Permohonan reset password maksimal 3 token per email dalam 15 menit; respons selalu generik |
 
@@ -202,6 +202,6 @@ SSO/OAuth, multi-tenant, komentar diskusi realtime, multi-file attachment, otoma
 Lihat `PLAN-v3.md` untuk urutan task dan kriteria selesai.
 
 ## 8. Verifikasi v3
-- Semua test v2 tetap hijau + regression baru (reset token, import CSV/XLSX, mapping, dedupe, skip-invalid, test case, defect, AI run queue/runner/confirm, sort, rate limit IP, PDF filter, upload magic): **75 test lulus**.
-- `npm run lint`, `npx tsc --noEmit`, `npm test`, `npm run build`, `npm run test:e2e` (3 skenario) hijau.
+- Semua test v2 tetap hijau + regression baru (reset token, import CSV/XLSX, mapping, dedupe, skip-invalid, test case, defect, AI run queue/runner/confirm/heartbeat, kuota konkuren, egress guard, kredensial, sort, rate limit IP, PDF filter, upload magic, path traversal, permohonan aktif): **113 test lulus**.
+- `npm run lint` (nol warning), `npx tsc --noEmit`, `npm test`, `npm run build`, `npm run test:e2e` (7 skenario: login, proteksi route, regresi UI M4/M5/M8, defect, import) hijau; `npm run load:smoke` (100 req/10 konkuren) 0 error.
 - Manual: lupa password → reset → login; import 2 baris valid + 1 error → commit ditolak; Fail → defect open → verified; PDF filter = CSV filter; bukti non-gambar ditolak.
