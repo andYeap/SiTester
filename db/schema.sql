@@ -328,7 +328,7 @@ CREATE TABLE IF NOT EXISTS ai_test_runs (
   tested_as_role       text NOT NULL REFERENCES testing_roles(name) ON UPDATE CASCADE,
   test_cycle           text REFERENCES test_cycles(name) ON UPDATE CASCADE,
   status               text NOT NULL DEFAULT 'queued'
-                       CHECK (status IN ('queued','running','completed','failed','cancelled','confirmed')),
+                       CHECK (status IN ('queued','running','completed','failed','cancelled','confirmed','error')),
   result               text CHECK (result IN ('pass','fail','bug')),
   severity             text CHECK (severity IN ('low','medium','high','critical')),
   notes                text,

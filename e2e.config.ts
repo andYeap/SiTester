@@ -16,11 +16,11 @@ const password = process.env.E2E_PASSWORD;
 const provider = process.env.E2E_PROVIDER ?? "openrouter";
 // Model gratis + vision + tool calling.
 // OpenRouter: nvidia/nemotron-3.5-super-vl:free (fallback gemma-4-31b-it:free)
-// Google free tier: gemini-3.8-flash (alternatif kuota terpisah)
+// Google free tier: gemini-3.6-flash (stabil; 3.8 sering high demand) — runner fallback 3.6 -> 2.5.
 const modelId =
   process.env.E2E_MODEL ??
   (provider === "google"
-    ? "gemini-3.8-flash"
+    ? "gemini-3.6-flash"
     : "nvidia/nemotron-3.5-super-vl:free");
 const model = provider === "google" ? google(modelId) : openrouter(modelId);
 const appUrl = process.env.E2E_APP_URL ?? "http://127.0.0.1:3200";

@@ -418,8 +418,8 @@ export default function AiRunsView() {
                       {r.error && <div className="mt-1 text-xs text-neutral-800">Error: {r.error}</div>}
                     </td>
                     <td className="px-4 py-2">
-                      <span className={`badge ${r.status === "completed" ? "badge-pass" : r.status === "failed" ? "badge-fail" : "badge-neutral"}`}>
-                        {r.status}
+                      <span className={`badge ${r.status === "completed" ? "badge-pass" : r.status === "failed" || r.status === "error" ? "badge-fail" : "badge-neutral"}`}>
+                        {r.status === "error" ? "error (provider)" : r.status}
                       </span>
                     </td>
                     <td className="px-4 py-2">
@@ -436,12 +436,21 @@ export default function AiRunsView() {
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        {r.has_log && (
+                        {r.has_log ? (
                           <button
                             type="button"
                             disabled={logBusy}
                             onClick={() => void openLog(r.id)}
                             className="action-link text-neutral-950"
+                          >
+                            Log
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            title="Log tidak tersedia untuk run lama"
+                            className="action-link cursor-not-allowed text-neutral-400"
                           >
                             Log
                           </button>

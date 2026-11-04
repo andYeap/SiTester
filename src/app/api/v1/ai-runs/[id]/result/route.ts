@@ -80,7 +80,7 @@ export async function POST(
       .join("\n")
       .slice(0, 4000) || null;
 
-  const failed = outcome === "error";
+  const isError = outcome === "error";
   const updated = await queryOne<{ id: number }>(
     `UPDATE ai_test_runs
         SET status=$1,
@@ -96,8 +96,8 @@ export async function POST(
       WHERE id=$8 AND status='running'
       RETURNING id`,
     [
-      failed ? "failed" : "completed",
-      failed ? null : outcome,
+      isError ? "error" : "completed",
+      isError ? null : outcome,
       severity,
       finalNotes,
       error,

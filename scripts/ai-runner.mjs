@@ -11,11 +11,23 @@ if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 const API = (process.env.SITESTER_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const TOKEN = process.env.AI_RUNNER_TOKEN ?? "";
 const PROVIDER = process.env.E2E_PROVIDER ?? "openrouter";
-const MODEL =
-  process.env.E2E_MODEL ??
-  (PROVIDER === "google"
-    ? "gemini-3.8-flash"
-    : "nvidia/nemotron-3.5-super-vl:free");
+const DEFAULT_MODEL =
+  PROVIDER === "google"
+    ? "gemini-3.6-flash"
+    : "nvidia/nemotron-3.5-super-vl:free";
+const MODELS = String(
+  process.env.E2E_MODELS ?? process.env.E2E_MODEL ?? DEFAULT_MODEL,
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+if (PROVIDER === "google" && !MODELS.includes("gemini-3.6-flash")) {
+  MODELS.push("gemini-3.6-flash");
+}
+if (PROVIDER === "google" && !MODELS.includes("gemini-2.5-flash")) {
+  MODELS.push("gemini-2.5-flash");
+}
+const MODEL = MODELS[0] ?? DEFAULT_MODEL;
 const RUNNER_ID =
   process.env.AI_RUNNER_ID ?? `runner-${process.pid}-${Date.now()}`;
 const ONCE = process.argv.includes("--once");
@@ -70,10 +82,18 @@ function buildLogin(run) {
     emailLabel: run.login_email_label || null,
     passwordLabel: run.login_password_label || null,
     submitLabel: run.login_submit_label || null,
+    successUrlContains: run.login_success_url_contains || null,
+    successSelector: run.login_success_selector || null,
   };
 }
 
-function buildConfig(run, login) {
+function isProviderError(text) {
+  return /MODEL_PROVIDER_FAILED|TEST_TIMEOUT|high demand|rate.?limit|quota|overloaded|temporarily unavailable|503|529|fetch failed|ECONNRESET|ETIMEDOUT/i.test(
+    String(text ?? ""),
+  );
+}
+
+function buildConfig(run, login, model = MODEL) {
   const credentials = login.hasCredentials
     ? `credentials: { target: { username: process.env.AI_RUN_EMAIL, password: process.env.AI_RUN_PASSWORD } },`
     : "";
@@ -83,8 +103,8 @@ function buildConfig(run, login) {
       : `import { openrouter } from "@openrouter/ai-sdk-provider";`;
   const modelExpr =
     PROVIDER === "google"
-      ? `google(${q(MODEL)})`
-      : `openrouter(${q(MODEL)})`;
+      ? `google(${q(model)})`
+      : `openrouter(${q(model)})`;
   return `${providerImport}
 import { web } from "@e2e-dev/web";
 
@@ -106,12 +126,19 @@ function buildTest(run, targetPath, login) {
   if (login.hasCredentials) {
     const deterministic =
       login.emailLabel && login.passwordLabel && login.submitLabel;
+    const urlPattern = login.successUrlContains
+      ? q(login.successUrlContains)
+      : "/dashboard|\\/app|\\/home|\\/pengujian|\\/riwayat/";
+    const waitStep = login.successSelector
+      ? `  try { await expect(screen.getByText(${q(login.successSelector)})).toBeVisible({ timeout: 30_000 }); } catch { /* lanjut: agent akan verifikasi */ }`
+      : `  try { await expect(browser).not.toHaveURL(/\\/login/, { timeout: 30_000 }); } catch { /* masih di login: agent.act berikut akan menangani */ }\n  try { await expect(browser).toHaveURL(new RegExp(${urlPattern}), { timeout: 5_000 }); } catch { /* pola URL opsional */ }`;
     if (deterministic) {
       loginStep = `  {
     const target = credentials.user("target");
     await screen.getByLabel(${q(login.emailLabel)}).fill(target.username);
     await screen.getByLabel(${q(login.passwordLabel)}).fill(target.password);
     await screen.getByRole("button", ${q(login.submitLabel)}).tap();
+${waitStep}
   }`;
     } else {
       loginStep = `  {
@@ -119,6 +146,7 @@ function buildTest(run, targetPath, login) {
     await agent.act(${q(login.goal)}, {
       params: { email: target.username, password: target.password },
     });
+${waitStep}
   }`;
     }
   }
@@ -132,7 +160,7 @@ function buildTest(run, targetPath, login) {
   return `import { test } from "@e2e-dev/web";
 import { credentials, expect } from "e2e";
 
-test("SITester AI run ${run.id}", async ({ app, agent, screen }) => {
+test("SITester AI run ${run.id}", async ({ app, agent, screen, browser }) => {
   await app.open(${q(startUrl)});
 ${loginStep}
 ${reopenTarget}
@@ -290,19 +318,31 @@ async function processRun(run) {
   }
 
   const configPath = join(dir, "e2e.config.ts");
-  await writeFile(configPath, buildConfig(run, login));
   await writeFile(
     join(dir, "tests", "ai.e2e.ts"),
     buildTest(run, pathOf(run.target_url), login),
   );
 
-  console.log(`[run ${run.id}] mulai: ${run.target_url}`);
-  const execution = await runE2e(configPath, dir, login);
+  let execution = { code: 1, output: "", dir };
   let report = null;
-  try {
-    report = JSON.parse(await readFile(join(dir, ".e2e", "report.json"), "utf8"));
-  } catch {
-    /* tidak ada report */
+  let usedModel = MODEL;
+  const modelTrail = [];
+  for (const model of MODELS) {
+    usedModel = model;
+    await writeFile(configPath, buildConfig(run, login, model));
+    console.log(`[run ${run.id}] mulai: ${run.target_url} model=${model}`);
+    execution = await runE2e(configPath, dir, login);
+    try {
+      report = JSON.parse(await readFile(join(dir, ".e2e", "report.json"), "utf8"));
+    } catch {
+      report = null;
+    }
+    const ok = execution.code === 0 && report?.run?.status === "passed";
+    modelTrail.push(`${model}:${ok ? "pass" : "fail"}`);
+    if (ok) break;
+    const probe = `${errorText(report)}\n${execution.output.slice(-1500)}`;
+    if (!isProviderError(probe)) break;
+    console.error(`[run ${run.id}] provider/model gagal (${model}), coba fallback...`);
   }
 
   const passed =
@@ -312,6 +352,8 @@ async function processRun(run) {
   if (!passed) {
     console.error(`[run ${run.id}] e2e gagal. Output terakhir:\n${execution.output.slice(-4000)}`);
   }
+  const providerFailed = !passed && isProviderError(`${errors}\n${execution.output.slice(-1500)}`);
+  const outcome = passed ? "pass" : providerFailed ? "error" : "fail";
   const diagnostic = passed ? "" : errors || execution.output.slice(-1500);
   const notes = passed
     ? `AI: ${run.goal}${run.success_criteria ? ` — kriteria: ${run.success_criteria}` : ""} (${summary.executed ?? 0} test lulus)`
@@ -320,7 +362,7 @@ async function processRun(run) {
   const screenshot = await findScreenshot(join(dir, ".e2e"), report);
   const runnerLog = [
     `[run ${run.id}] target=${run.target_url}`,
-    `provider=${PROVIDER} model=${MODEL}`,
+    `provider=${PROVIDER} model=${usedModel} trail=${modelTrail.join(" -> ")}`,
     `use_login=${login.useLogin} login_url=${login.url ?? "-"} credentials=${login.hasCredentials ? "ada" : "tidak"}`,
     "",
     execution.output,
@@ -329,13 +371,13 @@ async function processRun(run) {
 
   try {
     await uploadResult(run.id, {
-      outcome: report ? (passed ? "pass" : "fail") : "error",
+      outcome,
       notes,
       error: report ? errors || null : execution.output.slice(-4000),
       severity: passed ? null : "medium",
       log: runnerLog,
     }, screenshot);
-    console.log(`[run ${run.id}] ${passed ? "PASS" : "FAIL"} dikirim`);
+    console.log(`[run ${run.id}] ${passed ? "PASS" : outcome === "error" ? "ERROR" : "FAIL"} dikirim`);
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => undefined);
   }
