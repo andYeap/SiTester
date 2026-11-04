@@ -15,8 +15,8 @@ FILE="$OUT_DIR/sitester-$STAMP.dump"
 DB_URL_FOR_DOCKER="${DATABASE_URL/localhost/host.docker.internal}"
 DB_URL_FOR_DOCKER="${DB_URL_FOR_DOCKER/127.0.0.1/host.docker.internal}"
 
-docker run --rm -i --add-host=host.docker.internal:host-gateway postgres:16-alpine pg_dump \
+docker run --rm -i --add-host=host.docker.internal:host-gateway postgres:18-alpine pg_dump \
   --format=custom --compress=9 --no-owner --dbname="$DB_URL_FOR_DOCKER" > "$FILE"
 
 echo "Backup tersimpan: $FILE ($(du -h "$FILE" | cut -f1))"
-echo "Restore (contoh): docker run --rm -i --add-host=host.docker.internal:host-gateway -v \"\$PWD/$OUT_DIR:/b:ro\" postgres:16-alpine pg_restore --clean --if-exists -d \"\$DATABASE_URL\" /b/$(basename "$FILE")"
+echo "Restore (contoh): docker run --rm -i --add-host=host.docker.internal:host-gateway -v \"\$PWD/$OUT_DIR:/b:ro\" postgres:18-alpine pg_restore --clean --if-exists -d \"\$DATABASE_URL\" /b/$(basename "$FILE")"
