@@ -2,7 +2,7 @@
 
 **Aplikasi:** SITester — Pencatatan Pengujian Tim  
 **URL produksi:** https://sitester-one.vercel.app  
-**Versi dokumen:** 1.1 · 4 November 2026
+**Versi dokumen:** 1.2 · 4 November 2026
 **Untuk:** Tester dan Ketua Tim
 
 Dokumen ini menjelaskan cara memakai SITester sehari-hari: mencatat hasil uji,
@@ -49,15 +49,19 @@ otomatis tidak berlaku.
 ### 3.1 Login
 
 1. Buka https://sitester-one.vercel.app
-2. Masukkan email dan password.
-3. Klik **Masuk**.
+2. Masukkan **Email** dan **Kata sandi**.
+3. (Opsional) centang **Ingat saya di perangkat ini**.
+4. Klik **Masuk**.
 
-Jika password salah terlalu sering, login dibatasi sementara (rate limit) dan
-Anda perlu menunggu beberapa menit.
+Tanpa "Ingat saya", sesi berlaku **8 jam**. Dengan "Ingat saya", Anda tetap
+masuk **30 hari** — jangan aktifkan di komputer bersama.
+
+Jika kata sandi salah terlalu sering, login dibatasi sementara (rate limit) dan
+Anda perlu menunggu 15 menit.
 
 ### 3.2 Lupa password
 
-1. Klik **Lupa password** di halaman login.
+1. Klik **Lupa kata sandi?** di halaman login.
 2. Masukkan email akun.
 3. Jika akun terdaftar, tautan reset dikirim ke email.
 4. Buka tautan, buat password baru.
@@ -67,8 +71,9 @@ Tautan reset berlaku **24 jam** dan hanya bisa dipakai sekali.
 
 ### 3.3 Reset oleh ketua
 
-Ketua dapat membuka **Pengguna → Buat tautan reset** untuk mendapatkan tautan
-reset sekali pakai. Cara ini berguna jika email belum dikonfigurasi.
+Ketua dapat membuka **Pengguna → Reset** pada baris pengguna untuk mendapatkan
+tautan reset sekali pakai (berlaku 24 jam), lalu menyalin dan mengirimkannya.
+Cara ini berguna jika email belum dikonfigurasi.
 
 ### 3.4 Keluar
 
@@ -113,47 +118,60 @@ Di layar kecil, sidebar dibuka lewat tombol menu di kiri atas.
 
 Dashboard menampilkan:
 
-- jumlah pengujian dan hasil Pass/Fail/Bug,
-- grafik periode pengujian,
-- **Tugas Saya**, yaitu:
-  - fitur yang belum Anda uji dalam siklus,
-  - permohonan retest Anda,
-  - defect yang perlu diverifikasi,
-  - permohonan yang menunggu persetujuan (untuk ketua).
+- kartu bulan ini: jumlah pengujian, Pass, Fail/Bug (data Anda sendiri; seluruh
+  tim untuk ketua) dan **Fitur Belum Diuji** (belum diuji siapa pun),
+- filter **Siklus** dan grafik harian 7/30 hari, donut hasil, serta 10 fitur
+  paling sering diuji,
+- untuk siklus yang dipilih: instruksi siklus dan progres cakupan "X dari Y
+  fitur teruji",
+- **Tugas Saya** (tiga kartu):
+  - **Belum saya uji** — fitur yang belum pernah Anda uji (dalam lingkup siklus
+    bila dipilih),
+  - **Permohonan saya** — permohonan retest yang menunggu (ada penanda
+    "Kedaluwarsa") dan jumlah persetujuan yang siap dipakai,
+  - **Defect terbuka** — defect berstatus open/reopened/fixed milik tim,
+- khusus ketua: banner bila ada permohonan retest yang menunggu persetujuan.
 
-Gunakan tombol aksi cepat pada Tugas Saya untuk membuka form dengan fitur dan
+Klik nama fitur pada **Belum saya uji** untuk membuka form dengan fitur dan
 siklus yang sudah terisi.
 
 ### 5.2 Mencatat Pengujian Baru
 
 Buka **Pengujian Baru**, lalu isi:
 
-1. **Tanggal Pengujian** — tanggal hasil uji.
-2. **Pengujian Ulang?**
+1. **Tanggal Pengujian** — tanggal hasil uji (tidak boleh di masa depan).
+2. **Apakah ini pengujian ulang?**
    - **Tidak** untuk pengujian biasa.
    - **Ya** jika menguji ulang fitur/peran/siklus yang sudah punya hasil.
-3. **Peran Uji** — peran yang dipakai saat menguji.
-4. **Siklus** — opsional; jika dipilih, daftar fitur mengikuti lingkup siklus.
-5. **Fitur** — pilih fitur yang diuji.
-6. **Test Case** — opsional, jika fitur punya test case.
-7. **Hasil** — Pass, Fail, atau Bug.
-8. Jika hasil **Fail/Bug**, isi **Severity** dan detail triase:
-   - lingkungan,
-   - hasil yang diharapkan,
-   - hasil yang terjadi,
-   - bukti (gambar),
-   - catatan.
-9. Klik **Simpan**.
+3. **Diuji sebagai peran** — peran yang dipakai saat menguji.
+4. **Siklus** — opsional; jika dipilih, instruksi siklus tampil dan daftar fitur
+   mengikuti lingkup siklus.
+5. **Filter proyek** dan **Fitur yang Diuji** — ketik untuk mencari; daftar
+   dikelompokkan per proyek.
+6. **Test case** — opsional, muncul jika fitur punya test case.
+7. **Status Hasil** — Pass, Fail, atau Bug. Sistem langsung memeriksa apakah
+   fitur boleh diuji dan menampilkan peringatannya.
+8. Jika hasil **Fail/Bug**, pilih **Tingkat Keparahan** (wajib) dan isi
+   **Catatan** minimal 10 karakter.
+9. Bagian **Detail opsional** (lipat) berisi lingkungan, yang diharapkan, yang
+   terjadi, bukti gambar (maks 2MB), dan tautan bukti.
+10. Klik **Simpan Hasil Pengujian**.
 
-Setelah simpan, tanggal/peran/siklus tetap terisi, sedangkan fitur/hasil/catatan
-direset agar mudah mencatat hasil berikutnya.
+Setelah simpan, tanggal, pilihan pengujian ulang, peran, dan siklus tetap
+terisi, sedangkan fitur/hasil/catatan dan detail lain direset agar mudah
+mencatat hasil berikutnya.
 
-**Draft otomatis:** isian disimpan di browser. Jika form tertutup, akan muncul
-pilihan **Pulihkan** atau **Hapus draft**.
+**Draft otomatis:** isian disimpan di browser (per akun). Jika form dibuka
+kembali, muncul pilihan **Pulihkan** atau **Hapus**.
 
-**Mode cepat:** tambahkan beberapa hasil ke daftar, lalu simpan sekaligus.
-Tanggal, peran, dan siklus dipakai untuk semua baris. Kesalahan per baris
-ditampilkan sebelum penyimpanan.
+**Mode cepat:** aktifkan saklar **Mode cepat** di kanan atas form, tambahkan
+beberapa hasil ke daftar (**Tambah ke daftar**), lalu klik **Simpan semua**.
+Setiap baris membawa tanggal, peran, dan siklus saat ditambahkan. Baris yang
+gagal tetap berada di daftar beserta pesan kesalahannya. Mode cepat tidak
+menyediakan test case dan detail opsional.
+
+Bila Anda salah klik dua kali atau jaringan terputus saat menyimpan, hasil tidak
+akan tercatat ganda.
 
 ### 5.3 Aturan Retest
 
@@ -164,8 +182,11 @@ Ruang lingkup retest adalah kombinasi **fitur + peran + siklus**.
   tanpa persetujuan.
 - Jika hasil terakhir **Pass**, pengujian ulang memerlukan persetujuan ketua.
 - Persetujuan retest berlaku **sekali pakai** dan memiliki masa berlaku hingga
-  7 hari.
-- Satu permohonan retest berlaku untuk kombinasi fitur + peran tersebut.
+  7 hari. Permohonan yang tidak diproses juga kedaluwarsa setelah 7 hari.
+- Satu permohonan/persetujuan hanya berlaku untuk kombinasi fitur + peran +
+  siklus yang diajukan; persetujuan untuk siklus A tidak berlaku di siklus B,
+  dan "tanpa siklus" dianggap terpisah dari semua siklus.
+- Permohonan hanya bisa diajukan untuk fitur yang hasil terakhirnya Pass.
 
 Jika retest belum disetujui, form menampilkan peringatan dan tombol untuk
 mengajukan permohonan. Setelah ketua menyetujui, buka kembali form dan pilih
@@ -175,12 +196,16 @@ mengajukan permohonan. Setelah ketua menyetujui, buka kembali form dan pilih
 
 Menu **Riwayat** mendukung:
 
-- pencarian dan filter fitur/peran/siklus/hasil,
-- sort tanggal, fitur, hasil, atau severity,
-- preset tanggal 7 hari, 30 hari, dan bulan ini,
-- filter tersimpan di perangkat,
-- tampilan kartu di layar kecil,
+- pencarian (catatan/fitur/tester) dan filter tanggal, fitur, hasil, serta
+  siklus,
+- menu **Urutkan**: tanggal, fitur, hasil, atau severity (naik/turun),
+- tombol preset **7 hari** dan **30 hari**,
+- **Simpan filter** / **Hapus tersimpan** (disimpan di perangkat ini),
+- tampilan kartu di layar kecil dan 50 baris per halaman,
 - ekspor **CSV** dan **PDF** sesuai filter yang aktif.
+
+Tester hanya melihat riwayat miliknya; ketua melihat riwayat seluruh tim.
+Riwayat tidak dapat diubah atau dihapus.
 
 PDF memuat seluruh hasil terfilter, bukan hanya halaman yang sedang terlihat.
 Batas ekspor adalah 5.000 baris per file.
@@ -189,15 +214,18 @@ Batas ekspor adalah 5.000 baris per file.
 
 Halaman **Fitur** menampilkan daftar fitur dan statusnya.
 
-- Tester dapat menambahkan usulan fitur.
-- Ketua memverifikasi dan mengaktifkan/menonaktifkan fitur.
+- Tester dapat menambahkan usulan fitur. Usulan berstatus **Usulan baru** dan
+  belum bisa dipakai untuk pengujian sampai ketua memverifikasinya.
+- Ketua memverifikasi, mengedit, dan mengaktifkan/menonaktifkan fitur. Fitur
+  yang sudah punya riwayat tidak bisa dihapus; nonaktifkan saja.
 - Buka detail fitur untuk melihat:
   - test case,
   - defect terkait,
   - timeline semua sesi pengujian.
 
-Test case berisi judul, langkah, expected result, dan status aktif. Test case
-dapat dikelola ketua atau pembuatnya.
+Test case berisi judul, langkah, expected result, dan status aktif. Siapa pun
+yang login dapat menambah test case pada sebuah fitur; mengubah atau
+menghapusnya hanya bisa dilakukan pembuatnya atau ketua.
 
 ### 5.6 Defect
 
@@ -216,23 +244,27 @@ open → fixed → verified → closed
 - **closed**: defect selesai.
 - **reopened**: masalah muncul lagi.
 
-Isi yang bisa dicatat: severity, assignee, referensi perbaikan, catatan
-verifikasi, dan siapa yang memverifikasi.
+Semua pengguna dapat melihat semua defect, tetapi **status hanya dapat diubah
+oleh pembuat defect atau ketua**. Perpindahan status dibatasi sesuai alur di
+atas (misalnya tidak bisa langsung dari open ke closed). Halaman ini mencatat
+siapa yang memverifikasi.
 
-Filter defect berdasarkan status, severity, dan fitur.
+Filter defect berdasarkan status dan fitur.
 
 ### 5.7 Notifikasi
 
 Notifikasi muncul lewat ikon lonceng dan menu **Notifikasi**.
 
-Contoh notifikasi:
+Notifikasi yang dikirim:
 
-- permohonan retest baru untuk ketua,
-- persetujuan/penolakan retest untuk tester,
-- perubahan status defect.
+- permohonan retest baru → semua ketua,
+- retest disetujui atau ditolak (beserta alasan) → tester pemohon.
 
-Jika dikonfigurasi administrator, notifikasi juga bisa dikirim lewat email atau
-Telegram. Notifikasi in-app tetap menjadi sumber utama.
+Perubahan status defect dan import **tidak** mengirim notifikasi.
+
+Jika dikonfigurasi administrator, notifikasi juga dikirim lewat email (ke
+penerima) dan Telegram (khusus ketua). Notifikasi in-app tetap menjadi sumber
+utama; Anda dapat menandai satu atau semua notifikasi sebagai dibaca.
 
 ---
 
@@ -291,8 +323,12 @@ Status run:
 |---|---|
 | `queued` | Menunggu runner |
 | `running` | Sedang dijalankan |
-| `completed` | Runner selesai; lihat hasil Pass/Fail |
-| `failed` | Runner gagal mengirim/menyelesaikan hasil |
+| `completed` | Runner selesai; lihat hasil Pass/Fail/Bug dan klik Konfirmasi |
+| `error` | Run gagal karena infrastruktur/provider model/target diblokir — bukan verdict aplikasi; tidak bisa dikonfirmasi, baca Log lalu antrekan ulang |
+| `confirmed` | Hasil sudah dikonfirmasi dan tersimpan sebagai pengujian (kolom Aksi menampilkan "Tersimpan") |
+
+Maksimal **3 run aktif** (queued/running) per pengguna. Tester hanya melihat run
+milik sendiri; ketua melihat semua.
 
 Jika trigger otomatis GitHub Actions aktif, run baru langsung memicu workflow.
 Jika tidak, run menunggu jadwal atau dijalankan manual oleh operator.
@@ -340,10 +376,11 @@ Screenshot disimpan ke Vercel Blob jika `BLOB_READ_WRITE_TOKEN` dikonfigurasi.
 Tanpa token, hasil tetap disimpan tetapi screenshot dilewati dan muncul catatan
 sistem.
 
-URL bukti saat ini bersifat publik dengan nama acak. Jangan mengunggah
-screenshot yang berisi data sensitif. Minta administrator mengaktifkan mode
-privat (`BLOB_REQUIRE_PRIVATE=1` + Blob store privat) bila bukti tidak boleh
-diakses publik.
+Bukti disajikan lewat aplikasi dan hanya bisa dilihat pengguna yang sudah login.
+Jika Blob store administrator belum mendukung akses privat, file memakai URL
+acak (UUID) yang tidak ditemukan lewat pencarian tetapi tetap bisa dibuka siapa
+pun yang memiliki tautannya — hindari data sensitif pada screenshot. Administrator
+dapat mewajibkan mode privat dengan `BLOB_REQUIRE_PRIVATE=1` + Blob store privat.
 
 ### 6.7 Batasan AI Test
 
@@ -370,10 +407,11 @@ tidak bisa dihapus.
 
 Ketua dapat:
 
-- melihat daftar pengguna,
-- mengubah peran tester/ketua,
-- membuat tautan reset password sekali pakai,
-- mereset password pengguna.
+- menambah pengguna (kata sandi awal minimal 8 karakter),
+- melihat daftar pengguna dan jumlah pengujiannya,
+- mengubah peran tester/ketua (tidak bisa menurunkan diri sendiri),
+- membuat tautan reset password sekali pakai (tombol **Reset**),
+- menghapus pengguna yang belum punya riwayat (akun sendiri tidak bisa dihapus).
 
 ### 7.3 Peran Uji
 
@@ -392,7 +430,10 @@ Buat siklus pengujian dan tentukan fitur yang termasuk di dalamnya.
 Buka **Permohonan** untuk melihat permintaan yang menunggu.
 
 - **Setujui** dengan catatan opsional, atau
-- **Tolak** dengan alasan.
+- **Tolak** dengan alasan (wajib diisi; alasan dikirim ke tester lewat notifikasi).
+
+Permohonan yang kedaluwarsa (7 hari) tidak bisa lagi disetujui atau ditolak;
+tester perlu mengajukan ulang. Halaman ini juga menampilkan 20 keputusan terakhir.
 
 Setelah disetujui, tester dapat melakukan retest sekali. Gunakan kebijakan yang
 konsisten agar riwayat tetap bermakna.
@@ -426,8 +467,11 @@ Catatan:
 
 ### 7.7 Aktivitas
 
-Halaman **Aktivitas** menampilkan audit aktivitas penting: login, perubahan
-master, approval, import, dan perubahan data sensitif lainnya.
+Halaman **Aktivitas** menampilkan audit perubahan penting: master (fitur,
+proyek, peran uji, siklus, pengguna, test case), pembuatan tautan reset,
+perubahan status defect, dan import. Login dan keputusan approval tidak
+dicatat di sini (keputusan approval terlihat di halaman **Permohonan**).
+Gunakan pencarian dan filter aksi untuk menyaring.
 
 ---
 
@@ -478,7 +522,9 @@ master, approval, import, dan perubahan data sensitif lainnya.
 - Satu akun hanya boleh memiliki satu sesi aktif.
 - Bukti gambar dibatasi 2MB per file.
 - AI Test tidak menjamin bisa menangani MFA/CAPTCHA/SSO.
-- Bukti saat ini memakai URL publik; hindari data sensitif.
+- Bukti disajikan lewat aplikasi (wajib login), tetapi bila Blob store tidak
+  privat, file tetap memakai URL acak yang bisa dibuka siapa pun yang punya
+  tautannya; hindari data sensitif.
 - Aplikasi memakai zona waktu Asia/Jakarta untuk tanggal pengujian.
 
 ---

@@ -220,7 +220,7 @@ export default function DashboardView({
                   </ul>
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-neutral-600">Semua fitur dalam lingkup sudah diuji. 🎉</p>
+                <p className="mt-3 text-sm text-neutral-600">Semua fitur dalam lingkup sudah diuji.</p>
               )}
             </div>
           ) : (

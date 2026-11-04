@@ -15,6 +15,31 @@ type LogRow = {
   created_at: string;
 };
 
+const AUDIT_ACTIONS = [
+  "features.create",
+  "features.update",
+  "features.verify",
+  "features.delete",
+  "projects.create",
+  "projects.update",
+  "projects.delete",
+  "testing_roles.create",
+  "testing_roles.update",
+  "testing_roles.delete",
+  "test_cycles.create",
+  "test_cycles.update",
+  "test_cycles.delete",
+  "test_cases.create",
+  "test_cases.update",
+  "test_cases.delete",
+  "users.create",
+  "users.update",
+  "users.delete",
+  "users.reset_link",
+  "defects.update",
+  "import.test_sessions",
+];
+
 export default function AktivitasView({
   user,
   initialLogs,
@@ -66,7 +91,7 @@ export default function AktivitasView({
           <label htmlFor="audit-action" className="block text-xs font-semibold text-neutral-500">Aksi</label>
           <select id="audit-action" value={action} onChange={(e) => setAction(e.target.value)} className="input mt-1">
             <option value="">Semua</option>
-            {["features.create", "features.update", "features.verify", "features.delete", "testing_roles.create", "testing_roles.update", "testing_roles.delete", "test_cycles.create", "test_cycles.update", "test_cycles.delete", "users.create", "users.update", "users.delete"].map((a) => (
+            {AUDIT_ACTIONS.map((a) => (
               <option key={a} value={a}>{a}</option>
             ))}
           </select>

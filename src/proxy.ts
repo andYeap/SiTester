@@ -13,6 +13,7 @@ export default function proxy(request: NextRequest) {
     pathname.startsWith("/pengujian-baru") ||
     pathname.startsWith("/riwayat") ||
     pathname.startsWith("/fitur") ||
+    pathname.startsWith("/proyek") ||
     pathname.startsWith("/permohonan") ||
     pathname.startsWith("/pengguna") ||
     pathname.startsWith("/peran") ||
@@ -43,6 +44,7 @@ export const config = {
     "/fitur/:path*",
     "/defect/:path*",
     "/ai-test/:path*",
+    "/proyek/:path*",
     "/permohonan/:path*",
     "/pengguna/:path*",
     "/peran/:path*",

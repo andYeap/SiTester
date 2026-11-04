@@ -7,7 +7,7 @@ const provider = process.env.E2E_PROVIDER ?? "openrouter";
 const id =
   process.env.E2E_MODEL ??
   (provider === "google"
-    ? "gemini-3.8-flash"
+    ? "gemini-3.6-flash"
     : "nvidia/nemotron-3.5-super-vl:free");
 
 if (provider === "google") {
