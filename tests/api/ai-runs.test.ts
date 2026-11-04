@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { GET as listRuns, POST as createRun } from "@/app/api/v1/ai-runs/route";
+import { GET as getRun } from "@/app/api/v1/ai-runs/[id]/route";
 import { GET as nextRun } from "@/app/api/v1/ai-runs/next/route";
 import { POST as submitResult } from "@/app/api/v1/ai-runs/[id]/result/route";
 import { POST as submitSession } from "@/app/api/v1/test-sessions/route";
@@ -83,6 +84,7 @@ describe("AI test runs", () => {
     const resultForm = new FormData();
     resultForm.set("outcome", "pass");
     resultForm.set("notes", "AI: form login tampil");
+    resultForm.set("log", "[run] login selector tidak ditemukan: getByLabel('Email')");
     resultForm.set(
       "evidence",
       new File([PNG], "hasil.png", { type: "image/png" }),
@@ -112,8 +114,20 @@ describe("AI test runs", () => {
 
     const listRes = await listRuns();
     expect(listRes.status).toBe(200);
-    const list = (await listRes.json()) as { runs: { id: number }[] };
-    expect(list.runs.some((r) => r.id === created.id)).toBe(true);
+    const list = (await listRes.json()) as {
+      runs: { id: number; has_log: boolean }[];
+    };
+    expect(list.runs.find((r) => r.id === created.id)?.has_log).toBe(true);
+
+    const detailRes = await getRun(
+      new Request(`http://test/api/v1/ai-runs/${created.id}`),
+      { params: Promise.resolve({ id: String(created.id) }) },
+    );
+    expect(detailRes.status).toBe(200);
+    const detail = (await detailRes.json()) as {
+      run: { runner_log: string | null };
+    };
+    expect(detail.run.runner_log).toContain("getByLabel('Email')");
 
     const form = new FormData();
     form.set("tested_at", todayString());

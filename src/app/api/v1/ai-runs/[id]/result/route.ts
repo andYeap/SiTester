@@ -44,6 +44,11 @@ export async function POST(
     typeof errorRaw === "string" && errorRaw.trim() !== ""
       ? errorRaw.trim().slice(0, 4000)
       : null;
+  const logRaw = form?.get("log");
+  const runnerLog =
+    typeof logRaw === "string" && logRaw.trim() !== ""
+      ? logRaw.slice(0, 100_000)
+      : null;
   const severityRaw = String(form?.get("severity") ?? "");
   const severity =
     outcome === "fail" || outcome === "bug"
@@ -84,10 +89,11 @@ export async function POST(
             notes=$4,
             error=$5,
             evidence_path=coalesce($6, evidence_path),
+            runner_log=$7,
             login_credentials_enc=NULL,
             finished_at=now(),
             updated_at=now()
-      WHERE id=$7 AND status='running'
+      WHERE id=$8 AND status='running'
       RETURNING id`,
     [
       failed ? "failed" : "completed",
@@ -96,6 +102,7 @@ export async function POST(
       finalNotes,
       error,
       evidencePath,
+      runnerLog,
       id,
     ],
   );

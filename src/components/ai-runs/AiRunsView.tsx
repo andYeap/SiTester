@@ -20,6 +20,16 @@ type Run = {
   confirmed_session_id: number | null;
   feature_name: string;
   user_name: string;
+  has_log: boolean;
+};
+
+type RunLog = {
+  id: number;
+  goal: string;
+  status: string;
+  notes: string | null;
+  error: string | null;
+  runner_log: string | null;
 };
 
 type Feature = { id: number; name: string };
@@ -45,6 +55,8 @@ export default function AiRunsView() {
   const [loginEmailLabel, setLoginEmailLabel] = useState("Email");
   const [loginPasswordLabel, setLoginPasswordLabel] = useState("Kata sandi");
   const [loginSubmitLabel, setLoginSubmitLabel] = useState("Masuk");
+  const [logRun, setLogRun] = useState<RunLog | null>(null);
+  const [logBusy, setLogBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -130,6 +142,22 @@ export default function AiRunsView() {
 
   function evidenceHref(path: string): string {
     return path.startsWith("http") ? path : `/api/uploads/${path}`;
+  }
+
+  async function openLog(id: number) {
+    setLogBusy(true);
+    try {
+      const res = await fetch(`/api/v1/ai-runs/${id}`);
+      const data = (await res.json()) as { run?: RunLog; error?: string };
+      if (!res.ok || !data.run) {
+        throw new Error(data.error ?? "Gagal memuat log.");
+      }
+      setLogRun(data.run);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal memuat log.");
+    } finally {
+      setLogBusy(false);
+    }
   }
 
   return (
@@ -323,6 +351,34 @@ export default function AiRunsView() {
         </div>
       </form>
 
+      {logRun && (
+        <div className="card-pad space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-neutral-700">
+                Log runner — run #{logRun.id}
+              </h2>
+              <p className="mt-1 text-xs text-neutral-500">{logRun.goal}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setLogRun(null)}
+              className="text-sm text-neutral-500 underline underline-offset-2"
+            >
+              Tutup
+            </button>
+          </div>
+          {logRun.error && (
+            <div className="alert-err text-sm" role="alert">
+              Error: {logRun.error}
+            </div>
+          )}
+          <pre className="max-h-96 overflow-auto rounded-lg bg-neutral-950 p-4 text-xs leading-relaxed text-neutral-100">
+            {logRun.runner_log || "Log tidak tersedia untuk run ini."}
+          </pre>
+        </div>
+      )}
+
       <div className="card overflow-hidden">
         <div className="border-b border-neutral-200 p-5">
           <h2 className="font-semibold text-neutral-700">Antrean & Hasil</h2>
@@ -379,15 +435,27 @@ export default function AiRunsView() {
                       )}
                     </td>
                     <td className="px-4 py-2">
-                      {r.status === "completed" && !r.confirmed_session_id ? (
-                        <a href={`/pengujian-baru?ai_run=${r.id}`} className="action-link text-neutral-950">
-                          Konfirmasi
-                        </a>
-                      ) : r.confirmed_session_id ? (
-                        <span className="text-xs text-neutral-500">Tersimpan</span>
-                      ) : (
-                        <span className="text-xs text-neutral-400">—</span>
-                      )}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {r.has_log && (
+                          <button
+                            type="button"
+                            disabled={logBusy}
+                            onClick={() => void openLog(r.id)}
+                            className="action-link text-neutral-950"
+                          >
+                            Log
+                          </button>
+                        )}
+                        {r.status === "completed" && !r.confirmed_session_id ? (
+                          <a href={`/pengujian-baru?ai_run=${r.id}`} className="action-link text-neutral-950">
+                            Konfirmasi
+                          </a>
+                        ) : r.confirmed_session_id ? (
+                          <span className="text-xs text-neutral-500">Tersimpan</span>
+                        ) : (
+                          <span className="text-xs text-neutral-400">—</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

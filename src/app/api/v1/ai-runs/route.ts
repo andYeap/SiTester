@@ -53,10 +53,12 @@ export async function GET() {
     confirmed_session_id: number | null;
     feature_name: string;
     user_name: string;
+    has_log: boolean;
   }>(
     `SELECT r.id, r.target_url, r.goal, r.success_criteria, r.status, r.result,
             r.severity, r.notes, r.evidence_path, r.error, r.created_at::text AS created_at,
             r.finished_at::text AS finished_at, r.confirmed_session_id,
+            (r.runner_log IS NOT NULL) AS has_log,
             f.name AS feature_name, u.name AS user_name
        FROM ai_test_runs r
        JOIN features f ON f.id = r.feature_id

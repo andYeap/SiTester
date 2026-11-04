@@ -224,6 +224,7 @@ async function uploadResult(id, data, screenshot) {
   form.set("outcome", data.outcome);
   if (data.notes) form.set("notes", data.notes.slice(0, 4000));
   if (data.error) form.set("error", data.error.slice(0, 4000));
+  if (data.log) form.set("log", data.log.slice(0, 100_000));
   if (data.severity) form.set("severity", data.severity);
   if (screenshot) {
     form.set(
@@ -281,6 +282,7 @@ async function processRun(run) {
       notes: `AI: ${run.goal}`,
       error:
         "Login target diminta, tetapi kredensial target tidak tersedia. Isi email/password di form AI Test atau set AI_TARGET_EMAIL/AI_TARGET_PASSWORD pada runner.",
+      log: `[run ${run.id}] login diminta tanpa kredensial\ntarget=${run.target_url}\nlogin_url=${run.login_url ?? "-"}`,
     }, null);
     console.log(`[run ${run.id}] ERROR dikirim (kredensial login kosong)`);
     await rm(dir, { recursive: true, force: true }).catch(() => undefined);
@@ -316,6 +318,14 @@ async function processRun(run) {
     : `AI: ${run.goal}${run.success_criteria ? ` — kriteria: ${run.success_criteria}` : ""}${diagnostic ? `\nDiagnostik: ${diagnostic}` : ""}`;
 
   const screenshot = await findScreenshot(join(dir, ".e2e"), report);
+  const runnerLog = [
+    `[run ${run.id}] target=${run.target_url}`,
+    `provider=${PROVIDER} model=${MODEL}`,
+    `use_login=${login.useLogin} login_url=${login.url ?? "-"} credentials=${login.hasCredentials ? "ada" : "tidak"}`,
+    "",
+    execution.output,
+    report ? `\nREPORT:\n${JSON.stringify(report, null, 2)}` : "",
+  ].join("\n");
 
   try {
     await uploadResult(run.id, {
@@ -323,6 +333,7 @@ async function processRun(run) {
       notes,
       error: report ? errors || null : execution.output.slice(-4000),
       severity: passed ? null : "medium",
+      log: runnerLog,
     }, screenshot);
     console.log(`[run ${run.id}] ${passed ? "PASS" : "FAIL"} dikirim`);
   } finally {
@@ -367,6 +378,7 @@ async function loop() {
       await uploadResult(run.id, {
         outcome: "error",
         error: e.message,
+        log: `[run ${run.id}] exception: ${e.stack ?? e.message}`,
       }, null).catch(() => undefined);
     }
     if (ONCE) return;

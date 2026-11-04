@@ -350,4 +350,5 @@ ALTER TABLE ai_test_runs ADD COLUMN IF NOT EXISTS login_email_label text;
 ALTER TABLE ai_test_runs ADD COLUMN IF NOT EXISTS login_password_label text;
 ALTER TABLE ai_test_runs ADD COLUMN IF NOT EXISTS login_submit_label text;
 ALTER TABLE ai_test_runs ADD COLUMN IF NOT EXISTS login_credentials_enc text;
+ALTER TABLE ai_test_runs ADD COLUMN IF NOT EXISTS runner_log text;
 
