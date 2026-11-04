@@ -1,7 +1,7 @@
 # SITester — pencatatan & kendali pengujian tim tester (Next.js + Postgres, siap Vercel)
 
-Rewrite dari aplikasi TestLab versi Laravel (`../testlab`). Paritas fitur penuh + deploy gratis.
-Panduan pengguna: **`PANDUAN-PENGGUNAAN.md`**. Lihat `PRD.md` (spesifikasi v3), `PLAN-v3.md` (rencana), dan `DESIGN.md`.
+Aplikasi pencatatan pengujian tim tester. Spesifikasi, aturan bisnis, desain, dan status implementasi ada di **`PRD.md`**.
+Panduan pengguna: **`PANDUAN-PENGGUNAAN.md`**.
 
 ## Fitur v3
 

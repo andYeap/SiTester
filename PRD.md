@@ -1,207 +1,252 @@
-# PRD: SITester (Sistem Pengujian Tim Tester) — v3
+# PRD: SITester (Sistem Pencatatan & Kendali Pengujian Tim Tester)
 
-**Versi:** 3.0 · **Tanggal:** 2 November 2026 · **Stack:** Next.js 16 + Postgres + Vercel
-**Status:** Terimplementasi & terverifikasi (`113 tests` API/unit, E2E 7 lulus, build hijau) · **Supersedes:** PRD v2.0
+**Versi:** 3.1 · **Diperbarui:** 4 November 2026 · **Stack:** Next.js 16 + Postgres + Vercel
+**Status:** Terimplementasi. Dokumen ini adalah satu-satunya sumber spesifikasi produk, aturan bisnis, desain, dan status implementasi.
+Dokumen pendamping: `README.md` (setup, deploy, operasi) dan `PANDUAN-PENGGUNAAN.md` (panduan pengguna akhir).
 
-**Riwayat perubahan:**
-- v2.0: Form pengujian, retest per (fitur, peran, siklus), approval, dashboard, riwayat, ekspor CSV/PDF, master fitur/peran/proyek/siklus/pengguna, audit, multi-sesi login, rate limit.
-- v3.0: Akun mandiri (reset password/invite), import Excel/CSV, notifikasi email/Telegram, Tugas Saya, test case per fitur, siklus hidup defect, detail fitur, mode cepat, draft form, riwayat (sort/preset/filter tersimpan/mobile), PDF semua hasil terfilter, keamanan upload, CI/E2E/health, migrasi berversi, normalisasi proyek via FK.
+**Riwayat versi:**
+- v2.0: form pengujian, retest per (fitur, peran, siklus), approval, dashboard, riwayat, ekspor CSV/PDF, master data, audit, rate limit login.
+- v3.0: akun mandiri, import Excel/CSV, notifikasi email/Telegram, Tugas Saya, test case, defect lifecycle, detail fitur, mode cepat, draft form, AI Test, CI/E2E/health, migrasi berversi.
+- v3.1: hardening hasil audit 4 Nov 2026 (scope retest per siklus, defect per pemilik, idempotensi submit, bukti privat, PDF server-side, heartbeat & isolasi runner AI). Dokumen perencanaan terpisah dilebur ke sini.
 
 ---
 
-## 1. Ringkasan Produk
+## 1. Produk
 
-SITester menggantikan pencatatan pengujian di Excel dengan satu alur: **catat hasil → kendalikan retest → pantau kualitas → ekspor laporan**. v3 menutup celah operasional (akun, migrasi data, notifikasi) dan menaikkan kedalaman QA (test case + defect) tanpa mengorbankan kesederhanaan untuk tim kecil.
+**Misi:** menggantikan Excel dengan satu alur: **catat hasil → kendalikan retest → pantau kualitas → ekspor laporan**, tetap sederhana untuk tim kecil dan murah (Vercel free + Postgres free).
 
-### Masalah yang diselesaikan v3
-- Pengguna tidak bisa memulihkan password sendiri; semua reset manual oleh ketua.
-- Data Excel lama tidak bisa dipindahkan otomatis.
-- Permohonan retest hanya terlihat jika ketua membuka aplikasi.
-- Tester tidak punya daftar kerja prioritas ("apa yang harus saya uji hari ini").
-- Hasil per fitur terlalu kasar untuk QA; tidak ada test case dan status defect.
-- PDF hanya memuat halaman riwayat yang sedang dibuka.
-- Bukti upload bisa hilang di serverless bila Blob tidak dikonfigurasi.
-- Tidak ada CI/E2E/health check; perubahan rawan regresi.
+**Pengguna**
+- **Tester** (non-teknis): mencatat hasil uji harian, memilih test case, mengajukan retest, memakai draft & mode cepat, melihat Tugas Saya, mengusulkan fitur, melacak defect yang ia temukan.
+- **Ketua Tim**: semua hak tester + approve/reject retest, kelola semua master, verifikasi fitur/defect, import, kelola akun & tautan reset.
 
-### Sasaran v3
-1. Onboarding & pemulihan akun tanpa campur tangan developer.
-2. Import data lama dengan pratinjau dan validasi, tanpa mengotori riwayat.
-3. Notifikasi sampai ke ketua walau tidak membuka aplikasi.
-4. Tester punya antrean tugas yang jelas per siklus.
-5. QA bisa mencatat per test case dan melacak defect sampai verified.
-6. Laporan PDF identik dengan filter (bukan hanya halaman aktif).
-7. Rilis aman: migrasi berversi, CI, E2E, health check.
+**Masalah yang diselesaikan:** pencatatan tersebar di Excel; retest tidak terkendali; tester tidak tahu "apa yang harus saya uji"; defect tidak terlacak; pemulihan akun dan migrasi data manual; laporan tidak konsisten dengan filter.
+
+**Anti-tujuan:** bukan multi-tenant/SSO, bukan diskusi realtime, bukan multi-lampiran (1 gambar + 1 URL), bukan pengganti CI developer, bukan integrasi Jira/Linear, bukan aplikasi native.
+
+**Prinsip:** riwayat append-only; approval hangus setelah dipakai; satu akun satu sesi aktif; pesan Indonesia; status tidak bergantung warna.
 
 ---
 
 ## 2. Peran
 
-| Role pengguna | Hak |
+| Role | Hak |
 |---|---|
-| **Tester** | Catat hasil, ajukan retest, usul fitur, kelola test case & defect yang ia buat, lihat data sendiri + agregat tim, atur akun sendiri |
-| **Ketua Tim** | Semua hak tester + approve/reject, lihat semua data, kelola semua master, verifikasi fitur, import, kelola akun & reset link |
+| **Tester** | Catat hasil, ajukan retest, usul fitur (nonaktif sampai diverifikasi), kelola test case & defect miliknya, lihat data sendiri + agregat tim, AI Test, atur akun sendiri |
+| **Ketua Tim** | Semua hak tester + approve/reject, lihat semua data, kelola master (proyek, fitur, peran uji, siklus, test case, pengguna), verifikasi fitur & defect, import, audit aktivitas, tautan reset |
 
-Autentikasi tetap email+password (scrypt), sesi opak httpOnly (SHA-256 di DB), satu akun satu sesi aktif. v3 menambah **reset password via token** (24 jam) dan **invite/reset link** dari ketua.
+Auth: email + password (scrypt), sesi opak di cookie httpOnly (hash SHA-256 di DB), satu sesi aktif per akun.
 
 ---
 
 ## 3. Fitur
 
-### F1 — Form Pengujian (diperbarui v3)
-Field wajib tetap. Perubahan:
-- **Test Case** (opsional) muncul setelah fitur dipilih; daftar dari master test case fitur tersebut.
-- **Severity/triase hanya tampil saat hasil Fail/Bug** (progressive disclosure). Field opsional (lingkungan, expected, actual, bukti) dilipat di `<details>`.
-- **Draft otomatis** ke `localStorage` (per pengguna) dengan tombol "Pulihkan"/"Hapus draft".
-- **Mode cepat**: tanggal/peran/siklus diisi sekali; penguji menambah beberapa hasil ke daftar lalu menyimpan sekaligus. Error per baris ditampilkan.
-- Setelah simpan, tanggal/peran/siklus tetap; fitur/hasil/catatan direset.
+### F1 — Form Pengujian (`/pengujian-baru`)
+- Field wajib: tanggal (tidak boleh masa depan), fitur, peran uji, hasil (Pass/Fail/Bug). Siklus dan test case opsional (daftar test case mengikuti fitur).
+- **Severity + catatan ≥10 karakter hanya wajib saat Fail/Bug** (progressive disclosure). Lingkungan, expected, actual, bukti dilipat di `<details>`.
+- **Draft otomatis** ke `localStorage` per pengguna (`sitester:draft-v3:<userId>`), tombol Pulihkan/Hapus; draft dibersihkan setelah simpan dan pada jalur konfirmasi AI.
+- **Mode cepat**: tanggal/peran/siklus diisi sekali, beberapa hasil diantrekan lalu disimpan sekaligus; setiap baris membawa snapshot scope-nya sendiri; error ditampilkan per baris.
+- Submit mengirim header `Idempotency-Key`; double-click atau retry jaringan menghasilkan satu sesi (BR-23).
+- Bukti: 1 gambar maks 2MB (F14) + 1 URL http(s).
+- Live check `GET /api/v1/features/[id]/can-test` (menegakkan scope siklus juga) dan tombol Ajukan Permohonan dengan alasan opsional.
 
-### F2 — Kontrol Retest (tidak berubah)
-Scope **(fitur, peran, siklus)**; approval single-use + kedaluwarsa 7 hari; Fail/Bug boleh diulang otomatis; pending per (fitur, peran); notifikasi 24 jam.
+### F2 — Kontrol Retest
+- Scope **(fitur, peran, siklus)**; "tanpa siklus" hanya cocok dengan baris tanpa siklus (BR-1).
+- Pass terakhir memblokir pengujian biasa; retest butuh approval ketua (BR-2, BR-3). Fail/Bug terakhir boleh diuji ulang tanpa approval (BR-5).
+- Approval single-use, kedaluwarsa 7 hari, membawa siklus; permohonan pending kedaluwarsa 7 hari (BR-4, BR-6).
+- Approve dan reject bersifat transaksional (`FOR UPDATE`) agar tidak balapan; dua submit bersamaan ke scope yang sama diserialkan lewat advisory lock.
+- Ketua dapat memberi catatan saat approve (`retest_approvals.note`).
 
-### F3 — Notifikasi (diperbarui)
-- In-app tetap sumber utama (bell + `/notifikasi`).
-- **Email** dikirim untuk permohonan baru (ketua) dan keputusan (tester) bila SMTP dikonfigurasi.
-- **Telegram** opsional untuk ketua bila `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` diisi.
-- Kegagalan kanal eksternal tidak menggagalkan transaksi utama (best-effort + log).
+### F3 — Notifikasi
+- In-app (bel + `/notifikasi`) sebagai sumber utama.
+- **Email** (SMTP, nodemailer) untuk permohonan baru (ke ketua) dan keputusan (ke tester); **Telegram** opsional untuk ketua.
+- Kanal eksternal best-effort: kegagalan tidak menggagalkan transaksi utama.
+- Peringatan duplikat uji memakai label **"diuji tester lain sejak kemarin"** karena `tested_at` hanya tanggal.
 
-### F4 — Tugas Saya (baru)
-Section di dashboard (semua role):
-- **Belum saya uji**: fitur aktif dalam lingkup siklus terpilih yang belum saya uji.
-- **Permohonan saya**: pending + kedaluwarsa + disetujui (siap retest).
-- **Perlu diverifikasi**: fitur dengan hasil terakhir Fail/Bug (defect terbuka).
-- **Menunggu persetujuan saya** (ketua): jumlah pending.
-Aksi cepat: buka form dengan fitur/siklus terisi.
+### F4 — Tugas Saya (di dashboard)
+- **Belum saya uji** (fitur aktif dalam lingkup siklus terpilih), **Permohonan saya** (pending, kedaluwarsa dengan badge, disetujui siap retest), **Perlu diverifikasi** (hasil terakhir Fail/Bug / defect terbuka), **Menunggu persetujuan** (ketua).
+- Aksi cepat membuka form dengan fitur/siklus terisi. Label dibedakan "tim" vs "saya" untuk tester.
 
 ### F5 — Dashboard & Grafik
-Seperti v2 + Tugas Saya. Filter siklus dari master; range 7/30.
+Statistik per siklus dan rentang 7/30 hari, bar harian, donut hasil, top fitur, banner instruksi + progres lingkup siklus (X dari Y). Query paralel; grafik dimuat lazy.
 
-### F6 — Riwayat (diperbarui)
-- **Sort** server-side: tanggal, fitur, hasil, severity (asc/desc).
-- **Preset tanggal**: 7 hari, 30 hari, bulan ini.
-- **Filter tersimpan** di localStorage (per pengguna) + tombol terapkan/hapus.
-- **Tabel mobile**: kartu per hasil di bawah breakpoint `sm`.
-- Kolom tetap; PDF/CSV mengikuti filter.
+### F6 — Riwayat (`/riwayat`)
+Filter (tanggal, tester [ketua], fitur, hasil, siklus, kata kunci), sort server-side (whitelist: tanggal, fitur, hasil, severity), preset 7 hari/30 hari/bulan ini, filter tersimpan per pengguna, kartu mobile di bawah `md`, paginasi (default 50).
 
-### F7 — Ekspor (diperbarui)
-- CSV mengikuti filter, hingga 5000 baris.
-- **PDF mengikuti filter yang sama, bukan halaman aktif**; tombol mengambil seluruh hasil terfilter sebelum membuat PDF.
-- PDF memakai palet monokrom (hitam) dan menyertakan ringkasan jumlah baris.
+### F7 — Ekspor
+- **CSV** (`/api/v1/export/csv`) dan **PDF** (`/api/v1/export/pdf`) mengikuti filter yang sama, maks 5.000 baris.
+- PDF dibuat **di server** (jsPDF + autotable, `maxDuration` 60 detik), landscape, header hitam, ringkasan "N dari TOTAL baris". Tombol unduh memanggil route tersebut.
 
 ### F8 — Master Data
-Fitur/peran/siklus/pengguna seperti v2. Tambahan:
-- **Proyek** menjadi FK nyata: `features.project_name → projects(name)` ON UPDATE CASCADE, ON DELETE RESTRICT.
-- **Test Case** per fitur: judul, langkah, expected, aktif/nonaktif; dikelola ketua & pembuat.
-- **Pengguna**: tombol **Buat tautan reset** (satu kali, 24 jam) dan **Reset password**; tautan ditampilkan untuk disalin.
+- Proyek (FK nyata: `features.project_name → projects(name)` ON UPDATE CASCADE, ON DELETE RESTRICT; rename ikut mengubah fitur; hapus diblokir bila dipakai).
+- Fitur (nama unik case-insensitive; hapus ditolak bila dipakai riwayat). **Usulan tester disimpan `is_active=false, verified=false`**; ketua memverifikasi lewat `/api/v1/features/[id]/verify` (BR-24).
+- Peran uji, Siklus (lingkup fitur via `cycle_features`; kosong = semua fitur; kolom `brief` = instruksi), Pengguna (tidak bisa hapus diri sendiri; reset password; tautan reset).
+- Semua perubahan master tercatat di audit.
 
-### F9 — Akun & Pemulihan (baru)
-- `/lupa-password`: kirim email berisi tautan reset bila akun ada (respons selalu generik).
-- `/reset-password?token=...`: set password baru, cabut semua sesi lama, token single-use.
-- Ketua dapat membuat tautan reset untuk pengguna mana pun; berguna bila email belum dikonfigurasi.
-- Token disimpan sebagai hash SHA-256, kedaluwarsa 24 jam, tercatat di audit.
+### F9 — Akun & Pemulihan
+- `/lupa-password` (respons selalu generik), `/reset-password?token=…` (token single-use, 24 jam, hash SHA-256, mencabut semua sesi).
+- Ketua membuat tautan reset untuk pengguna mana pun (berguna bila SMTP belum diatur).
+- Batas: 3 token per email per 15 menit (BR-22).
 
-### F10 — Import Excel/CSV (v2)
-- Halaman `/impor` (ketua) + template **CSV dan XLSX**.
-- Unggah **`.xlsx` atau `.csv`**, maks **2MB** dan **5.000 baris** (batas 2MB agar commit selesai dalam 60 detik; body request Vercel ±4.5MB; `.xls` lama tidak didukung).
-- Pilih **sheet** dan **baris header**; **mapping kolom** otomatis + dapat diubah manual, dengan preset mapping tersimpan di perangkat.
+### F10 — Import Excel/CSV (`/impor`, ketua)
+- Template CSV dan XLSX; unggah `.xlsx`/`.csv` maks **2MB** dan **5.000 baris** (`.xls` tidak didukung). Parser: `exceljs`.
+- Pilih sheet dan baris header; mapping kolom otomatis + manual, preset mapping tersimpan di perangkat.
 - Kolom: Tanggal, Email Tester, Fitur, Hasil, Peran, Siklus, Test Case, Severity, Lingkungan, Diharapkan, Terjadi, Catatan, Bukti URL, Ulang.
-- **Pratinjau** maks 500 baris (valid/error per baris, header error, mapping terdeteksi).
-- **Commit**:
-  - default all-or-nothing; opsi **“lewati baris error”** untuk mengimpor baris valid saja;
-  - seluruh baris valid disimpan dalam transaksi, batch insert;
-  - **dedupe** lewat hash baris — import ulang file yang sama dilewati, bukan menggandakan;
-  - membuat `import_batches` (file, hash, jumlah valid/invalid/imported/skipped, user, waktu) + audit;
-  - Fail/Bug membuat defect dengan **creator = tester baris** dan **tanggal = tanggal pengujian**;
-  - tidak mengirim notifikasi; tetap append-only.
-- **Unduh error CSV** untuk baris invalid.
-- Validasi: fitur/peran/siklus aktif, **lingkup fitur siklus**, test case harus milik fitur, format tanggal, severity/catatan Fail/Bug, URL bukti http(s).
-- Peringatan duplikat “diuji tester lain” memakai **tanggal pengujian**, bukan waktu import.
+- Pratinjau maks 500 baris (valid/error per baris). Unduh error CSV.
+- Commit: default all-or-nothing, opsi "lewati baris error"; transaksi + batch insert; **dedupe hash baris**; `import_batches` + audit; Fail/Bug membuat defect (creator = tester baris, tanggal = tanggal uji); tidak mengirim notifikasi; tidak menerapkan aturan retest (append-only).
+- Validasi: fitur/peran/siklus aktif, lingkup siklus, test case milik fitur, format tanggal, severity/catatan Fail/Bug, URL http(s). Error DB tidak dibocorkan (pesan generik + `console.error`); file rusak di `import/errors` → 422.
 
-### F11 — Test Case (baru)
-- Tabel `test_cases`: fitur, judul, langkah, expected, aktif.
-- Form pengujian dapat memilih test case (opsional). Hasil per test case memakai kolom expected/actual pada sesi.
-- Master test case di halaman detail fitur (ketua dapat mengelola semua; tester mengelola miliknya).
+### F11 — Test Case
+Tabel `test_cases` (fitur, judul, langkah, expected, aktif), dikelola di `/fitur/[id]` (ketua semua; tester miliknya). Dipilih opsional di form (BR-14).
 
-### F12 — Siklus Hidup Defect (baru)
-- Hasil **Fail/Bug** otomatis membuat defect (`open`) yang terhubung ke sesi.
-- Status: `open → fixed → verified → closed`; `reopened` hanya dari `fixed`/`verified`/`closed` (tidak dari `open`), dan `closed` hanya dari `verified`.
-- Field: judul, severity, assignee (teks), referensi fix, catatan verifikasi, verified_by/at.
-- Halaman `/defect` (semua role) dengan filter status/severity/fitur; ketua/tester dapat memperbarui status (audit).
-- Defect terbuka tampil di detail fitur dan Tugas Saya.
+### F12 — Siklus Hidup Defect (`/defect`)
+- Fail/Bug otomatis membuat tepat satu defect `open` per sesi (BR-15).
+- Transisi: `open→fixed`, `reopened→fixed`, `fixed→verified|reopened`, `verified→closed|reopened`, `closed→reopened`. `verified` hanya oleh ketua (BR-16).
+- Update defect hanya oleh **pembuat atau ketua** (BR-25). Field: judul, severity, assignee, referensi fix, catatan, verified_by/at. Setiap perubahan diaudit.
 
-### F13 — Detail Fitur (baru)
-`/fitur/[id]`: ringkasan fitur, test case (CRUD), defect terkait, dan timeline semua sesi (tanggal, tester, peran, siklus, hasil, severity, bukti).
+### F13 — Detail Fitur (`/fitur/[id]`)
+Ringkasan, CRUD test case, defect terkait, timeline semua sesi.
 
-### F14 — Keamanan Upload (diperbarui)
-- Produksi **wajib** `BLOB_READ_WRITE_TOKEN`; tanpa itu unggah ditolak dengan pesan jelas (tidak jatuh ke disk ephemeral).
-- Validasi isi file lewat magic bytes (PNG/JPEG/WebP/GIF); ekstensi ditentukan server, bukan nama file.
-- Route bukti mengirim `X-Content-Type-Options: nosniff`, `Content-Disposition: inline`, dan `Cache-Control: private, no-store`; akses wajib login.
-- Bila store Vercel Blob mendukung, bukti disimpan privat dan disajikan lewat route proxy ber-auth; store publik memakai URL UUID sebagai fallback. Set `BLOB_REQUIRE_PRIVATE=1` untuk menolak fallback publik (wajib Blob store privat).
+### F14 — Keamanan Upload
+- Produksi **wajib** `BLOB_READ_WRITE_TOKEN`; tanpa itu unggah ditolak.
+- Validasi magic bytes (PNG/JPEG/WebP/GIF); ekstensi ditentukan server.
+- Bukti dilayani lewat route proxy ber-auth (`/api/uploads/...`) dengan `nosniff`, `Content-Disposition: inline`, `Cache-Control: private, no-store`. Blob privat dipakai bila store mendukung; store publik memakai URL UUID sebagai fallback. `BLOB_REQUIRE_PRIVATE=1` menolak fallback.
 
 ### F15 — Rate Limit & Sesi
-- Login dibatasi per email (10 gagal/15 menit) **dan** per IP (30 gagal/15 menit), respons 429 + `Retry-After`.
-- Permintaan reset password dibatasi maksimal 3 token per email dalam 15 menit; respons tetap generik.
-- IP diambil dari `x-real-ip` (Vercel) lalu entri TERAKHIR `x-forwarded-for` (ditambahkan proxy tepercaya; entri awal bisa dipalsukan klien).
-- Tetap satu sesi aktif per akun (BR-10); reset password mencabut semua sesi.
+- Login: 10 gagal/15 menit per email dan 30 gagal/15 menit per IP → 429 + `Retry-After`. Sukses menghapus hitungan.
+- IP dari `x-real-ip`, lalu entri **terakhir** `x-forwarded-for` (satu helper `clientIp` dipakai semua route).
+- Login baru mencabut sesi lama (BR-10); reset password mencabut semua sesi.
 
-### F16 — AI Test Run
-- Halaman `/ai-test`: URL target (http/https), tujuan natural language, kriteria berhasil, fitur/peran/siklus, serta opsi **login target per-run** (URL login, email/password, instruksi, dan label field untuk login deterministik).
-- Run `queued` di `ai_test_runs`; runner eksternal mengambil lewat `GET /api/v1/ai-runs/next` dengan Bearer token runner (atomik; run macet >15 menit tanpa heartbeat dikembalikan ke antrean). Kuota 3 run aktif per pengguna ditegakkan atomik (advisory lock).
-- Saat run dibuat, server memicu `repository_dispatch` GitHub (`ai-run`) bila `GITHUB_DISPATCH_TOKEN` tersedia; tanpa token, schedule/manual menjadi fallback.
-- Runner menjalankan e2e TesterArmy (Chromium + model gratis OpenRouter/Google Gemini), mengambil screenshot, lalu `POST /api/v1/ai-runs/{id}/result`.
-- Hasil adalah **draft**: user klik `Konfirmasi` → `/pengujian-baru?ai_run=...` (form terisi hasil, severity, catatan, bukti) → submit memakai aturan retest/approval yang sama dan menandai run `confirmed`.
-- Setiap run menyimpan `runner_log` (stdout/stderr, error model, report e2e, maks 100.000 karakter); user dapat membuka **Log** di `/ai-test` untuk audit kegagalan login/selector. Nilai kredensial disamarkan (`[redacted]`) sebelum disimpan.
-- Target publik/localhost/internal diperbolehkan karena browser berjalan di runner, bukan Vercel.
-- Kredensial login target **per-run** disimpan terenkripsi AES-256-GCM di `ai_test_runs.login_credentials_enc` (kunci `AI_CREDENTIALS_KEY`, wajib di produksi), hanya dikirim ke runner saat run diklaim, dan dihapus saat hasil dikirim. Bila ketiga label login tidak lengkap, agent AI login sendiri dan password **ikut terkirim ke provider model** — isi ketiga label agar login deterministik tanpa melibatkan model. Fallback `AI_TARGET_EMAIL/PASSWORD` hanya dipakai jika run meminta login tanpa kredensial per-run.
-- Login deterministik memakai label field (`login_email_label`, `login_password_label`, `login_submit_label`); jika label tidak lengkap, agent AI menjalankan `login_goal`.
-- Gratis: runner di VPS/laptop 24 jam atau GitHub Actions terjadwal tiap 5 menit; Vercel hanya antrean/UI.
-- Keamanan: token runner wajib sama di Vercel + runner (boleh beda per host via `AI_RUNNER_TOKENS`); waspadai prompt injection dari halaman target, gunakan akun tester hak minimal.
+### F16 — AI Test (`/ai-test`)
+- Input: URL target (http/https), tujuan, kriteria berhasil, fitur/peran/siklus, opsi login target per-run (URL login, email/password, instruksi, label field).
+- Run `queued` di `ai_test_runs`. Runner eksternal mengambil lewat `GET /api/v1/ai-runs/next` (Bearer token; atomik; run `running` tanpa heartbeat >15 menit kembali ke antrean). Heartbeat `POST /api/v1/ai-runs/[id]/heartbeat` tiap 5 menit. Kuota 3 run aktif per pengguna (advisory lock).
+- Saat run dibuat, server memicu `repository_dispatch` GitHub (`ai-run`) bila `GITHUB_DISPATCH_TOKEN` ada; fallback: jadwal tiap 5 menit / manual (`.github/workflows/ai-runner.yml`).
+- Runner menjalankan e2e TesterArmy (Chromium + model gratis OpenRouter/Google Gemini; fallback model berurutan via `E2E_MODELS`) dan mengirim hasil + screenshot ke `POST /api/v1/ai-runs/[id]/result`.
+- Hasil adalah **draft**: `Konfirmasi` → `/pengujian-baru?ai_run=…` (prefill) → submit memakai aturan retest/approval yang sama. Fitur/peran/siklus sesi harus cocok dengan run; run berstatus `error` tidak bisa dikonfirmasi menjadi defect.
+- `runner_log` per run (maks 100.000 karakter, kredensial disamarkan `[redacted]`), dibaca lewat tombol Log.
+- Kredensial login per-run terenkripsi AES-256-GCM (`AI_CREDENTIALS_KEY`, wajib di produksi — fail-closed), hanya dikirim ke runner saat diklaim, dihapus saat hasil dikirim. Bila ketiga label login tidak lengkap, agent AI login sendiri dan **password ikut terkirim ke provider model**.
+- Isolasi egress runner (`scripts/ai-target-guard.mjs`): endpoint metadata cloud selalu diblokir; IP/host privat hanya bila `AI_RUNNER_ALLOW_PRIVATE_TARGETS=1`; run terblokir = `error` tanpa biaya model. Laporan e2e hilang = `error`, bukan `fail`.
+- Token runner: `AI_RUNNER_TOKEN` atau daftar `AI_RUNNER_TOKENS` (beda per host).
+- Waspadai prompt injection dari halaman target; pakai akun tester berhak minimal.
 
 ---
 
-## 4. Aturan Bisnis (tambahan v3)
+## 4. Aturan Bisnis
 
 | # | Aturan |
 |---|---|
-| BR-11 | Token reset password single-use, kedaluwarsa 24 jam, hanya hash yang disimpan |
-| BR-12 | Reset password mencabut semua sesi pengguna |
-| BR-13 | Import hanya commit bila seluruh baris valid; maks 5000 baris; transaksional |
+| BR-1 | Scope retest = (fitur, peran, siklus). Pencocokan siklus memakai `IS NOT DISTINCT FROM`: "tanpa siklus" hanya cocok dengan baris tanpa siklus |
+| BR-2 | Hasil terakhir Pass dalam scope memblokir pengujian biasa; pengguna harus memilih "Pengujian Ulang" |
+| BR-3 | Retest setelah Pass wajib punya approval ketua yang masih berlaku |
+| BR-4 | Approval single-use, scope (fitur, peminta, peran, siklus), kedaluwarsa 7 hari sejak disetujui; approval siklus A tidak berlaku di siklus B |
+| BR-5 | Hasil terakhir Fail/Bug: uji ulang boleh tanpa approval (dengan peringatan) |
+| BR-6 | Satu permohonan pending per (fitur, peran, siklus); ditolak bila hasil terakhir bukan Pass atau sudah ada approval berlaku; pending kedaluwarsa 7 hari |
+| BR-7 | Riwayat `test_sessions` append-only (tanpa edit/hapus) |
+| BR-8 | Fail/Bug wajib catatan ≥10 karakter + severity; fitur/peran/siklus harus aktif; siklus ber-lingkup menolak fitur di luar lingkup |
+| BR-9 | Tester hanya melihat data miliknya (kecuali agregat tim + dropdown master); `user_id` dari tester diabaikan |
+| BR-10 | Satu akun satu sesi aktif |
+| BR-11 | Token reset password single-use, 24 jam, hanya hash yang disimpan |
+| BR-12 | Reset password mencabut semua sesi |
+| BR-13 | Import maks 5.000 baris / 2MB, transaksional; dedupe hash baris |
 | BR-14 | Test case harus milik fitur yang diuji dan aktif |
 | BR-15 | Fail/Bug membuat tepat satu defect `open` per sesi |
-| BR-16 | Transisi defect: open→fixed→verified→closed; verified hanya oleh ketua; reopened dari verified/closed |
-| BR-17 | PDF mengikuti filter yang sama dengan CSV (semua hasil terfilter, maks 5000) |
-| BR-18 | Bukti upload divalidasi magic bytes; produksi tanpa Blob = tolak |
+| BR-16 | Transisi defect sesuai F12; `verified` hanya ketua |
+| BR-17 | PDF dan CSV memakai filter yang sama (maks 5.000 baris) |
+| BR-18 | Bukti divalidasi magic bytes; produksi tanpa Blob = tolak |
 | BR-19 | Rate limit login: 10/15 menit per email, 30/15 menit per IP |
-| BR-20 | Kredensial login target per-run disimpan terenkripsi AES-256-GCM, tidak dikirim ke model pada login deterministik (tiga label lengkap), dan dihapus saat hasil AI run dikirim |
-| BR-21 | Log runner disimpan per AI run (maks 100.000 karakter), dapat dibaca pembuat run/ketua, dan tidak memuat kredensial target |
-| BR-22 | Permohonan reset password maksimal 3 token per email dalam 15 menit; respons selalu generik |
-
-Aturan BR-1..BR-10 dari v2 tetap berlaku.
-
----
-
-## 5. Non-Fungsional
-
-- Guard server di setiap route; tester hanya data miliknya (kecuali agregat tim + master dropdown).
-- Zona waktu Asia/Jakarta untuk tanggal.
-- **Migrasi berversi** di `db/migrations/*.sql` + tabel `schema_migrations`; `db/schema.sql` dipertahankan sebagai snapshot baseline/fresh-install.
-- **CI** GitHub Actions: lint, tsc, test API, build; service Postgres.
-- **E2E** Playwright minimal: login page, proteksi route, alur login demo.
-- **Health** `GET /api/health` (DB check) + `instrumentation.onRequestError` untuk log error terstruktur.
-- **Cleanup** `npm run db:cleanup`: hapus token/permohonan/login_attempts kedaluwarsa.
-- Header keamanan: nosniff, referrer same-origin, frame DENY, HSTS, permissions policy.
-- Backup mingguan tetap.
+| BR-20 | Kredensial login target per-run terenkripsi, tidak dikirim ke model bila login deterministik (tiga label lengkap), dihapus saat hasil dikirim |
+| BR-21 | Log runner per AI run (maks 100.000 karakter), dapat dibaca pembuat run/ketua, tanpa kredensial |
+| BR-22 | Reset password maks 3 token per email per 15 menit; respons selalu generik |
+| BR-23 | `Idempotency-Key` unik per pengguna `(user_id, idempotency_key)`; replay mengembalikan sesi yang sama tanpa efek ganda |
+| BR-24 | Usulan fitur dari non-ketua `is_active=false, verified=false` sampai diverifikasi ketua |
+| BR-25 | Update defect hanya oleh pembuat atau ketua |
 
 ---
 
-## 6. Out of Scope v3
-SSO/OAuth, multi-tenant, komentar diskusi realtime, multi-file attachment, otomasi test runner, integrasi Jira/Linear, mobile app native.
+## 5. Model Data
+
+Migrasi berversi di `db/migrations/0001…0012_*.sql` + tabel `schema_migrations`; `db/schema.sql` = snapshot fresh-install/test (harus disinkronkan setiap ada migrasi baru).
+
+| Kelompok | Tabel |
+|---|---|
+| Akun | `users`, `sessions`, `login_attempts`, `password_reset_tokens` |
+| Master | `projects`, `testing_roles`, `test_cycles`, `cycle_features`, `features`, `test_cases` |
+| Pengujian | `test_sessions` (+`test_case_id`, `idempotency_key`), `retest_requests`, `retest_approvals` (keduanya membawa `test_cycle`), `defects` |
+| Lainnya | `notifications`, `audit_logs`, `import_batches`, `ai_test_runs` |
+
+Migrasi penting: `0002` auth/reset · `0003` kualitas (test case, defect) · `0004` indeks performa · `0005` import · `0006–0008,0010` AI run (login, log, error) · `0009` retest per siklus · `0011–0012` idempotensi per pengguna.
 
 ---
 
-## 7. Rencana Implementasi
-Lihat `PLAN-v3.md` untuk urutan task dan kriteria selesai.
+## 6. Non-Fungsional & Operasi
 
-## 8. Verifikasi v3
-- Semua test v2 tetap hijau + regression baru (reset token, import CSV/XLSX, mapping, dedupe, skip-invalid, test case, defect, AI run queue/runner/confirm/heartbeat, kuota konkuren, egress guard, kredensial, sort, rate limit IP, PDF filter, upload magic, path traversal, permohonan aktif): **113 test lulus**.
-- `npm run lint` (nol warning), `npx tsc --noEmit`, `npm test`, `npm run build`, `npm run test:e2e` (7 skenario: login, proteksi route, regresi UI M4/M5/M8, defect, import) hijau; `npm run load:smoke` (100 req/10 konkuren) 0 error.
-- Manual: lupa password → reset → login; import 2 baris valid + 1 error → commit ditolak; Fail → defect open → verified; PDF filter = CSV filter; bukti non-gambar ditolak.
+- Guard server di setiap route; pesan validasi Bahasa Indonesia; error DB tidak dikirim mentah ke klien.
+- Zona waktu tunggal Asia/Jakarta (`lib/time.ts`).
+- Header keamanan (`next.config.ts`): nosniff, referrer same-origin, frame DENY, HSTS, permissions policy.
+- Route aplikasi dilindungi `src/proxy.ts` (cek cookie) + guard server di layout/route.
+- **CI** (`.github/workflows/ci.yml`): lint, `tsc`, `npm test` (service Postgres), build; job `e2e` (Playwright) dan `e2e-agentic` (TesterArmy). Workflow terpisah `ai-runner.yml` untuk antrean AI Test.
+- **Health:** `GET /api/health` (cek DB) + `instrumentation.onRequestError`.
+- **Cleanup:** `npm run db:cleanup` (token, permohonan, login_attempts kedaluwarsa). **Backup:** `scripts/backup.sh` mingguan.
+- Performa: query paralel, auth+unread satu query, `loading.tsx`, pool `PG_POOL_MAX` kecil di serverless (lihat README).
+
+---
+
+## 7. Desain (monokrom)
+
+Dunia visual: terang, tinta hitam (bukan dark mode). Status dibedakan **label teks + bentuk border**, bukan warna.
+
+**Token:** tinta `#09090b` (aksi primer, judul, sidebar), kertas `#fafafa` + kartu `#fff`, satu skala `neutral-*`. Tidak ada aksen warna (indigo/violet/emerald/rose/amber/sky), gradien, emoji ikon, kicker/eyebrow.
+
+**Status:** `badge-pass` (hitam solid) · `badge-fail` (border-2) · `badge-bug` (border dashed) · `badge-neutral`/`badge-outline`. Grafik: bar `#09090b`; donut `#09090b/#71717a/#d4d4d8` + border hitam; legenda selalu tampil.
+
+**Kelas bersama (`src/app/globals.css`):**
+`.card/.card-pad` · `.page-title/.page-subtitle` · `.btn-primary/.btn-dark/.btn-success-solid` (satu aksi utama per halaman) · `.btn-soft` (sekunder) · `.btn-danger-soft` (hanya Tolak) · `.icon-btn` · `.action-link` · `.label/.hint` · `.input/.input-file` · `.table-head/.table-th` + `caption.sr-only` · `.badge` varian · `.alert-ok/err/warn/info` · `.empty-state` (+CTA) · `.skeleton` (hormati `prefers-reduced-motion`) · `.timeline`.
+
+**Aksesibilitas:** semua tombol `min-h-11` (44px) dan `focus-visible` ring hitam; label terasosiasi (`htmlFor`/`id`); radio dalam `fieldset/legend`; `aria-live` untuk area muat; `lang="id"`; belum dibaca = `bg-neutral-100` + titik + badge "Baru".
+
+**Pola halaman:** judul → subjudul; filter dalam `.card` (+ "Atur ulang"); tabel `overflow-x-auto` (kartu di mobile untuk riwayat); form `card-pad` dengan pesan ber-`role`; baris pratinjau import invalid `bg-neutral-100` + daftar error; PDF header `[9,9,11]`.
+
+**Bahasa:** Indonesia untuk non-teknis ("Kata sandi", "Unduh CSV/PDF", "Atur ulang"); istilah domain Pass/Fail/Bug dipertahankan.
+
+**Sidebar:** utama (Dashboard, Pengujian Baru, Riwayat, Fitur, Defect, AI Test, Notifikasi) dan manajemen/ketua (Proyek, Permohonan, Pengguna, Peran Uji, Siklus, Import, Aktivitas).
+
+---
+
+## 8. Status Implementasi
+
+| Gelombang | Isi | Status |
+|---|---|---|
+| v2 | Fondasi DB+seed, auth+shell, aturan retest murni, master data, form+retest+notifikasi, riwayat+dashboard, ekspor+bukti, test API, rate limit, approval kedaluwarsa, audit log, paginasi, hardening (zona waktu, header, backup), lingkup siklus, master proyek | Selesai |
+| v3 | Migrasi berversi, reset password, import, notifikasi eksternal + upload aman, Tugas Saya, test case + detail fitur, defect lifecycle, form v3, riwayat v3, hardening + CI + E2E | Selesai |
+| Audit 4 Nov 2026 | Defect hanya pembuat/ketua; semantik "tanpa siklus" tepat sama; retest menyertakan siklus (`0009`); idempotensi per pengguna (`0012`); bukti privat; error DB generik; draft per pengguna; validasi AI run vs sesi; `can-test` menegakkan lingkup; dashboard menampilkan permohonan kedaluwarsa; rate limit forgot-password; advisory lock anti dua Pass; `.env.example`; hapus route mati; transaksi reject retest; PDF server-side; transisi defect diketatkan; batas import 2MB/5.000 baris | Selesai |
+| AI Test hardening | Peringatan password ke model; report hilang = `error`; redaksi kredensial di log; kunci kredensial wajib di produksi; heartbeat 5 menit / reclaim 15 menit; token per-runner; kuota anti-balapan; isolasi egress; Blob privat ketat; E2E defect+import; smoke beban; nol warning lint | Selesai |
+
+**Keputusan arsitektur yang perlu diingat**
+- Retest/approval memakai scope siklus *tepat sama* (tidak ada wildcard lintas siklus).
+- `tested_at` bertipe `date`, sehingga tidak ada klaim "24 jam".
+- Import sengaja append-only dan tidak menjalankan aturan retest.
+- Target AI Test boleh publik/internal karena browser berjalan di runner, bukan Vercel.
+- Jangan membuat `.env` di root; gunakan `.env.local` (dev) dan `.env.neon` (eksplisit per perintah) — lihat README.
+
+**Utang teknis yang diketahui:** `TRANSITIONS` defect diduplikasi di client dan server; PDF belum memetakan guard formula-injection; `clearDraftFor` belum dipanggil saat logout (draft per-pengguna sudah mencegah kebocoran antar akun); `successUrlContains` runner memakai regex mentah; `/proyek` belum ada di `isAppRoute`/`matcher` `src/proxy.ts` (tetap aman lewat guard server).
+
+---
+
+## 9. Verifikasi
+
+Definition of done tiap perubahan:
+
+```bash
+npm run lint
+npx tsc --noEmit
+npm test            # unit + API, butuh Postgres (TEST_DATABASE_URL)
+npm run build
+npm run test:e2e    # Playwright: 7 skenario (login, proteksi route, lupa password, regresi UI, defect, import)
+```
+
+Opsional: `npm run load:smoke` (100 req / 10 konkuren, gate p95 + 0 error). Manual rilis: lupa password → reset → login; import 2 valid + 1 error; Fail → defect open → fixed → verified; PDF = CSV pada filter yang sama; bukti non-gambar ditolak.
+
+---
+
+## 10. Di Luar Cakupan / Backlog
+
+SSO/OAuth, multi-tenant, komentar realtime, multi-lampiran, integrasi Jira/Linear, aplikasi native, import `.xls` lama, import >5.000 baris via unggah langsung ke Blob.

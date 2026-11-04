@@ -486,9 +486,7 @@ master, approval, import, dan perubahan data sensitif lainnya.
 ## 11. Referensi Internal
 
 - `README.md` — setup, deployment, konfigurasi environment, AI runner.
-- `PRD.md` — spesifikasi fitur dan aturan bisnis.
-- `DESIGN.md` — pedoman antarmuka.
-- `PLAN-v3.md` — catatan implementasi.
+- `PRD.md` — spesifikasi fitur, aturan bisnis, desain antarmuka, dan status implementasi.
 
 Untuk masalah teknis (runner, database, token, deployment), hubungi administrator
 aplikasi.
