@@ -16,7 +16,7 @@ export async function PATCH(
   if (featureId === null) return err("Fitur tidak ditemukan.", 404);
 
   const rows = await query<{ id: number; name: string }>(
-    `UPDATE features SET verified=true, updated_at=now() WHERE id=$1 RETURNING id, name`,
+    `UPDATE features SET verified=true, is_active=true, updated_at=now() WHERE id=$1 RETURNING id, name`,
     [featureId],
   );
   if (rows.length === 0) return err("Fitur tidak ditemukan.", 404);

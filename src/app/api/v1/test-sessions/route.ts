@@ -61,6 +61,23 @@ export async function POST(request: Request) {
   const testCaseId = testCaseRaw === "" ? null : Number(testCaseRaw);
   const aiRunRaw = str("ai_run_id");
   const aiRunId = aiRunRaw === "" ? null : Number(aiRunRaw);
+  const idempotencyKey =
+    request.headers.get("Idempotency-Key")?.trim().slice(0, 100) || null;
+
+  // Replay: kunci yang sama mengembalikan sesi yang sudah ada tanpa efek ganda.
+  if (idempotencyKey) {
+    const existing = await queryOne<{ id: number; defect_id: number | null }>(
+      `SELECT s.id, (SELECT d.id FROM defects d WHERE d.session_id=s.id ORDER BY d.id LIMIT 1) AS defect_id
+         FROM test_sessions s WHERE s.idempotency_key=$1 AND s.user_id=$2`,
+      [idempotencyKey, user.id],
+    );
+    if (existing) {
+      return NextResponse.json(
+        { ok: true, sessionId: Number(existing.id), defectId: existing.defect_id !== null ? Number(existing.defect_id) : null, deduped: true, warning: null },
+        { status: 200 },
+      );
+    }
+  }
 
   if (!testedAt || !isIsoDate(testedAt)) {
     return err("Tanggal pengujian tidak valid (format YYYY-MM-DD).", 422);
@@ -254,13 +271,13 @@ export async function POST(request: Request) {
       const inserted = await client.query<{ id: number }>(
         `INSERT INTO test_sessions
           (user_id, feature_id, test_case_id, tested_at, result, severity, environment, expected, actual,
-           notes, is_retest, tested_as_role, test_cycle, retest_approval_id, evidence_path, evidence_url)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+           notes, is_retest, tested_as_role, test_cycle, retest_approval_id, evidence_path, evidence_url, idempotency_key)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
          RETURNING id`,
         [
           user.id, featureId, testCaseId, testedAt, result, severity, environment,
           expected, actual, notes, isRetest, role, cycle, approvalId, evidencePath,
-          evidenceUrl,
+          evidenceUrl, idempotencyKey,
         ],
       );
 
@@ -298,6 +315,21 @@ export async function POST(request: Request) {
       return { sessionId, defectId };
     });
   } catch (e) {
+    // Balapan double-submit: kunci sama menang satu, yang kalah ambil sesi pemenang.
+    const pg = e as { code?: string; constraint?: string };
+    if (idempotencyKey && (pg.code === "23505" || /idempotency/i.test(pg.constraint ?? "") || /idempotency/i.test(e instanceof Error ? e.message : ""))) {
+      const winner = await queryOne<{ id: number; defect_id: number | null }>(
+        `SELECT s.id, (SELECT d.id FROM defects d WHERE d.session_id=s.id ORDER BY d.id LIMIT 1) AS defect_id
+           FROM test_sessions s WHERE s.idempotency_key=$1 AND s.user_id=$2`,
+        [idempotencyKey, user.id],
+      );
+      if (winner) {
+        return NextResponse.json(
+          { ok: true, sessionId: Number(winner.id), defectId: winner.defect_id !== null ? Number(winner.defect_id) : null, deduped: true, warning: null },
+          { status: 200 },
+        );
+      }
+    }
     return err(e instanceof Error ? e.message : "Gagal menyimpan.", 422);
   }
 

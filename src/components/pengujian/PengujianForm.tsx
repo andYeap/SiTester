@@ -41,6 +41,7 @@ type Draft = {
 
 type QueueRow = {
   key: string;
+  idemKey: string;
   featureId: string;
   featureName: string;
   testCaseId: string;
@@ -151,6 +152,17 @@ export default function PengujianForm({
   const mounted = useRef(false);
   const router = useRouter();
   const draftKey = useMemo(() => draftKeyFor(userId), [userId]);
+  // Satu kunci per upaya simpan: retry/network memakai kunci sama, sukses me-reset.
+  const idemRef = useRef<string | null>(null);
+  const nextIdemKey = () => {
+    if (!idemRef.current) {
+      idemRef.current =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+    return idemRef.current;
+  };
 
   const needsTriage = result === "fail" || result === "bug";
 
@@ -351,9 +363,11 @@ export default function PengujianForm({
       return;
     }
     setSaving(true);
+    const idemKey = nextIdemKey();
     try {
       const res = await fetch("/api/v1/test-sessions", {
         method: "POST",
+        headers: { "Idempotency-Key": idemKey },
         body: buildFormData({ featureId, testCaseId, result, severity, notes }),
       });
       const data = (await res.json()) as { error?: string; warning?: string | null };
@@ -362,6 +376,7 @@ export default function PengujianForm({
         return;
       }
       setOk("Hasil pengujian berhasil disimpan.");
+      idemRef.current = null;
       if (data.warning) setWarn(data.warning);
       if (initialAiRun) {
         router.push("/riwayat");
@@ -410,6 +425,10 @@ export default function PengujianForm({
       ...prev,
       {
         key: `${Date.now()}-${featureId}`,
+        idemKey:
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         featureId,
         featureName: f.name,
         testCaseId,
@@ -442,6 +461,7 @@ export default function PengujianForm({
       try {
         const res = await fetch("/api/v1/test-sessions", {
           method: "POST",
+          headers: { "Idempotency-Key": row.idemKey },
           body: buildFormData(row),
         });
         if (!res.ok) {

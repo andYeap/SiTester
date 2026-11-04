@@ -38,33 +38,24 @@ export default function DownloadPdfButton({ query }: { query: string }) {
       const sp = new URLSearchParams(query);
       sp.set("limit", "5000");
       sp.set("offset", "0");
-      const res = await fetch(`/api/v1/test-sessions?${sp}`);
-      const data = (await res.json()) as {
-        sessions?: SessionRow[];
-        error?: string;
-      };
-      if (!res.ok) throw new Error(data.error ?? "Gagal memuat data laporan.");
-      const sessions = data.sessions ?? [];
-
-      const { default: jsPDF } = await import("jspdf");
-      const { default: autoTable } = await import("jspdf-autotable");
-      const doc = new jsPDF({ orientation: "landscape" });
-      doc.setFontSize(14);
-      doc.text("SITester — Laporan Hasil Pengujian", 14, 14);
-      doc.setFontSize(9);
-      doc.text(
-        `Diekspor: ${new Date().toLocaleString("id-ID")} · ${sessions.length} baris (mengikuti filter aktif)`,
-        14,
-        21,
-      );
-      autoTable(doc, {
-        startY: 26,
-        head: [["Tanggal", "Tester", "Peran", "Siklus", "Fitur", "Hasil", "Severity", "Lingkungan", "Ulang", "Catatan"]],
-        body: sessionRows(sessions),
-        styles: { fontSize: 7 },
-        headStyles: { fillColor: [9, 9, 11], textColor: [250, 250, 250] },
-      });
-      doc.save(buildPdfFileName());
+      // PDF dibuat di server agar browser tidak membeku untuk ribuan baris.
+      const res = await fetch(`/api/v1/export/pdf?${sp}`);
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "Gagal memuat data laporan.");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      try {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = buildPdfFileName();
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal membuat PDF.");
     } finally {

@@ -84,10 +84,11 @@ export async function POST(request: Request) {
   }
 
   const isKetua = user.role === "ketua_tim";
+  const effectiveActive = isKetua ? isActive : false;
   await query(
     `INSERT INTO features (name, description, project_name, is_active, verified, created_by)
      VALUES ($1,$2,$3,$4,$5,$6)`,
-    [name, description, projectName, isActive, isKetua, user.id],
+    [name, description, projectName, effectiveActive, isKetua, user.id],
   );
   await audit({
     actorId: user.id,
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
     actorRole: user.role,
     action: "features.create",
     target: name,
-    changes: { project_name: projectName, is_active: isActive },
+    changes: { project_name: projectName, is_active: effectiveActive },
     ip: clientIp(request),
   });
 
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
       ok: true,
       message: isKetua
         ? "Fitur berhasil ditambahkan."
-        : "Usulan fitur berhasil ditambahkan dan langsung bisa dipakai. Ketua tim akan memverifikasinya.",
+        : "Usulan fitur berhasil ditambahkan dan menunggu verifikasi ketua tim sebelum bisa dipakai.",
     },
     { status: 201 },
   );
