@@ -107,7 +107,7 @@ export default function DashboardView({
 
       {isKetua && (stats?.summary.permohonan_pending ?? 0) > 0 && (
         <div className="alert-warn flex items-center justify-between">
-          <span>{stats?.summary.permohonan_pending} permohonan pengujian ulang menunggu persetujuan Anda.</span>
+          <span>{stats?.summary.permohonan_pending} permohonan pengujian ulang dari tim menunggu persetujuan Anda.</span>
           <Link href="/permohonan" className="text-sm font-semibold underline underline-offset-2">Lihat permohonan</Link>
         </div>
       )}
