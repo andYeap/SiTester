@@ -59,6 +59,42 @@ test("M4 draft hilang setelah simpan; M5 alasan retest terkirim dan tersimpan", 
   }
 });
 
+test("M9 siklus berlingkup menyaring fitur di form pengujian", async ({
+  page,
+  playwright,
+}) => {
+  const name = `E2E Scope ${Date.now()}`;
+  const cycleName = `E2E Siklus ${Date.now()}`;
+  const ketua = await loginApi(playwright.request, KETUA.email, KETUA.password);
+  const created = await ketua.post("/api/v1/features", { data: { name } });
+  expect(created.ok()).toBeTruthy();
+  const listed = await ketua.get("/api/v1/features");
+  const feature = (
+    (await listed.json()) as { features: { id: string; name: string }[] }
+  ).features.find((f) => f.name === name);
+  expect(feature).toBeTruthy();
+
+  try {
+    const cycle = await ketua.post("/api/v1/test-cycles", {
+      data: { name: cycleName, feature_ids: [feature!.id] },
+    });
+    expect(cycle.ok()).toBeTruthy();
+
+    await loginUi(page, TESTER.email, TESTER.password);
+    await page.goto(`/pengujian-baru?cycle=${encodeURIComponent(cycleName)}`);
+    await expect(page.getByText("Siklus ini mencakup 1 fitur")).toBeVisible();
+    await pickFeature(page, name);
+    await expect(page.getByText("Fitur ini siap diuji.")).toBeVisible();
+  } finally {
+    const cycles = await ketua.get("/api/v1/test-cycles");
+    const found = (
+      (await cycles.json()) as { cycles: { id: number; name: string }[] }
+    ).cycles.find((c) => c.name === cycleName);
+    if (found) await ketua.delete(`/api/v1/test-cycles/${found.id}`);
+    await cleanupFeature(name);
+  }
+});
+
 test("M8 dashboard: badge kedaluwarsa + label sesuai peran", async ({
   page,
 }) => {

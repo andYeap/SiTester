@@ -108,7 +108,7 @@ export default function PengujianForm({
   const [cycles] = useState<Cycle[]>(initialCycles);
   const [projectFilter, setProjectFilter] = useState("");
   const [cycleBrief, setCycleBrief] = useState<string | null>(null);
-  const [scopeIds, setScopeIds] = useState<number[] | null>(null);
+  const [scopeIds, setScopeIds] = useState<Array<number | string> | null>(null);
   const projects = useMemo(() => {
     const names = new Set(initialProjects.map((p) => p.name));
     for (const f of features) {
@@ -117,7 +117,10 @@ export default function PengujianForm({
     return [...names].sort((a, b) => a.localeCompare(b, "id"));
   }, [initialProjects, features]);
   const scopedFeatures = useMemo(
-    () => (scopeIds === null ? features : features.filter((f) => scopeIds.includes(f.id))),
+    () =>
+      scopeIds === null
+        ? features
+        : features.filter((f) => scopeIds.some((id) => String(id) === String(f.id))),
     [features, scopeIds],
   );
 
@@ -188,12 +191,12 @@ export default function PengujianForm({
       const res = await fetch("/api/v1/test-cycles");
       if (!res.ok) return;
       const data = (await res.json()) as {
-        cycles: { name: string; brief: string | null; feature_ids: number[] }[];
+        cycles: { name: string; brief: string | null; feature_ids: Array<number | string> }[];
       };
       const found = (data.cycles ?? []).find((c) => c.name === name);
       if (!found) return;
       setCycleBrief(found.brief);
-      setScopeIds(found.feature_ids.length > 0 ? found.feature_ids.map(Number) : null);
+      setScopeIds(found.feature_ids.length > 0 ? found.feature_ids : null);
     } catch {
       /* form tetap bisa dipakai tanpa lingkup */
     }
