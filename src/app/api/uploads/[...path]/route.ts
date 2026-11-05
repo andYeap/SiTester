@@ -3,6 +3,7 @@ import { stat } from "node:fs/promises";
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
+import { decryptEvidence, isEncryptedEvidence } from "@/lib/evidence-crypto";
 import { localUploadPath } from "@/lib/storage";
 
 function contentType(name: string): string {
@@ -63,16 +64,23 @@ export async function GET(
 
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (token) {
-    try {
-      const { get } = await import("@vercel/blob");
-      const blob = await get(name, { access: "private", token });
-      if (blob?.statusCode === 200) {
-        return new Response(blob.stream, {
-          headers: headers(blob.blob.contentType),
+    const { get } = await import("@vercel/blob");
+    for (const access of ["private", "public"] as const) {
+      try {
+        const blob = await get(name, { access, token });
+        if (blob?.statusCode !== 200) continue;
+        const raw = Buffer.from(await new Response(blob.stream).arrayBuffer());
+        const encrypted = isEncryptedEvidence(raw);
+        const body = encrypted ? decryptEvidence(raw) : raw;
+        const original = name.endsWith(".enc") ? name.slice(0, -4) : name;
+        return new Response(body as unknown as BodyInit, {
+          headers: headers(
+            encrypted ? contentType(original) : blob.blob.contentType,
+          ),
         });
+      } catch {
+        // Coba mode akses berikutnya; Blob tidak ada atau bukan milik store ini.
       }
-    } catch {
-      // Blob tidak ada atau bukan milik store ini.
     }
   }
 

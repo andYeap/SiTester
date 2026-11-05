@@ -376,11 +376,9 @@ Screenshot disimpan ke Vercel Blob jika `BLOB_READ_WRITE_TOKEN` dikonfigurasi.
 Tanpa token, hasil tetap disimpan tetapi screenshot dilewati dan muncul catatan
 sistem.
 
-Bukti disajikan lewat aplikasi dan hanya bisa dilihat pengguna yang sudah login.
-Jika Blob store administrator belum mendukung akses privat, file memakai URL
-acak (UUID) yang tidak ditemukan lewat pencarian tetapi tetap bisa dibuka siapa
-pun yang memiliki tautannya — hindari data sensitif pada screenshot. Administrator
-dapat mewajibkan mode privat dengan `BLOB_REQUIRE_PRIVATE=1` + Blob store privat.
+Bukti dienkripsi sebelum diunggah dan disajikan lewat aplikasi, hanya untuk
+pengguna yang sudah login. Administrator wajib mengisi `EVIDENCE_ENCRYPTION_KEY`
+(≥ 20 karakter) di lingkungan yang memakai Blob; tanpa kunci, unggahan ditolak.
 
 ### 6.7 Batasan AI Test
 

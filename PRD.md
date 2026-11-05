@@ -137,7 +137,7 @@ Auth: email + password (scrypt `scrypt:<salt>:<hash>`), sesi opak di cookie http
 
 ### F11 — Keamanan Upload (bukti)
 - Hanya gambar PNG/JPEG/WebP/GIF, divalidasi **magic bytes**; ekstensi ditentukan server; maks 2MB (form dan AI run).
-- Dengan `BLOB_READ_WRITE_TOKEN`: simpan ke Vercel Blob `access: "private"` (kolom `evidence_path` = pathname) dan sajikan lewat proxy ber-auth `/api/uploads/...`. Bila store tidak mendukung privat dan `BLOB_REQUIRE_PRIVATE` ≠ `1`, fallback publik bernama UUID (`evidence_path` = URL penuh); dengan `BLOB_REQUIRE_PRIVATE=1` upload ditolak.
+- Dengan `BLOB_READ_WRITE_TOKEN`: isi gambar dienkripsi AES-256-GCM (`EVIDENCE_ENCRYPTION_KEY`, wajib) sebelum disimpan ke Vercel Blob; kolom `evidence_path` = pathname dan penyajian lewat proxy ber-auth `/api/uploads/...`. Store publik hanya menyimpan ciphertext; tanpa kunci enkripsi upload ditolak.
 - Tanpa token: dev menyimpan di `uploads/`; **produksi menolak** unggahan (tidak jatuh ke disk ephemeral).
 - Route penyaji: wajib login, nama path divalidasi `[A-Za-z0-9._-]` (anti path traversal), `X-Content-Type-Options: nosniff`, `Content-Disposition: inline`, `Cache-Control: private, no-store`.
 - Bukti AI run best-effort: kegagalan simpan tidak menggagalkan hasil (catatan sistem ditambahkan).

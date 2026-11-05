@@ -64,7 +64,7 @@ Buka `http://localhost:3000`. Seed membuat `ketua@testlab.test` dan `tester1@tes
 | `PG_POOL_MAX` | app | Default 5; di serverless set kecil (`3`) |
 | `APP_URL` | app | Basis URL untuk tautan di email/Telegram/reset (tanpa ini dipakai origin request) |
 | `BLOB_READ_WRITE_TOKEN` | app | **Wajib di produksi** untuk bukti; tanpa ini unggahan ditolak |
-| `BLOB_REQUIRE_PRIVATE` | app | `1` = tolak fallback Blob publik (butuh Blob store privat) |
+| `EVIDENCE_ENCRYPTION_KEY` | app | **Wajib bila memakai Blob** (≥20 karakter): isi bukti dienkripsi sebelum diunggah; tanpa kunci unggahan ditolak |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | app | Email opsional (aktif bila `SMTP_HOST` + `SMTP_FROM` ada; port default 587) |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | app | Notifikasi Telegram untuk ketua, opsional |
 | `AI_RUNNER_TOKEN` | app + runner | Token Bearer endpoint runner (≥20 karakter) |
@@ -182,7 +182,7 @@ npm run test:e2e:ai      # jalankan
 ## Deploy ke Vercel (gratis, tanpa kartu kredit)
 
 1. **Database**: buat Postgres gratis (Neon direkomendasikan). Simpan dua URL: pooled (`…-pooler…`) untuk `DATABASE_URL` runtime, dan direct untuk migrasi/seed.
-2. **Environment variables** di Vercel: `DATABASE_URL` (pooled), `PG_POOL_MAX=3`, `APP_URL`, `BLOB_READ_WRITE_TOKEN` (wajib untuk bukti), `AI_RUNNER_TOKEN` + `AI_CREDENTIALS_KEY` (bila memakai AI Test), opsional SMTP/Telegram/`GITHUB_DISPATCH_TOKEN` (lihat tabel di atas).
+2. **Environment variables** di Vercel: `DATABASE_URL` (pooled), `PG_POOL_MAX=3`, `APP_URL`, `BLOB_READ_WRITE_TOKEN` + `EVIDENCE_ENCRYPTION_KEY` (wajib untuk bukti), `AI_RUNNER_TOKEN` + `AI_CREDENTIALS_KEY` (bila memakai AI Test), opsional SMTP/Telegram/`GITHUB_DISPATCH_TOKEN` (lihat tabel di atas).
 3. **Migrasi & seed** dari mesin lokal ke direct URL:
    ```bash
    DATABASE_URL='postgres://…direct…' npm run db:migrate

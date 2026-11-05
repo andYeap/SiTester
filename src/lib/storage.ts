@@ -2,6 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 
+import { encryptEvidence } from "./evidence-crypto";
+
 const LOCAL_DIR = join(process.cwd(), "uploads");
 
 export type SniffedImage = { ext: string; mime: string };
@@ -52,31 +54,17 @@ export async function saveEvidence(file: File): Promise<string> {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (token) {
     const { put } = await import("@vercel/blob");
-    const name = `evidence/${randomUUID()}.${image.ext}`;
+    const name = `evidence/${randomUUID()}.${image.ext}.enc`;
+    // Isi dienkripsi sebelum keluar dari server, jadi store publik pun tidak
+    // membocorkan bukti; akses tetap lewat /api/uploads yang wajib login.
+    const encrypted = encryptEvidence(buffer);
+    const options = { token, contentType: "application/octet-stream" };
     try {
-      const blob = await put(name, buffer, {
-        access: "private",
-        token,
-        contentType: image.mime,
-      });
+      const blob = await put(name, encrypted, { ...options, access: "private" });
       return blob.pathname;
     } catch {
-      if (process.env.BLOB_REQUIRE_PRIVATE === "1") {
-        throw new Error(
-          "Blob privat tidak didukung store ini dan BLOB_REQUIRE_PRIVATE=1. Buat Blob store privat baru lalu ganti tokennya.",
-        );
-      }
-      // shortcut: store Blob publik belum mendukung akses privat; URL UUID
-      // tetap sulit ditebak. Upgrade ke store privat saat tersedia.
-      console.warn(
-        "Blob privat tidak didukung store ini; bukti disimpan sebagai URL publik UUID.",
-      );
-      const blob = await put(name, buffer, {
-        access: "public",
-        token,
-        contentType: image.mime,
-      });
-      return blob.url;
+      const blob = await put(name, encrypted, { ...options, access: "public" });
+      return blob.pathname;
     }
   }
 
