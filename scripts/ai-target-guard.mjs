@@ -85,9 +85,26 @@ export async function checkRunnerTarget(
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     return { ok: false, reason: "URL target harus http(s)." };
   }
-  const host = url.hostname.toLowerCase();
+  // IPv6 literal di URL memakai kurung siku; lookup butuh bentuk tanpa kurung.
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (METADATA_HOSTS.has(host)) {
     return { ok: false, reason: `Target ${host} adalah endpoint metadata cloud; diblokir.` };
+  }
+  // Host berupa IP literal tidak perlu (dan tidak boleh) bergantung pada lookup.
+  const literal = ipv4Parts(host) ? host : host.includes(":") ? ipv6Lower(host) : null;
+  if (literal) {
+    if (METADATA_IPS.has(literal)) {
+      return { ok: false, reason: `Target ${host} adalah endpoint metadata cloud; diblokir.` };
+    }
+    if (!allowPrivate && ipIsPrivateOrReserved(literal)) {
+      return {
+        ok: false,
+        reason:
+          `Target ${host} mengarah ke IP privat (${literal}). ` +
+          `Set AI_RUNNER_ALLOW_PRIVATE_TARGETS=1 pada runner bila memang menguji target internal.`,
+      };
+    }
+    return { ok: true };
   }
   let records;
   try {
@@ -112,4 +129,26 @@ export async function checkRunnerTarget(
     };
   }
   return { ok: true };
+}
+
+/**
+ * Pasang penjaga egress pada seluruh request browser uji, termasuk navigasi
+ * agen dan setiap lompatan redirect. checkRunnerTarget saja hanya memeriksa
+ * URL target awal, sehingga goal/redirect bisa membuka alamat internal.
+ * @param {{ route: (pattern: string, handler: (route: any) => Promise<void>) => Promise<void> }} browser
+ * @param {{ allowPrivate?: boolean, dnsLookup?: (host: string, opts?: unknown) => Promise<unknown> }} [opts]
+ */
+export async function installEgressGuard(
+  browser,
+  { allowPrivate = false, dnsLookup = defaultLookup } = {},
+) {
+  // shortcut: WebSocket tidak ikut di-route; pantau bila agen mulai memakai ws.
+  await browser.route("**/*", async (route) => {
+    const url = route.request.url;
+    if (!/^https?:/i.test(url)) return route.continue();
+    const gate = await checkRunnerTarget(url, { allowPrivate, dnsLookup });
+    if (gate.ok) return route.continue();
+    console.warn(`[egress] diblokir: ${url} (${gate.reason})`);
+    return route.abort();
+  });
 }

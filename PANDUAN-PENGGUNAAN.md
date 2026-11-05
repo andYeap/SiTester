@@ -392,7 +392,8 @@ dapat mewajibkan mode privat dengan `BLOB_REQUIRE_PRIVATE=1` + Blob store privat
   produksi.
 - Jangan menguji situs yang bukan milik/tidak Anda punya izin.
 - Target internal (localhost/intranet) hanya bisa diuji runner yang
-  mengizinkannya; metadata cloud selalu ditolak.
+  mengizinkannya; metadata cloud selalu ditolak. Setiap request browser,
+  termasuk redirect dan navigasi agen, diperiksa ulang.
 
 ---
 

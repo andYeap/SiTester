@@ -133,7 +133,7 @@ export default {
 `;
 }
 
-function buildTest(run, targetPath, login) {
+function buildTest(run, targetPath, login, allowPrivate = false) {
   let loginStep = "";
   if (login.hasCredentials) {
     const deterministic =
@@ -171,8 +171,10 @@ ${waitStep}
 
   return `import { test } from "@e2e-dev/web";
 import { credentials, expect } from "e2e";
+import { installEgressGuard } from "./egress-guard.mjs";
 
 test("SITester AI run ${run.id}", async ({ app, agent, screen, browser }) => {
+  await installEgressGuard(browser, { allowPrivate: ${allowPrivate ? "true" : "false"} });
   await app.open(${q(startUrl)});
 ${loginStep}
 ${reopenTarget}
@@ -350,7 +352,12 @@ async function processRun(run) {
   const configPath = join(dir, "e2e.config.ts");
   await writeFile(
     join(dir, "tests", "ai.e2e.ts"),
-    buildTest(run, pathOf(run.target_url), login),
+    buildTest(run, pathOf(run.target_url), login, allowPrivate),
+  );
+  // Salin penjaga egress ke folder run agar test mengimpornya secara relatif.
+  await writeFile(
+    join(dir, "tests", "egress-guard.mjs"),
+    await readFile(new URL("./ai-target-guard.mjs", import.meta.url), "utf8"),
   );
 
   // Heartbeat: perbarui claimed_at selama run jalan agar tidak dikira mati

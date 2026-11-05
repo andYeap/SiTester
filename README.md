@@ -153,7 +153,7 @@ AI_RUNNER_ALLOW_PRIVATE_TARGETS=   # 1 hanya untuk target internal
 - Variabel workflow: Secrets `AI_RUNNER_TOKEN`, `OPENROUTER_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `AI_TARGET_EMAIL`, `AI_TARGET_PASSWORD`; Variables `SITESTER_URL`, `E2E_PROVIDER`, `E2E_MODEL`.
 - Run yang `running` tanpa heartbeat >15 menit dikembalikan ke antrean; runner mengirim heartbeat tiap 5 menit.
 - Token boleh berbeda per host lewat `AI_RUNNER_TOKENS`.
-- **Isolasi egress**: runner menolak endpoint metadata cloud dan host yang mengarah ke IP privat/loopback sebelum memakai model; run yang diblokir dicatat `error` tanpa biaya model.
+- **Isolasi egress**: runner menolak endpoint metadata cloud dan host yang mengarah ke IP privat/loopback sebelum memakai model, lalu memeriksa ulang setiap request browser (termasuk redirect dan navigasi agen); run yang diblokir dicatat `error` tanpa biaya model.
 - **Audit**: tiap run menyimpan `runner_log` (stdout/stderr, error model, report e2e; maks 100.000 karakter, kredensial disamarkan `[redacted]`) yang dibuka lewat tombol **Log**. Log workflow lengkap tetap ada di GitHub Actions selama masa retensi.
 - **Keamanan**: agent dapat dipengaruhi konten halaman target (prompt injection). Pakai akun tester berhak minimal dan jangan menguji situs tanpa izin.
 - **Hemat kuota**: isi ketiga label login, tulis tujuan singkat dengan kriteria spesifik, jangan antrekan ulang run `fail` tanpa membaca Log.
