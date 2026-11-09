@@ -400,7 +400,8 @@ export default function AiRunsView() {
               </a>
             ) : (
               <p className="text-xs text-neutral-500">
-                Screenshot tidak tersedia untuk run ini.
+                Screenshot tidak tersedia untuk run ini. Jalankan ulang AI Test
+                untuk menghasilkan bukti baru.
               </p>
             )}
           </figure>
