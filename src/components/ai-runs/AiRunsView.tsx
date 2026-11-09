@@ -29,6 +29,7 @@ type RunLog = {
   status: string;
   notes: string | null;
   error: string | null;
+  evidence_path: string | null;
   runner_log: string | null;
 };
 
@@ -378,6 +379,26 @@ export default function AiRunsView() {
             <div className="alert-err text-sm" role="alert">
               Error: {logRun.error}
             </div>
+          )}
+          {logRun.evidence_path && (
+            <figure className="space-y-2">
+              <figcaption className="text-xs font-medium text-neutral-500">
+                Screenshot hasil run
+              </figcaption>
+              <a
+                href={evidenceHref(logRun.evidence_path)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- bukti disajikan lewat route ber-login, bukan aset statis */}
+                <img
+                  src={evidenceHref(logRun.evidence_path)}
+                  alt={`Screenshot hasil AI Test run #${logRun.id}`}
+                  className="max-h-80 w-auto rounded-lg border border-neutral-200"
+                />
+              </a>
+            </figure>
           )}
           <pre className="max-h-96 overflow-auto rounded-lg bg-neutral-950 p-4 text-xs leading-relaxed text-neutral-100">
             {logRun.runner_log || "Log tidak tersedia untuk run ini."}
