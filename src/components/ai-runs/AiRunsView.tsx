@@ -2,7 +2,7 @@
 
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Run = {
   id: number;
@@ -57,6 +57,7 @@ export default function AiRunsView() {
   const [loginPasswordLabel, setLoginPasswordLabel] = useState("Kata sandi");
   const [loginSubmitLabel, setLoginSubmitLabel] = useState("Masuk");
   const [logRun, setLogRun] = useState<RunLog | null>(null);
+  const logRef = useRef<HTMLDivElement>(null);
   const [logBusy, setLogBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -144,6 +145,10 @@ export default function AiRunsView() {
   function evidenceHref(path: string): string {
     return path.startsWith("http") ? path : `/api/uploads/${path}`;
   }
+
+  useEffect(() => {
+    if (logRun) logRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [logRun]);
 
   async function openLog(id: number) {
     setLogBusy(true);
@@ -359,7 +364,7 @@ export default function AiRunsView() {
       </form>
 
       {logRun && (
-        <div className="card-pad space-y-3">
+        <div ref={logRef} className="card-pad space-y-3">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="font-semibold text-neutral-700">
