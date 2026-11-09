@@ -380,11 +380,11 @@ export default function AiRunsView() {
               Error: {logRun.error}
             </div>
           )}
-          {logRun.evidence_path && (
-            <figure className="space-y-2">
-              <figcaption className="text-xs font-medium text-neutral-500">
-                Screenshot hasil run
-              </figcaption>
+          <figure className="space-y-2">
+            <figcaption className="text-xs font-medium text-neutral-500">
+              Screenshot hasil run
+            </figcaption>
+            {logRun.evidence_path ? (
               <a
                 href={evidenceHref(logRun.evidence_path)}
                 target="_blank"
@@ -395,11 +395,15 @@ export default function AiRunsView() {
                 <img
                   src={evidenceHref(logRun.evidence_path)}
                   alt={`Screenshot hasil AI Test run #${logRun.id}`}
-                  className="max-h-80 w-auto rounded-lg border border-neutral-200"
+                  className="w-full max-w-3xl rounded-lg border border-neutral-200"
                 />
               </a>
-            </figure>
-          )}
+            ) : (
+              <p className="text-xs text-neutral-500">
+                Screenshot tidak tersedia untuk run ini.
+              </p>
+            )}
+          </figure>
           <pre className="max-h-96 overflow-auto rounded-lg bg-neutral-950 p-4 text-xs leading-relaxed text-neutral-100">
             {logRun.runner_log || "Log tidak tersedia untuk run ini."}
           </pre>
