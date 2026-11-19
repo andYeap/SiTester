@@ -30,6 +30,7 @@ type RunLog = {
   notes: string | null;
   error: string | null;
   evidence_path: string | null;
+  evidence_gallery: { path: string; label: string }[] | null;
   runner_log: string | null;
 };
 
@@ -385,31 +386,56 @@ export default function AiRunsView() {
               Error: {logRun.error}
             </div>
           )}
-          <figure className="space-y-2">
-            <figcaption className="text-xs font-medium text-neutral-500">
-              Screenshot hasil run
-            </figcaption>
-            {logRun.evidence_path ? (
-              <a
-                href={evidenceHref(logRun.evidence_path)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- bukti disajikan lewat route ber-login, bukan aset statis */}
-                <img
-                  src={evidenceHref(logRun.evidence_path)}
-                  alt={`Screenshot hasil AI Test run #${logRun.id}`}
-                  className="w-full max-w-3xl rounded-lg border border-neutral-200"
-                />
-              </a>
-            ) : (
-              <p className="text-xs text-neutral-500">
-                Screenshot tidak tersedia untuk run ini. Jalankan ulang AI Test
-                untuk menghasilkan bukti baru.
-              </p>
-            )}
-          </figure>
+          {logRun.evidence_gallery && logRun.evidence_gallery.length > 0 ? (
+            <div className="space-y-4">
+              {logRun.evidence_gallery.map((shot, i) => (
+                <figure key={`${shot.path}-${i}`} className="space-y-2">
+                  <figcaption className="text-xs font-medium text-neutral-500">
+                    {shot.label}
+                  </figcaption>
+                  <a
+                    href={evidenceHref(shot.path)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- bukti disajikan lewat route ber-login, bukan aset statis */}
+                    <img
+                      src={evidenceHref(shot.path)}
+                      alt={`${shot.label} — AI Test run #${logRun.id}`}
+                      className="w-full max-w-3xl rounded-lg border border-neutral-200"
+                    />
+                  </a>
+                </figure>
+              ))}
+            </div>
+          ) : (
+            <figure className="space-y-2">
+              <figcaption className="text-xs font-medium text-neutral-500">
+                Screenshot hasil run
+              </figcaption>
+              {logRun.evidence_path ? (
+                <a
+                  href={evidenceHref(logRun.evidence_path)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- bukti disajikan lewat route ber-login, bukan aset statis */}
+                  <img
+                    src={evidenceHref(logRun.evidence_path)}
+                    alt={`Screenshot hasil AI Test run #${logRun.id}`}
+                    className="w-full max-w-3xl rounded-lg border border-neutral-200"
+                  />
+                </a>
+              ) : (
+                <p className="text-xs text-neutral-500">
+                  Screenshot tidak tersedia untuk run ini. Jalankan ulang AI Test
+                  untuk menghasilkan bukti baru.
+                </p>
+              )}
+            </figure>
+          )}
           <pre className="max-h-96 overflow-auto rounded-lg bg-neutral-950 p-4 text-xs leading-relaxed text-neutral-100">
             {logRun.runner_log || "Log tidak tersedia untuk run ini."}
           </pre>

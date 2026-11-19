@@ -76,12 +76,13 @@ describe("AI provider error bukan defect", () => {
     );
     expect(res.status).toBe(200);
 
-    const row = await query<{ status: string; result: string | null }>(
-      `SELECT status, result FROM ai_test_runs WHERE id=$1`,
+    const row = await query<{ status: string; result: string | null; evidence_gallery: unknown }>(
+      `SELECT status, result, evidence_gallery FROM ai_test_runs WHERE id=$1`,
       [created.id],
     );
     expect(row[0].status).toBe("error");
     expect(row[0].result).toBeNull();
+    expect(row[0].evidence_gallery).toBeNull();
 
     // Konfirmasi harus ditolak
     const sform = new FormData();

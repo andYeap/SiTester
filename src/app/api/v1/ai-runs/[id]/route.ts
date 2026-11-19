@@ -26,6 +26,7 @@ export async function GET(
     notes: string | null;
     error: string | null;
     evidence_path: string | null;
+    evidence_gallery: { path: string; label: string }[] | null;
     runner_log: string | null;
     created_at: string;
     finished_at: string | null;
@@ -35,7 +36,7 @@ export async function GET(
   }>(
     `SELECT r.id, r.created_by, r.target_url, r.goal, r.success_criteria,
             r.status, r.result, r.severity, r.notes, r.error, r.evidence_path,
-            r.runner_log, r.created_at::text AS created_at,
+            r.evidence_gallery, r.runner_log, r.created_at::text AS created_at,
             r.finished_at::text AS finished_at, r.confirmed_session_id,
             f.name AS feature_name, u.name AS user_name
        FROM ai_test_runs r

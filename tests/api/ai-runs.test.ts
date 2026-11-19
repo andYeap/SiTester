@@ -103,15 +103,18 @@ describe("AI test runs", () => {
       status: string;
       result: string;
       evidence_path: string;
+      evidence_gallery: { path: string; label: string }[] | null;
       confirmed_session_id: number | null;
     }>(
-      `SELECT status, result, evidence_path, confirmed_session_id
+      `SELECT status, result, evidence_path, evidence_gallery, confirmed_session_id
          FROM ai_test_runs WHERE id=$1`,
       [created.id],
     );
     expect(runRow[0].status).toBe("completed");
     expect(runRow[0].result).toBe("pass");
     expect(runRow[0].evidence_path).toBeTruthy();
+    expect(runRow[0].evidence_gallery).toHaveLength(1);
+    expect(runRow[0].evidence_gallery?.[0].label).toBe("Screenshot hasil run");
 
     const listRes = await listRuns();
     expect(listRes.status).toBe(200);
@@ -169,6 +172,94 @@ describe("AI test runs", () => {
       }),
     );
     expect(again.status).toBe(422);
+  });
+
+  it("menyimpan galeri screenshot berurutan dan memakai gambar terakhir sebagai bukti", async () => {
+    await resetDb();
+    const tester = await createUser(undefined, "tester");
+    const f = await feature();
+    await loginAs(tester.email);
+
+    const createRes = await createRun(
+      json({
+        target_url: "https://example.test/app",
+        goal: "login lalu buka dashboard",
+        feature_id: f.id,
+        tested_as_role: "tester",
+      }),
+    );
+    expect(createRes.status).toBe(201);
+    const created = (await createRes.json()) as { id: number };
+    await nextRun(runnerRequest("http://test/api/v1/ai-runs/next"));
+
+    const form = new FormData();
+    form.set("outcome", "pass");
+    form.append("screenshots", new File([PNG], "1.png", { type: "image/png" }));
+    form.append("screenshots", new File([PNG], "2.png", { type: "image/png" }));
+    form.set(
+      "screenshot_labels",
+      JSON.stringify(["1. agent.act — login", "3. agent.assert — dashboard tampil"]),
+    );
+    const res = await submitResult(
+      runnerRequest(`http://test/api/v1/ai-runs/${created.id}/result`, {
+        method: "POST",
+        body: form,
+      }),
+      { params: Promise.resolve({ id: String(created.id) }) },
+    );
+    expect(res.status).toBe(200);
+
+    const rows = await query<{
+      evidence_path: string | null;
+      evidence_gallery: { path: string; label: string }[] | null;
+    }>(
+      `SELECT evidence_path, evidence_gallery FROM ai_test_runs WHERE id=$1`,
+      [created.id],
+    );
+    expect(rows[0].evidence_gallery).toHaveLength(2);
+    expect(rows[0].evidence_gallery?.[0].label).toBe("1. agent.act — login");
+    expect(rows[0].evidence_gallery?.[1].label).toBe("3. agent.assert — dashboard tampil");
+    expect(rows[0].evidence_path).toBe(rows[0].evidence_gallery?.[1].path);
+
+    const detailRes = await getRun(
+      new Request(`http://test/api/v1/ai-runs/${created.id}`),
+      { params: Promise.resolve({ id: String(created.id) }) },
+    );
+    expect(detailRes.status).toBe(200);
+    const detail = (await detailRes.json()) as {
+      run: { evidence_gallery: { label: string }[] | null };
+    };
+    expect(detail.run.evidence_gallery).toHaveLength(2);
+    expect(detail.run.evidence_gallery?.[1].label).toBe("3. agent.assert — dashboard tampil");
+  });
+
+  it("melewati screenshot lebih dari 2MB tanpa menggagalkan hasil", async () => {
+    await resetDb();
+    const tester = await createUser(undefined, "tester");
+    const f = await feature();
+    await loginAs(tester.email);
+    const createRes = await createRun(
+      json({ target_url: "https://example.test/app", goal: "buka dashboard", feature_id: f.id, tested_as_role: "tester" }),
+    );
+    const created = (await createRes.json()) as { id: number };
+    await nextRun(runnerRequest("http://test/api/v1/ai-runs/next"));
+
+    const form = new FormData();
+    form.set("outcome", "pass");
+    form.append("screenshots", new File([Buffer.alloc(2 * 1024 * 1024 + 1)], "besar.png", { type: "image/png" }));
+    form.append("screenshots", new File([PNG], "kecil.png", { type: "image/png" }));
+    const res = await submitResult(
+      runnerRequest(`http://test/api/v1/ai-runs/${created.id}/result`, { method: "POST", body: form }),
+      { params: Promise.resolve({ id: String(created.id) }) },
+    );
+    expect(res.status).toBe(200);
+
+    const rows = await query<{ notes: string; evidence_gallery: unknown[] | null }>(
+      `SELECT notes, evidence_gallery FROM ai_test_runs WHERE id=$1`,
+      [created.id],
+    );
+    expect(rows[0].evidence_gallery).toHaveLength(1);
+    expect(rows[0].notes).toContain("lebih dari 2MB");
   });
 
   it("login target per-run: kredensial terenkripsi, dikirim ke runner, lalu dihapus", async () => {

@@ -7,6 +7,11 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 
 import { checkRunnerTarget } from "./ai-target-guard.mjs";
+import {
+  collectStepScreenshots,
+  isSafeShotPath,
+  MAX_SHOTS,
+} from "./ai-runner-shots.mjs";
 
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
@@ -17,17 +22,20 @@ const DEFAULT_MODEL =
   PROVIDER === "google"
     ? "gemini-3.6-flash"
     : "nvidia/nemotron-3.5-super-vl:free";
-const MODELS = String(
-  process.env.E2E_MODELS ?? process.env.E2E_MODEL ?? DEFAULT_MODEL,
-)
+const EXPLICIT_MODELS = String(
+  process.env.E2E_MODELS ?? process.env.E2E_MODEL ?? "",
+).trim();
+const MODELS = (EXPLICIT_MODELS || DEFAULT_MODEL)
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
-if (PROVIDER === "google" && !MODELS.includes("gemini-3.6-flash")) {
-  MODELS.push("gemini-3.6-flash");
-}
-if (PROVIDER === "google" && !MODELS.includes("gemini-2.5-flash")) {
-  MODELS.push("gemini-2.5-flash");
+// Fallback Google hanya untuk konfigurasi tanpa model eksplisit. Kalau pengguna
+// memilih satu model (mis. gemini-3.5-flash-lite), jangan diam-diam mengulang
+// run dengan model lain saat kena 429 — itu menghabiskan kuota model lain.
+if (PROVIDER === "google" && EXPLICIT_MODELS === "") {
+  for (const fallback of ["gemini-3.6-flash", "gemini-2.5-flash"]) {
+    if (!MODELS.includes(fallback)) MODELS.push(fallback);
+  }
 }
 const MODEL = MODELS[0] ?? DEFAULT_MODEL;
 const RUNNER_ID =
@@ -161,6 +169,7 @@ ${waitStep}
 ${waitStep}
   }`;
     }
+    loginStep += `\n  await app.screenshot("login-berhasil");`;
   }
 
   const startUrl = login.useLogin && login.url ? login.url : targetPath || "/";
@@ -224,6 +233,34 @@ function collectScreenshots(report) {
   return paths;
 }
 
+async function readShot(outputDir, relPath) {
+  if (!isSafeShotPath(relPath)) return null;
+  const bases = [
+    join(outputDir, "results"),
+    outputDir,
+    join(process.cwd(), ".e2e", "results"),
+  ];
+  for (const base of bases) {
+    try {
+      return await readFile(join(base, relPath));
+    } catch {
+      /* lanjut */
+    }
+  }
+  return null;
+}
+
+async function collectRunShots(outputDir, report) {
+  const shots = [];
+  for (const entry of collectStepScreenshots(report)) {
+    const buffer = await readShot(outputDir, entry.path);
+    if (buffer) shots.push({ buffer, label: entry.label });
+  }
+  if (shots.length > 0) return shots.slice(0, MAX_SHOTS);
+  const fallback = await findScreenshot(outputDir, report);
+  return fallback ? [{ buffer: fallback, label: "Screenshot hasil run" }] : [];
+}
+
 async function findScreenshot(outputDir, report) {
   const candidates = collectScreenshots(report);
   const bases = [
@@ -261,18 +298,21 @@ async function findScreenshot(outputDir, report) {
   return null;
 }
 
-async function uploadResult(id, data, screenshot) {
+async function uploadResult(id, data, shots = []) {
   const form = new FormData();
   form.set("outcome", data.outcome);
   if (data.notes) form.set("notes", data.notes.slice(0, 4000));
   if (data.error) form.set("error", data.error.slice(0, 4000));
   if (data.log) form.set("log", data.log.slice(0, 100_000));
   if (data.severity) form.set("severity", data.severity);
-  if (screenshot) {
-    form.set(
-      "evidence",
-      new File([screenshot], "hasil-ai.png", { type: "image/png" }),
-    );
+  if (shots.length > 0) {
+    shots.forEach((shot, i) => {
+      form.append(
+        "screenshots",
+        new File([shot.buffer], `shot-${i + 1}.png`, { type: "image/png" }),
+      );
+    });
+    form.set("screenshot_labels", JSON.stringify(shots.map((shot) => shot.label)));
   }
   const res = await api(`/api/v1/ai-runs/${id}/result`, {
     method: "POST",
@@ -418,7 +458,7 @@ async function processRun(run) {
     ? `AI: ${run.goal}${run.success_criteria ? ` — kriteria: ${run.success_criteria}` : ""} (${summary.executed ?? 0} test lulus)`
     : `AI: ${run.goal}${run.success_criteria ? ` — kriteria: ${run.success_criteria}` : ""}${diagnostic ? `\nDiagnostik: ${redact(diagnostic)}` : ""}`;
 
-  const screenshot = await findScreenshot(join(dir, ".e2e"), report);
+  const shots = await collectRunShots(join(dir, ".e2e"), report);
   const runnerLog = [
     `[run ${run.id}] target=${run.target_url}`,
     `provider=${PROVIDER} model=${usedModel} trail=${modelTrail.join(" -> ")}`,
@@ -435,7 +475,7 @@ async function processRun(run) {
       error: report ? redact(errors) || null : redact(execution.output.slice(-4000)),
       severity: passed ? null : "medium",
       log: runnerLog,
-    }, screenshot);
+    }, shots);
     console.log(`[run ${run.id}] ${passed ? "PASS" : outcome === "error" ? "ERROR" : "FAIL"} dikirim`);
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => undefined);
