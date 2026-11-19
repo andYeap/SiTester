@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Artefak analisis /understand (bukan kode aplikasi).
+    ".ua/**",
   ]),
 ]);
 

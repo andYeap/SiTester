@@ -57,3 +57,6 @@ tests/e2e/fixtures/
 
 # AI runner temp
 .ai-runner/
+
+# Artefak analisis /understand
+.ua/
