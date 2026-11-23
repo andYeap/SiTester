@@ -67,7 +67,10 @@ e2e berbantuan model Gemini, lalu mengirim balik status, catatan, log, dan galer
 screenshot berurutan (`login-berhasil`, `hasil-ai`, dst.).
 
 Hasil AI **bukan hasil final**: hasil itu berupa draft yang harus dikonfirmasi manusia
-lewat form pengujian. Run yang masih antre dapat dibatalkan sebelum diambil runner.
+lewat form pengujian. Run yang masih antre dapat dibatalkan atau dihapus sebelum diambil
+runner; hasil yang sudah selesai dapat dikonfirmasi, ditolak (dibuang tanpa menjadi
+riwayat), atau dihapus. Run yang sedang berjalan tidak bisa dihapus sampai selesai, dan
+menghapus run yang sudah dikonfirmasi tidak menghapus riwayatnya.
 Kredensial target dienkripsi per run dan tidak pernah ditampilkan kembali.
 
 ---

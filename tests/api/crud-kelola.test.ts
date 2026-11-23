@@ -228,39 +228,6 @@ describe("koreksi dan hapus riwayat", () => {
     expect(defect[0].session_id).toBeNull();
   });
 
-  it("menghapus riwayat konfirmasi AI mengembalikan run menjadi draft", async () => {
-    const tester = await createUser();
-    const ketua = await createUser(undefined, "ketua_tim");
-    const fid = await feature();
-    const id = await makeSession(tester.id, fid);
-    const runs = await query<{ id: number }>(
-      `INSERT INTO ai_test_runs
-         (target_url, goal, feature_id, created_by, status, tested_as_role,
-          confirmed_session_id, result)
-       VALUES ('https://contoh.test','uji',$1,$2,'confirmed','tester',$3,'pass')
-       RETURNING id`,
-      [fid, tester.id, id],
-    );
-
-    await loginAs(ketua.email);
-    const blocked = await deleteSession(
-      new Request("http://test/api/v1/test-sessions/1", { method: "DELETE" }),
-      params(id),
-    );
-    expect(blocked.status).toBe(409);
-
-    const ok = await deleteSession(
-      new Request("http://test/api/v1/test-sessions/1?force=1", { method: "DELETE" }),
-      params(id),
-    );
-    expect(ok.status).toBe(200);
-
-    const after = await query<{ status: string; confirmed_session_id: number | null }>(
-      `SELECT status, confirmed_session_id FROM ai_test_runs WHERE id=$1`,
-      [runs[0].id],
-    );
-    expect(after[0]).toEqual({ status: "completed", confirmed_session_id: null });
-  });
 });
 
 describe("hapus defect", () => {

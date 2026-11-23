@@ -1,11 +1,12 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { GET as listRuns, POST as createRun } from "@/app/api/v1/ai-runs/route";
-import { GET as getRun, PATCH as cancelRun } from "@/app/api/v1/ai-runs/[id]/route";
+import { GET as getRun, PATCH as cancelRun, DELETE as deleteRun } from "@/app/api/v1/ai-runs/[id]/route";
 import { GET as nextRun } from "@/app/api/v1/ai-runs/next/route";
 import { POST as submitResult } from "@/app/api/v1/ai-runs/[id]/result/route";
 import { POST as heartbeat } from "@/app/api/v1/ai-runs/[id]/heartbeat/route";
 import { POST as submitSession } from "@/app/api/v1/test-sessions/route";
+import { DELETE as deleteSession } from "@/app/api/v1/test-sessions/[id]/route";
 
 import { createUser, loginAs, resetDb, uid } from "./helpers";
 import { query } from "@/lib/db";
@@ -544,5 +545,205 @@ describe("batalkan AI run yang antre", () => {
       { params: Promise.resolve({ id: String(run[0].id) }) },
     );
     expect(res.status).toBe(404);
+  });
+});
+
+describe("tolak dan hapus AI run", () => {
+  const params = (id: number) => ({ params: Promise.resolve({ id: String(id) }) });
+
+  it("pemilik dapat menolak hasil yang belum dikonfirmasi", async () => {
+    await resetDb();
+    const user = await createUser();
+    await loginAs(user.email);
+    const f = await feature();
+    const rows = await query<{ id: number }>(
+      `INSERT INTO ai_test_runs
+        (target_url, goal, feature_id, created_by, status, tested_as_role, result)
+       VALUES ('https://contoh.test','Hasil',$1,$2,'completed','tester','pass')
+       RETURNING id`,
+      [f.id, user.id],
+    );
+    const id = rows[0].id;
+
+    const res = await cancelRun(
+      new Request(`http://test/api/v1/ai-runs/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rejected" }),
+      }),
+      params(id),
+    );
+    expect(res.status).toBe(200);
+    const after = await query<{ status: string }>(
+      `SELECT status FROM ai_test_runs WHERE id=$1`,
+      [id],
+    );
+    expect(after[0].status).toBe("rejected");
+  });
+
+  it("hasil yang sudah dikonfirmasi tidak bisa ditolak", async () => {
+    await resetDb();
+    const user = await createUser();
+    await loginAs(user.email);
+    const f = await feature();
+    const sessions = await query<{ id: number }>(
+      `INSERT INTO test_sessions (user_id, feature_id, tested_at, result)
+       VALUES ($1,$2,current_date,'pass') RETURNING id`,
+      [user.id, f.id],
+    );
+    const rows = await query<{ id: number }>(
+      `INSERT INTO ai_test_runs
+        (target_url, goal, feature_id, created_by, status, tested_as_role,
+         result, confirmed_session_id)
+       VALUES ('https://contoh.test','Hasil',$1,$2,'confirmed','tester','pass',$3)
+       RETURNING id`,
+      [f.id, user.id, sessions[0].id],
+    );
+    const res = await cancelRun(
+      new Request(`http://test/api/v1/ai-runs/${rows[0].id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rejected" }),
+      }),
+      params(rows[0].id),
+    );
+    expect(res.status).toBe(422);
+  });
+
+  it("hapus satu run saja, dan run yang sedang berjalan ditolak", async () => {
+    await resetDb();
+    const user = await createUser();
+    await loginAs(user.email);
+    const f = await feature();
+    const rows = await query<{ id: number }>(
+      `INSERT INTO ai_test_runs
+        (target_url, goal, feature_id, created_by, status, tested_as_role)
+       VALUES ('https://contoh.test','A',$1,$2,'queued','tester'),
+              ('https://contoh.test','B',$1,$2,'queued','tester'),
+              ('https://contoh.test','C',$1,$2,'running','tester')
+       RETURNING id`,
+      [f.id, user.id],
+    );
+    const [first, second, running] = rows.map((r) => r.id);
+
+    const ok = await deleteRun(
+      new Request(`http://test/api/v1/ai-runs/${first}`, { method: "DELETE" }),
+      params(first),
+    );
+    expect(ok.status).toBe(200);
+
+    const left = await query<{ id: number }>(
+      `SELECT id FROM ai_test_runs ORDER BY id`,
+    );
+    expect(left.map((r) => r.id)).toEqual([second, running]);
+
+    const blocked = await deleteRun(
+      new Request(`http://test/api/v1/ai-runs/${running}`, { method: "DELETE" }),
+      params(running),
+    );
+    expect(blocked.status).toBe(409);
+  });
+
+  it("run terkonfirmasi hanya terhapus dengan force", async () => {
+    await resetDb();
+    const user = await createUser();
+    await loginAs(user.email);
+    const f = await feature();
+    const sessions = await query<{ id: number }>(
+      `INSERT INTO test_sessions (user_id, feature_id, tested_at, result)
+       VALUES ($1,$2,current_date,'pass') RETURNING id`,
+      [user.id, f.id],
+    );
+    const rows = await query<{ id: number }>(
+      `INSERT INTO ai_test_runs
+        (target_url, goal, feature_id, created_by, status, tested_as_role,
+         result, confirmed_session_id)
+       VALUES ('https://contoh.test','Hasil',$1,$2,'confirmed','tester','pass',$3)
+       RETURNING id`,
+      [f.id, user.id, sessions[0].id],
+    );
+    const id = rows[0].id;
+
+    const blocked = await deleteRun(
+      new Request(`http://test/api/v1/ai-runs/${id}`, { method: "DELETE" }),
+      params(id),
+    );
+    expect(blocked.status).toBe(409);
+
+    const ok = await deleteRun(
+      new Request(`http://test/api/v1/ai-runs/${id}?force=1`, { method: "DELETE" }),
+      params(id),
+    );
+    expect(ok.status).toBe(200);
+
+    const session = await query(`SELECT id FROM test_sessions WHERE id=$1`, [
+      sessions[0].id,
+    ]);
+    expect(session).toHaveLength(1);
+  });
+
+  it("pengguna lain tidak bisa menghapus run orang lain", async () => {
+    await resetDb();
+    const owner = await createUser();
+    const other = await createUser();
+    const f = await feature();
+    const rows = await query<{ id: number }>(
+      `INSERT INTO ai_test_runs
+        (target_url, goal, feature_id, created_by, status, tested_as_role)
+       VALUES ('https://contoh.test','A',$1,$2,'queued','tester') RETURNING id`,
+      [f.id, owner.id],
+    );
+    await loginAs(other.email);
+    const res = await deleteRun(
+      new Request(`http://test/api/v1/ai-runs/${rows[0].id}`, { method: "DELETE" }),
+      params(rows[0].id),
+    );
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("hapus riwayat konfirmasi AI", () => {
+  it("mengembalikan run menjadi draft", async () => {
+    await resetDb();
+    const tester = await createUser();
+    const ketua = await createUser(undefined, "ketua_tim");
+    const f = await feature();
+    const sessions = await query<{ id: number }>(
+      `INSERT INTO test_sessions (user_id, feature_id, tested_at, result)
+       VALUES ($1,$2,current_date,'pass') RETURNING id`,
+      [tester.id, f.id],
+    );
+    const sessionId = sessions[0].id;
+    const runs = await query<{ id: number }>(
+      `INSERT INTO ai_test_runs
+        (target_url, goal, feature_id, created_by, status, tested_as_role,
+         confirmed_session_id, result)
+       VALUES ('https://contoh.test','uji',$1,$2,'confirmed','tester',$3,'pass')
+       RETURNING id`,
+      [f.id, tester.id, sessionId],
+    );
+
+    await loginAs(ketua.email);
+    const params = { params: Promise.resolve({ id: String(sessionId) }) };
+    const blocked = await deleteSession(
+      new Request("http://test/api/v1/test-sessions/1", { method: "DELETE" }),
+      params,
+    );
+    expect(blocked.status).toBe(409);
+
+    const ok = await deleteSession(
+      new Request("http://test/api/v1/test-sessions/1?force=1", { method: "DELETE" }),
+      params,
+    );
+    expect(ok.status).toBe(200);
+
+    const after = await query<{
+      status: string;
+      confirmed_session_id: number | null;
+    }>(
+      `SELECT status, confirmed_session_id FROM ai_test_runs WHERE id=$1`,
+      [runs[0].id],
+    );
+    expect(after[0]).toEqual({ status: "completed", confirmed_session_id: null });
   });
 });

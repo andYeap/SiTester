@@ -60,7 +60,7 @@ export default function AiRunsView() {
   const [logRun, setLogRun] = useState<RunLog | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const [logBusy, setLogBusy] = useState(false);
-  const [cancelling, setCancelling] = useState<number | null>(null);
+  const [actingId, setActingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -171,7 +171,7 @@ export default function AiRunsView() {
   async function cancelRun(id: number) {
     setError(null);
     setInfo(null);
-    setCancelling(id);
+    setActingId(id);
     try {
       const res = await fetch(`/api/v1/ai-runs/${id}`, {
         method: "PATCH",
@@ -185,7 +185,68 @@ export default function AiRunsView() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal membatalkan run.");
     } finally {
-      setCancelling(null);
+      setActingId(null);
+    }
+  }
+
+  async function rejectRun(id: number) {
+    if (
+      !window.confirm(
+        "Tolak hasil AI ini? Hasil tidak akan disimpan sebagai riwayat.",
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    setInfo(null);
+    setActingId(id);
+    try {
+      const res = await fetch(`/api/v1/ai-runs/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rejected" }),
+      });
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(data?.error ?? "Gagal menolak hasil.");
+      setInfo("Hasil AI ditolak dan tidak disimpan sebagai riwayat.");
+      await loadRuns();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal menolak hasil.");
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  async function removeRun(id: number, confirmed: boolean) {
+    const akibat = confirmed
+      ? "Riwayat yang sudah dikonfirmasi tidak ikut terhapus."
+      : "Antrean dan hasil lain tidak terpengaruh.";
+    if (!window.confirm(`Hapus HANYA run #${id}? ${akibat}`)) return;
+
+    setError(null);
+    setInfo(null);
+    setActingId(id);
+    try {
+      let res = await fetch(`/api/v1/ai-runs/${id}`, { method: "DELETE" });
+      let data = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (res.status === 409) {
+        if (
+          !window.confirm(
+            `${data?.error ?? "Run ini sebaiknya tidak dihapus langsung."}\n\nTetap hapus run ini?`,
+          )
+        ) {
+          return;
+        }
+        res = await fetch(`/api/v1/ai-runs/${id}?force=1`, { method: "DELETE" });
+        data = (await res.json().catch(() => null)) as { error?: string } | null;
+      }
+      if (!res.ok) throw new Error(data?.error ?? "Gagal menghapus run.");
+      setInfo("AI run dihapus.");
+      await loadRuns();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal menghapus run.");
+    } finally {
+      setActingId(null);
     }
   }
 
@@ -504,7 +565,7 @@ export default function AiRunsView() {
                     </td>
                     <td className="px-4 py-2">
                       <span className={`badge ${r.status === "completed" ? "badge-pass" : r.status === "failed" || r.status === "error" ? "badge-fail" : "badge-neutral"}`}>
-                        {r.status === "error" ? "error (provider)" : r.status}
+                        {r.status === "error" ? "error (provider)" : r.status === "rejected" ? "ditolak" : r.status}
                       </span>
                     </td>
                     <td className="px-4 py-2">
@@ -524,7 +585,7 @@ export default function AiRunsView() {
                         {r.status === "queued" && (
                           <button
                             type="button"
-                            disabled={cancelling === r.id}
+                            disabled={actingId === r.id}
                             onClick={() => void cancelRun(r.id)}
                             className="action-link text-neutral-950 disabled:opacity-50"
                           >
@@ -551,13 +612,31 @@ export default function AiRunsView() {
                           </button>
                         )}
                         {r.status === "completed" && !r.confirmed_session_id ? (
-                          <a href={`/pengujian-baru?ai_run=${r.id}`} className="action-link text-neutral-950">
-                            Konfirmasi
-                          </a>
+                          <>
+                            <a href={`/pengujian-baru?ai_run=${r.id}`} className="action-link text-neutral-950">
+                              Konfirmasi
+                            </a>
+                            <button
+                              type="button"
+                              disabled={actingId === r.id}
+                              onClick={() => void rejectRun(r.id)}
+                              className="action-link text-neutral-950 disabled:opacity-50"
+                            >
+                              Tolak
+                            </button>
+                          </>
                         ) : r.confirmed_session_id ? (
                           <span className="text-xs text-neutral-500">Tersimpan</span>
-                        ) : (
-                          <span className="text-xs text-neutral-400">—</span>
+                        ) : null}
+                        {r.status !== "running" && (
+                          <button
+                            type="button"
+                            disabled={actingId === r.id}
+                            onClick={() => void removeRun(r.id, r.confirmed_session_id !== null)}
+                            className="action-link text-neutral-950 disabled:opacity-50"
+                          >
+                            Hapus
+                          </button>
                         )}
                       </div>
                     </td>
