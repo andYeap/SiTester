@@ -33,6 +33,7 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
   const [approveNote, setApproveNote] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [tab, setTab] = useState<"pending" | "history">("pending");
 
   const load = useCallback(async () => {
     const data = (await api("/api/v1/retest-requests")) as {
@@ -72,6 +73,28 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
       {error && <div className="alert-err" role="alert">{error}</div>}
       {info && <div className="alert-ok" role="status">{info}</div>}
 
+      <div role="tablist" aria-label="Permohonan pengujian ulang" className="flex gap-2">
+        <button
+          role="tab"
+          type="button"
+          aria-selected={tab === "pending"}
+          onClick={() => setTab("pending")}
+          className={tab === "pending" ? "btn-dark" : "btn-soft"}
+        >
+          Menunggu ({pending.length})
+        </button>
+        <button
+          role="tab"
+          type="button"
+          aria-selected={tab === "history"}
+          onClick={() => setTab("history")}
+          className={tab === "history" ? "btn-dark" : "btn-soft"}
+        >
+          Riwayat permohonan ({reviewed.length})
+        </button>
+      </div>
+
+      {tab === "pending" && (
       <div className="card overflow-hidden">
         <div className="border-b border-neutral-200 p-5">
           <h2 className="font-semibold text-neutral-700">Menunggu Persetujuan ({pending.length})</h2>
@@ -122,7 +145,9 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
           ))}
         </div>
       </div>
+      )}
 
+      {tab === "history" && (
       <div className="card overflow-hidden">
         <div className="border-b border-neutral-200 p-5">
           <h2 className="font-semibold text-neutral-700">Riwayat Permohonan</h2>
@@ -152,6 +177,7 @@ export default function PermohonanView({ initialPending, initialReviewed }: { in
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }

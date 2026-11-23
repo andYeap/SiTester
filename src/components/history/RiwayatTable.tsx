@@ -11,12 +11,7 @@ import DownloadPdfButton from "./DownloadPdfButton";
 
 type Feature = { id: number; name: string };
 
-const badge = (r: string) =>
-  r === "pass"
-    ? "badge-pass"
-    : r === "fail"
-      ? "badge-fail"
-      : "badge-bug";
+const badge = (r: string) => (r === "pass" ? "badge-pass" : "badge-fail");
 
 function evidenceHref(path: string | null): string | null {
   if (!path) return null;
@@ -30,12 +25,14 @@ export default function RiwayatTable({
   initialTotal,
   features,
   cycles,
+  projects,
 }: {
   isKetua: boolean;
   initialSessions: SessionRow[];
   initialTotal: number;
   features: Feature[];
   cycles: string[];
+  projects: string[];
 }) {
   const PAGE_SIZE = 50;
   const [sessions, setSessions] = useState<SessionRow[]>(initialSessions);
@@ -49,6 +46,9 @@ export default function RiwayatTable({
   const [result, setResult] = useState("");
   const [q, setQ] = useState("");
   const [cycle, setCycle] = useState("");
+  const [project, setProject] = useState("");
+  const [ai, setAi] = useState("");
+  const [aiCategory, setAiCategory] = useState("");
   const [sort, setSort] = useState("date_desc");
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<SessionRow | null>(null);
@@ -80,6 +80,9 @@ export default function RiwayatTable({
     if (result) sp.set("result", result);
     if (q) sp.set("q", q);
     if (cycle) sp.set("cycle", cycle);
+    if (project) sp.set("project", project);
+    if (ai) sp.set("ai", ai);
+    if (ai === "ai" && aiCategory) sp.set("ai_category", aiCategory);
     if (sort) sp.set("sort", sort);
     sp.set("limit", String(PAGE_SIZE));
     sp.set("offset", String(nextPage * PAGE_SIZE));
@@ -106,6 +109,9 @@ export default function RiwayatTable({
     setResult("");
     setQ("");
     setCycle("");
+    setProject("");
+    setAi("");
+    setAiCategory("");
     setSort("date_desc");
     setPage(0);
     setSessions(initialSessions);
@@ -135,6 +141,9 @@ export default function RiwayatTable({
       setResult(f.result ?? "");
       setQ(f.q ?? "");
       setCycle(f.cycle ?? "");
+      setProject(f.project ?? "");
+      setAi(f.ai ?? "");
+      setAiCategory(f.aiCategory ?? "");
       setSort(f.sort ?? "date_desc");
       setSavedNotice("Filter tersimpan dipulihkan.");
     } catch {
@@ -145,7 +154,7 @@ export default function RiwayatTable({
   function saveFilters() {
     localStorage.setItem(
       FILTER_KEY,
-      JSON.stringify({ dari, sampai, featureId, result, q, cycle, sort }),
+      JSON.stringify({ dari, sampai, featureId, result, q, cycle, project, ai, aiCategory, sort }),
     );
     setSavedNotice("Filter disimpan di perangkat ini.");
   }
@@ -163,6 +172,9 @@ export default function RiwayatTable({
     if (result) sp.set("result", result);
     if (q) sp.set("q", q);
     if (cycle) sp.set("cycle", cycle);
+    if (project) sp.set("project", project);
+    if (ai) sp.set("ai", ai);
+    if (ai === "ai" && aiCategory) sp.set("ai_category", aiCategory);
     if (sort) sp.set("sort", sort);
     return sp.toString();
   }
@@ -263,7 +275,7 @@ export default function RiwayatTable({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2 lg:col-span-2">
             <label htmlFor="riw-q" className="label text-xs">Cari (catatan / fitur / tester)</label>
-            <input id="riw-q" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void apply(0); }} placeholder="cth: login, bug checkout..." className="input" />
+            <input id="riw-q" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void apply(0); }} placeholder="cth: login, gagal checkout..." className="input" />
           </div>
           <div>
             <label htmlFor="riw-dari" className="label text-xs">Dari tanggal</label>
@@ -283,14 +295,42 @@ export default function RiwayatTable({
             </select>
           </div>
           <div>
+            <label htmlFor="riw-proyek" className="label text-xs">Proyek</label>
+            <select id="riw-proyek" value={project} onChange={(e) => setProject(e.target.value)} className="input">
+              <option value="">Semua</option>
+              {projects.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label htmlFor="riw-hasil" className="label text-xs">Hasil</label>
             <select id="riw-hasil" value={result} onChange={(e) => setResult(e.target.value)} className="input">
               <option value="">Semua</option>
-              <option value="pass">Pass</option>
-              <option value="fail">Fail</option>
-              <option value="bug">Bug</option>
+              <option value="pass">Berhasil</option>
+              <option value="fail">Gagal</option>
             </select>
           </div>
+          <div>
+            <label htmlFor="riw-sumber" className="label text-xs">Sumber</label>
+            <select id="riw-sumber" value={ai} onChange={(e) => setAi(e.target.value)} className="input">
+              <option value="">Semua</option>
+              <option value="manual">Manual</option>
+              <option value="ai">AI Test</option>
+            </select>
+          </div>
+          {ai === "ai" && (
+            <div>
+              <label htmlFor="riw-kategori-ai" className="label text-xs">Kategori AI</label>
+              <select id="riw-kategori-ai" value={aiCategory} onChange={(e) => setAiCategory(e.target.value)} className="input">
+                <option value="">Semua kategori</option>
+                <option value="fungsional">Fungsional</option>
+                <option value="ketahanan">Ketahanan</option>
+                <option value="stress">Stress testing</option>
+                <option value="keamanan">Keamanan dasar</option>
+              </select>
+            </div>
+          )}
           <div>
             <label htmlFor="riw-siklus" className="label text-xs">Siklus</label>
             <select id="riw-siklus" value={cycle} onChange={(e) => setCycle(e.target.value)} className="input">
@@ -309,8 +349,8 @@ export default function RiwayatTable({
               <option value="feature_desc">Fitur Z–A</option>
               <option value="result_asc">Hasil A–Z</option>
               <option value="result_desc">Hasil Z–A</option>
-              <option value="severity_desc">Severity tertinggi</option>
-              <option value="severity_asc">Severity terendah</option>
+              <option value="severity_desc">Urgensi tertinggi</option>
+              <option value="severity_asc">Urgensi terendah</option>
             </select>
           </div>
           <div className="flex flex-wrap items-end gap-3">
@@ -357,13 +397,12 @@ export default function RiwayatTable({
                   value={editForm.result}
                   onChange={(e) => setEditForm({ ...editForm, result: e.target.value })}
                 >
-                  <option value="pass">Pass</option>
-                  <option value="fail">Fail</option>
-                  <option value="bug">Bug</option>
+                  <option value="pass">Berhasil</option>
+                  <option value="fail">Gagal</option>
                 </select>
               </div>
               <div>
-                <label htmlFor="koreksi-severity" className="label text-xs">Tingkat keparahan</label>
+                <label htmlFor="koreksi-severity" className="label text-xs">Tingkat urgensi</label>
                 <select
                   id="koreksi-severity"
                   className="input"
@@ -372,10 +411,9 @@ export default function RiwayatTable({
                   onChange={(e) => setEditForm({ ...editForm, severity: e.target.value })}
                 >
                   <option value="">—</option>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
+                  <option value="low">Rendah</option>
+                  <option value="medium">Sedang</option>
+                  <option value="high">Tinggi</option>
                 </select>
               </div>
               <div className="sm:col-span-2">
@@ -435,7 +473,7 @@ export default function RiwayatTable({
                 <th scope="col" className="table-th">Siklus</th>
                 <th scope="col" className="table-th">Fitur</th>
                 <th scope="col" className="table-th">Hasil</th>
-                <th scope="col" className="table-th">Tingkat Keparahan</th>
+                <th scope="col" className="table-th">Urgensi</th>
                 <th scope="col" className="table-th">Ulang</th>
                 <th scope="col" className="table-th">Disetujui oleh</th>
                 <th scope="col" className="table-th">Bukti</th>

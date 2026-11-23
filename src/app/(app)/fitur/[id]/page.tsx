@@ -102,7 +102,7 @@ export default async function FeatureDetailPage({
       `SELECT
          (SELECT count(*)::text FROM test_sessions WHERE feature_id=$1) AS total,
          (SELECT count(*)::text FROM test_sessions WHERE feature_id=$1 AND result='pass') AS pass,
-         (SELECT count(*)::text FROM test_sessions WHERE feature_id=$1 AND result IN ('fail','bug')) AS fail,
+         (SELECT count(*)::text FROM test_sessions WHERE feature_id=$1 AND result = 'fail') AS fail,
          (SELECT count(*)::text FROM defects WHERE feature_id=$1 AND status IN ('open','reopened','fixed')) AS open_defects`,
       [featureId],
     ),
@@ -134,8 +134,8 @@ export default async function FeatureDetailPage({
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           ["Total uji", stats?.total ?? "0"],
-          ["Pass", stats?.pass ?? "0"],
-          ["Fail/Bug", stats?.fail ?? "0"],
+          ["Berhasil", stats?.pass ?? "0"],
+          ["Gagal", stats?.fail ?? "0"],
           ["Defect terbuka", stats?.open_defects ?? "0"],
         ].map(([label, value]) => (
           <div key={label} className="card p-4">

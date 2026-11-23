@@ -14,12 +14,13 @@ export default async function SiklusPage() {
     name: string;
     description: string | null;
     brief: string | null;
+    project_name: string | null;
     is_active: boolean;
     test_count: number;
     scope_count: number;
     feature_ids: number[] | null;
   }>(
-    `SELECT c.id, c.name, c.description, c.brief, c.is_active,
+    `SELECT c.id, c.name, c.description, c.brief, c.project_name, c.is_active,
             (SELECT count(*)::int FROM test_sessions s WHERE s.test_cycle = c.name) AS test_count,
             (SELECT count(*)::int FROM cycle_features cf WHERE cf.cycle_id = c.id) AS scope_count,
             (SELECT coalesce(array_agg(cf.feature_id), '{}') FROM cycle_features cf WHERE cf.cycle_id = c.id) AS feature_ids
@@ -30,10 +31,15 @@ export default async function SiklusPage() {
     `SELECT id, name, project_name AS project FROM features WHERE is_active = true ORDER BY project_name NULLS LAST, name`,
   );
 
+  const projects = await query<{ name: string }>(
+    `SELECT name FROM projects ORDER BY name`,
+  );
+
   return (
     <CycleManager
       initialCycles={cycles.map((c) => ({ ...c, feature_ids: c.feature_ids ?? [] }))}
       initialFeatures={features}
+      projects={projects.map((p) => p.name)}
     />
   );
 }

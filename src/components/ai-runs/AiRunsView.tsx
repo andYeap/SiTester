@@ -8,6 +8,7 @@ type Run = {
   id: number;
   target_url: string;
   goal: string;
+  category: string;
   success_criteria: string | null;
   status: string;
   result: string | null;
@@ -38,7 +39,11 @@ type Feature = { id: number; name: string };
 type Role = { name: string; label: string };
 type Cycle = { name: string };
 
-export default function AiRunsView() {
+export default function AiRunsView({
+  mode = "form",
+}: {
+  mode?: "form" | "queue" | "results";
+}) {
   const [runs, setRuns] = useState<Run[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -49,6 +54,7 @@ export default function AiRunsView() {
   const [featureId, setFeatureId] = useState("");
   const [role, setRole] = useState("tester");
   const [cycle, setCycle] = useState("");
+  const [category, setCategory] = useState("fungsional");
   const [useLogin, setUseLogin] = useState(false);
   const [loginUrl, setLoginUrl] = useState("");
   const [loginGoal, setLoginGoal] = useState("");
@@ -113,6 +119,7 @@ export default function AiRunsView() {
           feature_id: Number(featureId),
           tested_as_role: role,
           test_cycle: cycle || null,
+          category,
           use_login: useLogin,
           ...(useLogin
             ? {
@@ -130,7 +137,7 @@ export default function AiRunsView() {
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Gagal membuat AI test.");
       setInfo(
-        "AI test masuk antrean. Runner (VPS/GitHub Actions) akan mengambilnya.",
+        "AI test masuk antrean. Pantau di halaman Antrean AI.",
       );
       setGoal("");
       setCriteria("");
@@ -250,21 +257,31 @@ export default function AiRunsView() {
     }
   }
 
+  const visibleRuns = runs.filter((r) =>
+    mode === "queue"
+      ? r.status === "queued" || r.status === "running"
+      : !(r.status === "queued" || r.status === "running"),
+  );
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="page-title">AI Test</h1>
+        <h1 className="page-title">
+          {mode === "form" ? "AI Test" : mode === "queue" ? "Antrean AI" : "Hasil AI"}
+        </h1>
         <p className="page-subtitle">
-          Antrekan pengujian otomatis dengan agent AI. Runner di VPS/GitHub Actions
-          menjalankan e2e terhadap URL target; hasilnya menjadi draft untuk Anda
-          konfirmasi.
+          {mode === "form"
+            ? "Ajukan pengujian otomatis dengan agent AI. Hasilnya masuk ke halaman Hasil AI untuk dikonfirmasi."
+            : mode === "queue"
+              ? "Run yang menunggu atau sedang dijalankan runner. Hasil akhirnya ada di halaman Hasil AI."
+              : "Hasil run AI yang siap dikonfirmasi, ditolak, atau dihapus. Antrean aktif ada di halaman Antrean AI."}
         </p>
       </div>
 
       {error && <div className="alert-err" role="alert">{error}</div>}
       {info && <div className="alert-ok" role="status">{info}</div>}
 
-      <form onSubmit={submit} className="card-pad grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {mode === "form" && (<form onSubmit={submit} className="card-pad grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="lg:col-span-2">
           <label htmlFor="ai-target" className="label">URL target</label>
           <input
@@ -276,6 +293,23 @@ export default function AiRunsView() {
             placeholder="https://staging.aplikasi.test atau http://localhost:3000"
             className="input"
           />
+        </div>
+        <div>
+          <label htmlFor="ai-category" className="label">Kategori pengujian</label>
+          <select
+            id="ai-category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="input"
+          >
+            <option value="fungsional">Fungsional (agent e2e)</option>
+            <option value="ketahanan">Ketahanan (endurance)</option>
+            <option value="stress">Stress testing</option>
+            <option value="keamanan">Keamanan dasar</option>
+          </select>
+          <p className="hint">
+            Selain fungsional, runner melakukan probe HTTP deterministik ke URL target.
+          </p>
         </div>
         <div className="lg:col-span-2">
           <label htmlFor="ai-goal" className="label">Tujuan pengujian (bahasa natural)</label>
@@ -302,7 +336,7 @@ export default function AiRunsView() {
             placeholder="cth: tabel pengguna tampil dan berisi minimal satu akun"
             className="input"
           />
-          <p className="hint">Dipakai agent untuk menentukan Pass/Fail.</p>
+          <p className="hint">Dipakai agent untuk menentukan Berhasil/Gagal.</p>
         </div>
 
         <div className="lg:col-span-2 rounded-lg border border-neutral-200 p-4">
@@ -338,10 +372,10 @@ export default function AiRunsView() {
                 <p className="hint">Kosongkan jika login dilakukan di URL target.</p>
               </div>
               <div>
-                <label htmlFor="ai-login-email" className="label">Email target</label>
+                <label htmlFor="ai-login-email" className="label">Email/Username</label>
                 <input
                   id="ai-login-email"
-                  type="email"
+                  type="text"
                   autoComplete="off"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
@@ -350,7 +384,7 @@ export default function AiRunsView() {
                 />
               </div>
               <div>
-                <label htmlFor="ai-login-password" className="label">Password target</label>
+                <label htmlFor="ai-login-password" className="label">Password</label>
                 <input
                   id="ai-login-password"
                   type="password"
@@ -375,7 +409,7 @@ export default function AiRunsView() {
                 <p className="hint">Dipakai jika selector di bawah tidak lengkap.</p>
               </div>
               <div>
-                <label htmlFor="ai-login-email-label" className="label">Label field email</label>
+                <label htmlFor="ai-login-email-label" className="label">Label kolom email</label>
                 <input
                   id="ai-login-email-label"
                   type="text"
@@ -386,7 +420,7 @@ export default function AiRunsView() {
                 />
               </div>
               <div>
-                <label htmlFor="ai-login-password-label" className="label">Label field password</label>
+                <label htmlFor="ai-login-password-label" className="label">Label kolom password</label>
                 <input
                   id="ai-login-password-label"
                   type="text"
@@ -397,7 +431,7 @@ export default function AiRunsView() {
                 />
               </div>
               <div>
-                <label htmlFor="ai-login-submit-label" className="label">Label tombol login</label>
+                <label htmlFor="ai-login-submit-label" className="label">Label tombol masuk</label>
                 <input
                   id="ai-login-submit-label"
                   type="text"
@@ -413,7 +447,7 @@ export default function AiRunsView() {
               </p>
               {(!loginEmailLabel.trim() || !loginPasswordLabel.trim() || !loginSubmitLabel.trim()) && (
                 <p className="hint sm:col-span-2" role="note">
-                  Label tidak lengkap: password target akan dikirim ke provider model AI saat agent login.
+                  Label tidak lengkap: password akan dikirim ke provider model AI saat agent login.
                   Isi ketiga label agar kredensial tidak masuk ke model.
                 </p>
               )}
@@ -445,9 +479,9 @@ export default function AiRunsView() {
             {busy ? "Mengantrekan..." : "Antrekan AI Test"}
           </button>
         </div>
-      </form>
+      </form>)}
 
-      {logRun && (
+      {mode !== "form" && logRun && (
         <div ref={logRef} className="card-pad space-y-3">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -525,9 +559,12 @@ export default function AiRunsView() {
         </div>
       )}
 
+      {mode !== "form" && (
       <div className="card overflow-hidden">
         <div className="border-b border-neutral-200 p-5">
-          <h2 className="font-semibold text-neutral-700">Antrean & Hasil</h2>
+          <h2 className="font-semibold text-neutral-700">
+            {mode === "queue" ? "Antrean" : "Hasil & Riwayat"}
+          </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -536,6 +573,7 @@ export default function AiRunsView() {
               <tr>
                 <th scope="col" className="table-th">Waktu</th>
                 <th scope="col" className="table-th">Fitur</th>
+                <th scope="col" className="table-th">Kategori</th>
                 <th scope="col" className="table-th">Target</th>
                 <th scope="col" className="table-th">Tujuan</th>
                 <th scope="col" className="table-th">Status</th>
@@ -544,15 +582,18 @@ export default function AiRunsView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200">
-              {runs.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-6 text-center text-neutral-500">Belum ada AI test.</td></tr>
+              {visibleRuns.length === 0 ? (
+                <tr><td colSpan={8} className="px-4 py-6 text-center text-neutral-500">
+                  {mode === "queue" ? "Antrean kosong." : "Belum ada hasil AI."}
+                </td></tr>
               ) : (
-                runs.map((r) => (
+                visibleRuns.map((r) => (
                   <tr key={r.id} className="align-top transition hover:bg-neutral-100">
                     <td className="whitespace-nowrap px-4 py-2 text-neutral-600">
                       {new Date(r.created_at).toLocaleString("id-ID")}
                     </td>
                     <td className="px-4 py-2 font-medium text-neutral-900">{r.feature_name}</td>
+                    <td className="px-4 py-2 text-neutral-600">{r.category}</td>
                     <td className="max-w-56 truncate px-4 py-2 text-neutral-600" title={r.target_url}>
                       <a href={r.target_url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
                         {r.target_url}
@@ -570,8 +611,8 @@ export default function AiRunsView() {
                     </td>
                     <td className="px-4 py-2">
                       {r.result ? (
-                        <span className={`badge ${r.result === "pass" ? "badge-pass" : r.result === "fail" ? "badge-fail" : "badge-bug"}`}>
-                          {r.result.toUpperCase()}
+                        <span className={`badge ${r.result === "pass" ? "badge-pass" : "badge-fail"}`}>
+                          {r.result === "pass" ? "BERHASIL" : "GAGAL"}
                         </span>
                       ) : "—"}
                       {r.evidence_path && (
@@ -647,6 +688,7 @@ export default function AiRunsView() {
           </table>
         </div>
       </div>
+      )}
 
       <div className="alert-info text-sm">
         Runner tidak berjalan di Vercel. Untuk online 24 jam gratis, jalankan{" "}

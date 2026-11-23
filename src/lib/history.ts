@@ -9,8 +9,13 @@ export type SessionFilters = {
   result?: string;
   q?: string;
   cycle?: string;
+  project?: string;
+  ai?: string;
+  aiCategory?: string;
   sort?: string;
 };
+
+const AI_CATEGORIES = ["fungsional", "ketahanan", "stress", "keamanan"];
 
 const SORTS: Record<string, string> = {
   date_desc: "s.tested_at DESC, s.id DESC",
@@ -20,9 +25,9 @@ const SORTS: Record<string, string> = {
   result_asc: "s.result ASC, s.tested_at DESC, s.id DESC",
   result_desc: "s.result DESC, s.tested_at DESC, s.id DESC",
   severity_desc:
-    "CASE s.severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END ASC, s.tested_at DESC",
+    "CASE s.severity WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 3 END ASC, s.tested_at DESC",
   severity_asc:
-    "CASE s.severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END DESC, s.tested_at DESC",
+    "CASE s.severity WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 3 END DESC, s.tested_at DESC",
 };
 
 export type SessionRow = {
@@ -54,6 +59,9 @@ export function parseSessionFilters(
   const result = sp.get("result") ?? undefined;
   const q = sp.get("q")?.trim() || undefined;
   const cycle = sp.get("cycle")?.trim() || undefined;
+  const project = sp.get("project")?.trim() || undefined;
+  const ai = sp.get("ai")?.trim() || undefined;
+  const aiCategory = sp.get("ai_category")?.trim() || undefined;
   const sort = sp.get("sort")?.trim() || undefined;
 
   if (dari && !isIsoDate(dari)) {
@@ -71,12 +79,33 @@ export function parseSessionFilters(
   if (featureId && !/^\d+$/.test(featureId)) {
     return { error: "Filter fitur tidak valid." };
   }
-  if (result && !["pass", "fail", "bug"].includes(result)) {
+  if (result && !["pass", "fail"].includes(result)) {
     return { error: "Filter hasil tidak valid." };
+  }
+  if (project && project.length > 100) {
+    return { error: "Filter proyek tidak valid." };
+  }
+  if (ai && !["ai", "manual"].includes(ai)) {
+    return { error: "Filter sumber AI tidak valid." };
+  }
+  if (aiCategory && !AI_CATEGORIES.includes(aiCategory)) {
+    return { error: "Filter kategori AI tidak valid." };
   }
 
   return {
-    filters: { dari, sampai, userId, featureId, result, q, cycle, sort },
+    filters: {
+      dari,
+      sampai,
+      userId,
+      featureId,
+      result,
+      q,
+      cycle,
+      project,
+      ai,
+      aiCategory,
+      sort,
+    },
   };
 }
 
@@ -111,9 +140,28 @@ export async function getSessions(
     conds.push(`s.feature_id = $${i++}`);
     vals.push(Number(f.featureId));
   }
-  if (f.result && ["pass", "fail", "bug"].includes(f.result)) {
+  if (f.result && ["pass", "fail"].includes(f.result)) {
     conds.push(`s.result = $${i++}`);
     vals.push(f.result);
+  }
+  if (f.project) {
+    conds.push(`f.project_name = $${i++}`);
+    vals.push(f.project);
+  }
+  if (f.ai === "ai") {
+    conds.push(
+      `EXISTS (SELECT 1 FROM ai_test_runs r WHERE r.confirmed_session_id = s.id)`,
+    );
+  } else if (f.ai === "manual") {
+    conds.push(
+      `NOT EXISTS (SELECT 1 FROM ai_test_runs r WHERE r.confirmed_session_id = s.id)`,
+    );
+  }
+  if (f.aiCategory) {
+    conds.push(
+      `EXISTS (SELECT 1 FROM ai_test_runs r WHERE r.confirmed_session_id = s.id AND r.category = $${i++})`,
+    );
+    vals.push(f.aiCategory);
   }
   if (f.cycle) {
     conds.push(`s.test_cycle = $${i++}`);

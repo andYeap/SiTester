@@ -1,4 +1,4 @@
-export type TestResult = "pass" | "fail" | "bug";
+export type TestResult = "pass" | "fail";
 
 export type CanTestResult = {
   allowed: boolean;
@@ -7,8 +7,9 @@ export type CanTestResult = {
 };
 
 /**
- * Aturan inti pengujian ulang (mirror BR-1/BR-2/BR-4 Laravel).
- * `lastResult` = hasil terakhir dalam scope (fitur, peran, siklus), null bila belum ada.
+ * Aturan pengujian ulang: semua retest pada fitur yang sudah punya riwayat
+ * wajib disetujui ketua tim, apa pun hasil terakhirnya (termasuk Fail).
+ * `lastResult` = hasil terakhir dalam scope (fitur, peran, siklus).
  */
 export function canTest(
   lastResult: TestResult | null,
@@ -19,33 +20,32 @@ export function canTest(
     return { allowed: true, requiresApproval: false, warning: null };
   }
 
-  if (lastResult === "pass") {
-    if (isRetest) {
-      if (hasApproval) {
-        return { allowed: true, requiresApproval: false, warning: null };
-      }
-      return {
-        allowed: false,
-        requiresApproval: true,
-        warning:
-          "Fitur ini sudah Pass pada pengujian terakhir dalam scope ini. Pengujian ulang memerlukan persetujuan ketua tim.",
-      };
+  if (isRetest) {
+    if (hasApproval) {
+      return { allowed: true, requiresApproval: false, warning: null };
     }
+    return {
+      allowed: false,
+      requiresApproval: true,
+      warning:
+        "Pengujian ulang memerlukan persetujuan ketua tim yang masih berlaku, termasuk untuk hasil Fail.",
+    };
+  }
+
+  if (lastResult === "pass") {
     return {
       allowed: false,
       requiresApproval: false,
       warning:
-        'Fitur ini sudah pernah diuji dan hasil terakhirnya Pass. Gunakan opsi "Pengujian Ulang" dan ajukan persetujuan ketua tim.',
+        'Fitur ini sudah pernah diuji dan hasil terakhirnya Berhasil. Gunakan opsi "Pengujian Ulang" dan ajukan persetujuan ketua tim.',
     };
   }
 
-  // Fail/Bug: bug-fix cycle otomatis boleh.
-  if (!isRetest) {
-    return {
-      allowed: true,
-      requiresApproval: false,
-      warning: `Fitur ini sudah pernah diuji dengan hasil ${lastResult.toUpperCase()}. Anda tetap dapat menguji (siklus perbaikan bug), atau gunakan opsi "Pengujian Ulang" jika ingin mencatatnya sebagai retest.`,
-    };
-  }
-  return { allowed: true, requiresApproval: false, warning: null };
+  // Fail tanpa tanda retest: siklus perbaikan bug tetap boleh.
+  return {
+    allowed: true,
+    requiresApproval: false,
+    warning:
+      "Fitur ini terakhir Gagal. Anda dapat menguji lagi sebagai siklus perbaikan bug, atau menandainya sebagai pengujian ulang (perlu persetujuan ketua tim).",
+  };
 }

@@ -63,9 +63,10 @@ export async function POST(
       ? logRaw.slice(0, 100_000)
       : null;
   const severityRaw = String(form?.get("severity") ?? "");
+  const outcomeDb = outcome === "bug" ? "fail" : outcome;
   const severity =
-    outcome === "fail" || outcome === "bug"
-      ? ["low", "medium", "high", "critical"].includes(severityRaw)
+    outcomeDb === "fail"
+      ? ["low", "medium", "high"].includes(severityRaw)
         ? severityRaw
         : "medium"
       : null;
@@ -136,7 +137,7 @@ export async function POST(
       RETURNING id`,
     [
       isError ? "error" : "completed",
-      isError ? null : outcome,
+      isError ? null : outcomeDb,
       severity,
       finalNotes,
       error,

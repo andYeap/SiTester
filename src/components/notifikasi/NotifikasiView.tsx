@@ -81,7 +81,7 @@ export default function NotifikasiView({ initialItems }: { initialItems: Notif[]
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Notifikasi</h1>
-          <p className="page-subtitle">Keputusan permohonan dan permohonan baru dari tim.</p>
+          <p className="page-subtitle">Kotak masuk pribadi Anda: pemberitahuan dan keputusan atas aktivitas tim.</p>
         </div>
         {items.length > 0 && (
           <div className="flex gap-2">
@@ -95,6 +95,9 @@ export default function NotifikasiView({ initialItems }: { initialItems: Notif[]
         )}
       </div>
       {error && <div className="alert-err" role="alert">{error}</div>}
+      <div className="alert-info text-sm">
+        <p><strong>Notifikasi</strong> hanya memberi tahu Anda. <strong>Permohonan</strong> adalah halaman keputusan pengujian ulang khusus ketua tim — buka notifikasi bertipe permohonan untuk menuju ke sana.</p>
+      </div>
       <div className="card divide-y divide-neutral-200 overflow-hidden">
         {items.length === 0 && (
           <div className="empty-state">
@@ -116,7 +119,7 @@ export default function NotifikasiView({ initialItems }: { initialItems: Notif[]
                 <span>{new Date(n.created_at).toLocaleString("id-ID")}</span>
                 {n.link && (
                   <a href={n.link} className="action-link min-h-9 px-1 py-0 text-xs text-neutral-600">
-                    Buka
+                    {n.type === "retest_request" ? "Buka Permohonan" : "Buka"}
                   </a>
                 )}
               </div>

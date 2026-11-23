@@ -18,6 +18,7 @@ export async function PUT(
     name?: unknown;
     description?: unknown;
     brief?: unknown;
+    project_name?: unknown;
     is_active?: unknown;
     feature_ids?: unknown;
   } | null;
@@ -31,6 +32,10 @@ export async function PUT(
     typeof body?.brief === "string" && body.brief.trim() !== ""
       ? body.brief.trim().slice(0, 2000)
       : null;
+  const projectName =
+    typeof body?.project_name === "string" && body.project_name.trim() !== ""
+      ? body.project_name.trim()
+      : null;
   const isActive = body?.is_active !== false;
   const featureIds = Array.isArray(body?.feature_ids)
     ? [...new Set(body.feature_ids.map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0))]
@@ -38,6 +43,15 @@ export async function PUT(
 
   if (!name || name.length > 100) {
     return err("Nama siklus wajib diisi (maks 100).", 422);
+  }
+  if (projectName) {
+    const project = await query<{ name: string }>(
+      `SELECT name FROM projects WHERE name=$1`,
+      [projectName],
+    );
+    if (project.length === 0) {
+      return err("Proyek tidak ditemukan.", 422);
+    }
   }
 
   if (featureIds !== null && featureIds.length > 0) {
@@ -53,8 +67,8 @@ export async function PUT(
   try {
     await withTransaction(async (client) => {
       const updated = await client.query<{ id: number }>(
-        `UPDATE test_cycles SET name=$1, description=$2, brief=$3, is_active=$4 WHERE id=$5 RETURNING id`,
-        [name, description, brief, isActive, cycleId],
+        `UPDATE test_cycles SET name=$1, description=$2, brief=$3, project_name=$4, is_active=$5 WHERE id=$6 RETURNING id`,
+        [name, description, brief, projectName, isActive, cycleId],
       );
       if (updated.rows.length === 0) throw new Error("Siklus tidak ditemukan.");
       if (featureIds !== null) {
@@ -80,7 +94,7 @@ export async function PUT(
     actorRole: ketua.role,
     action: "test_cycles.update",
     target: name,
-    changes: { id, description, brief, is_active: isActive, feature_count: featureIds?.length ?? undefined },
+    changes: { id, description, brief, project_name: projectName, is_active: isActive, feature_count: featureIds?.length ?? undefined },
     ip: clientIp(request),
   });
 

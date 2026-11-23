@@ -130,7 +130,7 @@ export default function DefectView({ isKetua }: { isKetua: boolean }) {
       <div>
         <h1 className="page-title">Defect</h1>
         <p className="page-subtitle">
-          Temuan Fail/Bug otomatis tercatat. Alur: open → fixed → verified → closed.
+          Temuan Gagal otomatis tercatat. Alur: open → fixed → verified → closed.
           {isKetua ? " Hanya ketua tim yang dapat memverifikasi." : ""}
         </p>
       </div>

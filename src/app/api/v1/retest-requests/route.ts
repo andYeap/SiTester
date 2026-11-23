@@ -78,10 +78,10 @@ export async function POST(request: Request) {
           ORDER BY tested_at DESC, id DESC LIMIT 1`,
         [featureId, role, cycle],
       );
-      if (last.rows.length === 0 || last.rows[0].result !== "pass") {
+      if (last.rows.length === 0) {
         throw Object.assign(
           new Error(
-            "Permohonan pengujian ulang hanya diperlukan untuk fitur yang sudah lulus (Pass) pada pengujian sebelumnya.",
+            "Belum ada riwayat pengujian untuk fitur, peran, dan siklus ini. Lakukan pengujian pertama terlebih dahulu.",
           ),
           { status: 422 },
         );

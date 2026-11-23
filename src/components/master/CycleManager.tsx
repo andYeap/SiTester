@@ -17,6 +17,7 @@ type Cycle = {
   name: string;
   description: string | null;
   brief: string | null;
+  project_name: string | null;
   is_active: boolean;
   test_count: number;
   scope_count: number;
@@ -25,12 +26,13 @@ type Cycle = {
 
 type FeatureOpt = { id: number; name: string; project: string | null };
 
-export default function CycleManager({ initialCycles, initialFeatures }: { initialCycles: Cycle[]; initialFeatures: FeatureOpt[] }) {
+export default function CycleManager({ initialCycles, initialFeatures, projects }: { initialCycles: Cycle[]; initialFeatures: FeatureOpt[]; projects: string[] }) {
   const [cycles, setCycles] = useState<Cycle[]>(initialCycles);
   const [features] = useState<FeatureOpt[]>(initialFeatures);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [brief, setBrief] = useState("");
+  const [projectName, setProjectName] = useState("");
   const [scopeIds, setScopeIds] = useState<number[]>([]);
   const [scopeSearch, setScopeSearch] = useState("");
   const [editing, setEditing] = useState<Cycle | null>(null);
@@ -52,6 +54,7 @@ export default function CycleManager({ initialCycles, initialFeatures }: { initi
         name,
         description: description || null,
         brief: brief || null,
+        project_name: projectName || null,
         is_active: editing ? editing.is_active : true,
         feature_ids: scopeIds,
       };
@@ -73,6 +76,7 @@ export default function CycleManager({ initialCycles, initialFeatures }: { initi
     setName("");
     setDescription("");
     setBrief("");
+    setProjectName("");
     setScopeIds([]);
     setScopeSearch("");
     setEditing(null);
@@ -83,6 +87,7 @@ export default function CycleManager({ initialCycles, initialFeatures }: { initi
     setName(c.name);
     setDescription(c.description ?? "");
     setBrief(c.brief ?? "");
+    setProjectName(c.project_name ?? "");
     setScopeIds(c.feature_ids ?? []);
     setScopeSearch("");
   }
@@ -92,6 +97,7 @@ export default function CycleManager({ initialCycles, initialFeatures }: { initi
   }
 
   const filteredFeatures = features.filter((f) => {
+    if (projectName && f.project !== projectName) return false;
     const q = scopeSearch.trim().toLowerCase();
     if (!q) return true;
     return f.name.toLowerCase().includes(q) || (f.project ?? "").toLowerCase().includes(q);
@@ -102,7 +108,7 @@ export default function CycleManager({ initialCycles, initialFeatures }: { initi
     try {
       await api(`/api/v1/test-cycles/${c.id}`, {
         method: "PUT",
-        body: JSON.stringify({ name: c.name, description: c.description, brief: c.brief ?? null, is_active: !c.is_active, feature_ids: c.feature_ids }),
+        body: JSON.stringify({ name: c.name, description: c.description, brief: c.brief ?? null, project_name: c.project_name, is_active: !c.is_active, feature_ids: c.feature_ids }),
       });
       await load();
     } catch (e) {
@@ -147,6 +153,16 @@ export default function CycleManager({ initialCycles, initialFeatures }: { initi
           <p className="hint">Tampil mencolok saat tester memilih siklus ini.</p>
         </div>
         <div>
+          <label htmlFor="siklus-proyek" className="label">Proyek <span className="font-normal text-neutral-400">(opsional)</span></label>
+          <select id="siklus-proyek" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="input">
+            <option value="">Semua proyek</option>
+            {projects.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          <p className="hint">Jika dipilih, lingkup fitur di bawah otomatis tersaring ke proyek ini.</p>
+        </div>
+        <div>
           <span id="siklus-scope-label" className="label">Lingkup fitur <span className="font-normal text-neutral-400">(opsional — kosong = semua fitur)</span></span>
           <div className="mt-2 rounded-xl border border-neutral-200 p-3">
             <input
@@ -189,12 +205,13 @@ export default function CycleManager({ initialCycles, initialFeatures }: { initi
         <table className="min-w-full text-sm">
           <caption className="sr-only">Daftar siklus pengujian</caption>
           <thead className="table-head">
-            <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Deskripsi</th><th scope="col" className="table-th">Lingkup</th><th scope="col" className="table-th">Status</th><th scope="col" className="table-th">Jumlah Uji</th><th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th></tr>
+            <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Proyek</th><th scope="col" className="table-th">Deskripsi</th><th scope="col" className="table-th">Lingkup</th><th scope="col" className="table-th">Status</th><th scope="col" className="table-th">Jumlah Uji</th><th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th></tr>
           </thead>
           <tbody className="divide-y divide-neutral-200">
             {cycles.map((c) => (
               <tr key={c.id} className="transition hover:bg-neutral-100">
                 <td className="px-4 py-3 font-medium text-neutral-800">{c.name}</td>
+                <td className="px-4 py-3 text-neutral-600">{c.project_name ?? "Semua proyek"}</td>
                 <td className="px-4 py-3 text-neutral-600">{c.description ?? "—"}</td>
                 <td className="px-4 py-3 text-neutral-600">{c.scope_count > 0 ? `${c.scope_count} fitur` : "Semua fitur"}</td>
                 <td className="px-4 py-3">

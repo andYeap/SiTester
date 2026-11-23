@@ -37,7 +37,7 @@ export async function GET(request: Request) {
        LEFT JOIN users v ON v.id = d.verified_by
       ${where}
       ORDER BY CASE d.status WHEN 'open' THEN 0 WHEN 'reopened' THEN 1 WHEN 'fixed' THEN 2 WHEN 'verified' THEN 3 ELSE 4 END,
-               CASE d.severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
+               CASE d.severity WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 3 END,
                d.created_at DESC
       LIMIT 200`,
     vals,

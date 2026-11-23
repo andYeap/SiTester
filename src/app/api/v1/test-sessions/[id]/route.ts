@@ -5,8 +5,8 @@ import { audit, clientIp } from "@/lib/audit";
 import { queryOne, withTransaction } from "@/lib/db";
 import { parsePositiveInt } from "@/lib/validation";
 
-const RESULTS = ["pass", "fail", "bug"];
-const SEVERITIES = ["low", "medium", "high", "critical"];
+const RESULTS = ["pass", "fail"];
+const SEVERITIES = ["low", "medium", "high"];
 
 type Row = {
   id: number;
@@ -46,7 +46,7 @@ export async function PATCH(
   const severityRaw = body?.severity === undefined ? existing.severity : body.severity;
   const severity = result === "pass" ? null : text(severityRaw, 20);
   if (severity !== null && !SEVERITIES.includes(severity)) {
-    return err("Severity tidak valid.", 422);
+    return err("Tingkat urgensi tidak valid.", 422);
   }
 
   const next = {

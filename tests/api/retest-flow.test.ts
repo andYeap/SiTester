@@ -86,7 +86,7 @@ describe("alur retest", () => {
     expect(used[0].used).toBe(true);
   });
 
-  it("Fail langsung boleh retest tanpa approval", async () => {
+  it("Fail juga wajib approval sebelum retest", async () => {
     const fid = await featureId();
     await loginAs(testerEmail);
 
@@ -98,7 +98,7 @@ describe("alur retest", () => {
     r = await submitSession(
       fd({ tested_at: "2026-10-29", feature_id: String(fid), is_retest: "1", tested_as_role: "tester", result: "pass" }),
     );
-    expect(r.status).toBe(201);
+    expect(r.status).toBe(422);
   });
 
   it("peran beda tidak saling blokir; siklus baru fresh", async () => {

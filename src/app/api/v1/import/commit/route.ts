@@ -201,7 +201,7 @@ export async function POST(request: Request) {
 
         for (const insertedRow of inserted.rows) {
           const row = byHash.get(insertedRow.import_row_hash);
-          if (!row || (row.result !== "fail" && row.result !== "bug")) continue;
+          if (!row || row.result !== "fail") continue;
           defectRows.push({
             featureId: row.featureId,
             sessionId: Number(insertedRow.id),

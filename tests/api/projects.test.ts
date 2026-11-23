@@ -4,6 +4,7 @@ import { DELETE as deleteProject, PUT as updateProject } from "@/app/api/v1/proj
 import { GET as listProjects, POST as createProject } from "@/app/api/v1/projects/route";
 import { POST as createFeature } from "@/app/api/v1/features/route";
 import { query } from "@/lib/db";
+import { getSessions } from "@/lib/history";
 
 import { createUser, loginAs, resetDb, uid } from "./helpers";
 
@@ -113,5 +114,33 @@ describe("master proyek", () => {
     expect(r.status).toBe(422);
     const data = (await r.json()) as { error?: string };
     expect(data.error ?? "").toMatch(/Proyek/);
+  });
+
+  it("filter riwayat memakai proyek fitur", async () => {
+    const projectName = `Proyek Filter ${uid()}`;
+    await query(`INSERT INTO projects (name) VALUES ($1)`, [projectName]);
+    const tester = await createUser(undefined, "tester");
+    const inProject = await query<{ id: number }>(
+      `INSERT INTO features (name, is_active, verified, project_name)
+       VALUES ($1,true,true,$2) RETURNING id`,
+      [`Fitur Dalam ${uid()}`, projectName],
+    );
+    const outside = await query<{ id: number }>(
+      `INSERT INTO features (name, is_active, verified)
+       VALUES ($1,true,true) RETURNING id`,
+      [`Fitur Luar ${uid()}`],
+    );
+    for (const fid of [inProject[0].id, outside[0].id]) {
+      await query(
+        `INSERT INTO test_sessions (user_id, feature_id, tested_at, result, tested_as_role)
+         VALUES ($1,$2,CURRENT_DATE,'pass','tester')`,
+        [tester.id, fid],
+      );
+    }
+
+    const { rows } = await getSessions(tester.id, true, { project: projectName });
+    expect(rows.map((x) => x.feature_name)).toEqual([
+      expect.stringMatching(/^Fitur Dalam /),
+    ]);
   });
 });

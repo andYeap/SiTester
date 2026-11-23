@@ -175,6 +175,38 @@ describe("AI test runs", () => {
     expect(again.status).toBe(422);
   });
 
+  it("kategori non-fungsional tersimpan, tervalidasi, dan dikirim ke runner", async () => {
+    await resetDb();
+    const tester = await createUser(undefined, "tester");
+    const f = await feature();
+    await loginAs(tester.email);
+
+    const base = {
+      target_url: "https://example.test/app",
+      goal: "pastikan halaman tahan beban",
+      feature_id: f.id,
+      tested_as_role: "tester",
+    };
+
+    let res: Response = await createRun(json({ ...base, category: "aksesibilitas" }));
+    expect(res.status).toBe(422);
+
+    res = await createRun(json({ ...base, category: "stress" }));
+    expect(res.status).toBe(201);
+    const created = (await res.json()) as { id: number };
+
+    const list = (await (await listRuns()).json()) as {
+      runs: { id: number; category: string }[];
+    };
+    expect(list.runs.find((r) => r.id === created.id)?.category).toBe("stress");
+
+    const claimed = (await (
+      await nextRun(runnerRequest("http://test/api/v1/ai-runs/next"))
+    ).json()) as { run: { id: number; category: string } };
+    expect(claimed.run.id).toBe(created.id);
+    expect(claimed.run.category).toBe("stress");
+  });
+
   it("menyimpan galeri screenshot berurutan dan memakai gambar terakhir sebagai bukti", async () => {
     await resetDb();
     const tester = await createUser(undefined, "tester");

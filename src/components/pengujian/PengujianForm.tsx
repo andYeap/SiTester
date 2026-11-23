@@ -11,7 +11,7 @@ import FeatureCombobox from "./FeatureCombobox";
 
 type Feature = { id: number; name: string; project_name: string | null; description: string | null };
 type Role = { name: string; label: string };
-type Cycle = { name: string };
+type Cycle = { name: string; project_name?: string | null };
 type TestCase = { id: number; title: string };
 type Check = {
   allowed: boolean;
@@ -70,16 +70,14 @@ type AiRunInitial = {
 };
 
 const RESULTS = [
-  { value: "pass", label: "Pass" },
-  { value: "fail", label: "Fail" },
-  { value: "bug", label: "Bug" },
+  { value: "pass", label: "Berhasil" },
+  { value: "fail", label: "Gagal" },
 ];
 
 const SEVERITIES = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "critical", label: "Critical" },
+  { value: "low", label: "Rendah" },
+  { value: "medium", label: "Sedang" },
+  { value: "high", label: "Tinggi" },
 ];
 
 const today = () => todayString();
@@ -181,7 +179,7 @@ export default function PengujianForm({
     return idemRef.current;
   };
 
-  const needsTriage = result === "fail" || result === "bug";
+  const needsTriage = result === "fail";
 
   async function loadCycleInfo(name: string) {
     setCycleBrief(null);
@@ -191,11 +189,12 @@ export default function PengujianForm({
       const res = await fetch("/api/v1/test-cycles");
       if (!res.ok) return;
       const data = (await res.json()) as {
-        cycles: { name: string; brief: string | null; feature_ids: Array<number | string> }[];
+        cycles: { name: string; brief: string | null; project_name?: string | null; feature_ids: Array<number | string> }[];
       };
       const found = (data.cycles ?? []).find((c) => c.name === name);
       if (!found) return;
       setCycleBrief(found.brief);
+      setProjectFilter(found.project_name ?? "");
       setScopeIds(found.feature_ids.length > 0 ? found.feature_ids : null);
     } catch {
       /* form tetap bisa dipakai tanpa lingkup */
@@ -443,11 +442,11 @@ export default function PengujianForm({
       return;
     }
     if (needsTriage && !severity) {
-      setQueueError("Severity wajib untuk Fail/Bug.");
+      setQueueError("Tingkat urgensi wajib untuk hasil Gagal.");
       return;
     }
     if (needsTriage && notes.trim().length < 10) {
-      setQueueError("Catatan minimal 10 karakter untuk Fail/Bug.");
+      setQueueError("Catatan minimal 10 karakter untuk hasil Gagal.");
       return;
     }
     const f = features.find((x) => String(x.id) === featureId);
@@ -729,9 +728,9 @@ export default function PengujianForm({
           </div>
           {needsTriage && (
             <div>
-              <label className="label" htmlFor="uji-severity">Tingkat Keparahan</label>
+              <label className="label" htmlFor="uji-severity">Tingkat Urgensi</label>
               <select id="uji-severity" value={severity} onChange={(e) => setSeverity(e.target.value)} required className="input">
-                <option value="">— Pilih tingkat keparahan —</option>
+                <option value="">— Pilih tingkat urgensi —</option>
                 {SEVERITIES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
@@ -740,14 +739,14 @@ export default function PengujianForm({
 
         <div>
           <label className="label" htmlFor="uji-notes">Catatan</label>
-          <p className="hint" id="uji-notes-hint">Wajib minimal 10 karakter bila hasil Fail atau Bug.</p>
+          <p className="hint" id="uji-notes-hint">Wajib minimal 10 karakter bila hasil Gagal.</p>
           <textarea id="uji-notes" aria-describedby="uji-notes-hint" value={notes} onChange={(e) => setNotes(e.target.value)} rows={quickMode ? 2 : 4} placeholder="Jelaskan langkah dan hasil yang ditemui…" className="input" />
         </div>
 
         {!quickMode && (
           <details className="rounded-xl border border-neutral-200 p-4">
             <summary className="cursor-pointer text-sm font-semibold text-neutral-800">
-              Detail opsional (lingkungan, expected/actual, bukti)
+              Detail opsional (lingkungan, expected/actual)
             </summary>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
@@ -762,16 +761,21 @@ export default function PengujianForm({
                 <label className="label" htmlFor="uji-actual">Yang terjadi</label>
                 <textarea id="uji-actual" value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="input" />
               </div>
-              <div>
-                <label className="label" htmlFor="uji-file">Bukti gambar (maks 2MB)</label>
-                <input id="uji-file" type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)} className="input-file" />
-              </div>
-              <div>
-                <label className="label" htmlFor="uji-url">atau tautan bukti</label>
-                <input id="uji-url" type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://..." className="input" />
-              </div>
             </div>
           </details>
+        )}
+
+        {!quickMode && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="uji-file">Bukti gambar <span className="font-normal text-neutral-400">(opsional, maks 2MB)</span></label>
+              <input id="uji-file" type="file" accept="image/*" onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)} className="input-file" />
+            </div>
+            <div>
+              <label className="label" htmlFor="uji-url">Tautan bukti <span className="font-normal text-neutral-400">(opsional)</span></label>
+              <input id="uji-url" type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://..." className="input" />
+            </div>
+          </div>
         )}
 
         <button type="submit" disabled={saving || (check !== null && !check.allowed)} className="btn-dark">
@@ -821,7 +825,7 @@ export default function PengujianForm({
       {!quickMode && check && !check.allowed && check.requiresApproval && (
         <form onSubmit={requestRetest} className="card-pad space-y-4 border-2 border-neutral-950">
           <h3 className="font-semibold text-neutral-950">Ajukan Permohonan Pengujian Ulang</h3>
-          <p className="text-sm text-neutral-700">Hasil terakhir untuk kombinasi ini sudah Pass. Permohonan akan dikirim ke ketua tim untuk disetujui sebelum Anda bisa menguji ulang.</p>
+          <p className="text-sm text-neutral-700">Kombinasi fitur, peran, dan siklus ini sudah punya riwayat pengujian. Permohonan akan dikirim ke ketua tim untuk disetujui sebelum Anda bisa menguji ulang.</p>
           <div>
             <label className="label" htmlFor="retest-reason">Alasan <span className="font-normal text-neutral-400">(opsional)</span></label>
             <textarea id="retest-reason" value={retestReason} onChange={(e) => setRetestReason(e.target.value)} rows={3} maxLength={1000} className="input" />

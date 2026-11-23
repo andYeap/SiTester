@@ -123,7 +123,7 @@ describe("regression: CSV formula injection", () => {
 });
 
 describe("regression: permohonan retest harus relevan", () => {
-  it("fitur belum diuji atau belum Pass tidak boleh dimohonkan", async () => {
+  it("fitur belum diuji ditolak; fitur Gagal tetap boleh dimohonkan", async () => {
     await resetDb();
     const tester = await createUser(undefined, "tester");
     await loginAs(tester.email);
@@ -140,7 +140,7 @@ describe("regression: permohonan retest harus relevan", () => {
       [tester.id, fid],
     );
     res = await requestRetest(json({ feature_id: fid, tested_as_role: "tester" }));
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(201);
   });
 
   it("fitur Pass boleh dimohonkan dan mengembalikan id", async () => {

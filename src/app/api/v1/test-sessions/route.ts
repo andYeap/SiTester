@@ -28,8 +28,8 @@ export async function GET(request: Request) {
   return NextResponse.json({ sessions: rows, total, limit, offset });
 }
 
-const RESULTS = ["pass", "fail", "bug"] as const;
-const SEVERITIES = ["low", "medium", "high", "critical"] as const;
+const RESULTS = ["pass", "fail"] as const;
+const SEVERITIES = ["low", "medium", "high"] as const;
 const TODAY = () => todayString();
 
 export async function POST(request: Request) {
@@ -134,14 +134,14 @@ export async function POST(request: Request) {
     }
   }
 
-  if ((result === "fail" || result === "bug") && (!notes || notes.length < 10)) {
-    return err("Catatan wajib diisi minimal 10 karakter untuk hasil Fail/Bug.", 422);
+  if (result === "fail" && (!notes || notes.length < 10)) {
+    return err("Catatan wajib diisi minimal 10 karakter untuk hasil Gagal.", 422);
   }
-  if ((result === "fail" || result === "bug") && !severity) {
-    return err("Severity wajib dipilih untuk hasil Fail/Bug.", 422);
+  if (result === "fail" && !severity) {
+    return err("Tingkat urgensi wajib dipilih untuk hasil Gagal.", 422);
   }
   if (severity && !SEVERITIES.includes(severity as (typeof SEVERITIES)[number])) {
-    return err("Severity tidak valid.", 422);
+    return err("Tingkat urgensi tidak valid.", 422);
   }
   if (evidenceUrl && evidenceUrl.length > 2000) {
     return err("Tautan bukti terlalu panjang.", 422);
@@ -249,17 +249,21 @@ export async function POST(request: Request) {
     [featureId, user.id, role, cycle],
   );
 
-  const check = canTest(last?.result ?? null, isRetest, approval !== null);
-  if (!check.allowed) {
-    return err(check.warning ?? "Pengujian tidak diizinkan.", 422);
-  }
+  // Saat replay idempotent, lewati cek awal: transaksi akan memeriksa pemenang
+  // kunci sebelum aturan retest, sehingga double-submit tetap mengembalikan sesi.
+  if (!idempotencyKey) {
+    const check = canTest(last?.result ?? null, isRetest, approval !== null);
+    if (!check.allowed) {
+      return err(check.warning ?? "Pengujian tidak diizinkan.", 422);
+    }
 
-  const needsApproval = isRetest && last?.result === "pass";
-  if (needsApproval && !approval) {
-    return err(
-      "Pengujian ulang memerlukan persetujuan ketua tim yang masih berlaku.",
-      422,
-    );
+    const needsApproval = isRetest && last !== null;
+    if (needsApproval && !approval) {
+      return err(
+        "Pengujian ulang memerlukan persetujuan ketua tim yang masih berlaku.",
+        422,
+      );
+    }
   }
 
   let saved: { sessionId: number; defectId: number | null; deduped?: boolean } = {
@@ -324,7 +328,7 @@ export async function POST(request: Request) {
       }
 
       let approvalId: number | null = null;
-      if (isRetest && lastLocked.rows[0]?.result === "pass") {
+      if (isRetest && lastLocked.rows.length > 0) {
         if (approvalLocked.rows.length === 0) {
           throw new UserError(
             "Pengujian ulang memerlukan persetujuan ketua tim yang masih berlaku.",
@@ -365,7 +369,7 @@ export async function POST(request: Request) {
         }
       }
 
-      if (result === "fail" || result === "bug") {
+      if (result === "fail") {
         const defect = await client.query<{ id: number }>(
           `INSERT INTO defects (feature_id, session_id, title, severity, status, created_by)
            VALUES ($1,$2,$3,$4,'open',$5) RETURNING id`,

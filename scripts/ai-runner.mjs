@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 
 import { checkRunnerTarget } from "./ai-target-guard.mjs";
+import { runProbe } from "./ai-runner-probe.mjs";
 import {
   collectStepScreenshots,
   isSafeShotPath,
@@ -374,6 +375,29 @@ async function processRun(run) {
       await rm(dir, { recursive: true, force: true }).catch(() => undefined);
       return;
     }
+  }
+
+  // Kategori non-fungsional: probe HTTP deterministik, tanpa model dan tanpa browser.
+  if (run.category && run.category !== "fungsional") {
+    let result;
+    try {
+      result = await runProbe(run);
+    } catch (e) {
+      result = {
+        outcome: "error",
+        error: e instanceof Error ? e.message : String(e),
+        notes: `AI: ${run.goal}`,
+        log: `[run ${run.id}] probe gagal: ${e instanceof Error ? e.stack ?? e.message : String(e)}`,
+      };
+    }
+    try {
+      await uploadResult(run.id, result);
+      console.log(`[run ${run.id}] probe ${run.category}: ${result.outcome.toUpperCase()} dikirim`);
+    } catch (e) {
+      console.error(`[run ${run.id}] upload probe gagal:`, e.message);
+    }
+    await rm(dir, { recursive: true, force: true }).catch(() => undefined);
+    return;
   }
 
   if (login.useLogin && !login.hasCredentials) {

@@ -13,12 +13,13 @@ export async function GET() {
     name: string;
     description: string | null;
     brief: string | null;
+    project_name: string | null;
     is_active: boolean;
     test_count: number;
     scope_count: number;
     feature_ids: number[] | null;
   }>(
-    `SELECT c.id, c.name, c.description, c.brief, c.is_active,
+    `SELECT c.id, c.name, c.description, c.brief, c.project_name, c.is_active,
             (SELECT count(*)::int FROM test_sessions s WHERE s.test_cycle = c.name) AS test_count,
             (SELECT count(*)::int FROM cycle_features cf WHERE cf.cycle_id = c.id) AS scope_count,
             (SELECT coalesce(array_agg(cf.feature_id), '{}') FROM cycle_features cf WHERE cf.cycle_id = c.id) AS feature_ids
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
     name?: unknown;
     description?: unknown;
     brief?: unknown;
+    project_name?: unknown;
     is_active?: unknown;
     feature_ids?: unknown;
   } | null;
@@ -49,6 +51,10 @@ export async function POST(request: Request) {
     typeof body?.brief === "string" && body.brief.trim() !== ""
       ? body.brief.trim().slice(0, 2000)
       : null;
+  const projectName =
+    typeof body?.project_name === "string" && body.project_name.trim() !== ""
+      ? body.project_name.trim()
+      : null;
   const isActive = body?.is_active !== false;
   const featureIds = Array.isArray(body?.feature_ids)
     ? [...new Set(body.feature_ids.map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0))]
@@ -56,6 +62,15 @@ export async function POST(request: Request) {
 
   if (!name || name.length > 100) {
     return err("Nama siklus wajib diisi (maks 100).", 422);
+  }
+  if (projectName) {
+    const project = await query<{ name: string }>(
+      `SELECT name FROM projects WHERE name=$1`,
+      [projectName],
+    );
+    if (project.length === 0) {
+      return err("Proyek tidak ditemukan.", 422);
+    }
   }
 
   if (featureIds.length > 0) {
@@ -71,8 +86,8 @@ export async function POST(request: Request) {
   try {
     await withTransaction(async (client) => {
       const created = await client.query<{ id: number }>(
-        `INSERT INTO test_cycles (name, description, brief, is_active) VALUES ($1,$2,$3,$4) RETURNING id`,
-        [name, description, brief, isActive],
+        `INSERT INTO test_cycles (name, description, brief, project_name, is_active) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+        [name, description, brief, projectName, isActive],
       );
       for (const fid of featureIds) {
         await client.query(
@@ -91,7 +106,7 @@ export async function POST(request: Request) {
     actorRole: ketua.role,
     action: "test_cycles.create",
     target: name,
-    changes: { description, brief, is_active: isActive, feature_count: featureIds.length },
+    changes: { description, brief, project_name: projectName, is_active: isActive, feature_count: featureIds.length },
     ip: clientIp(request),
   });
 

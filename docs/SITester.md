@@ -44,33 +44,41 @@ punya satu sesi aktif** — login baru mencabut sesi lama.
 
 ### 3.1 Pengujian manual
 
-1. Tester memilih fitur, tanggal, peran yang diuji, dan siklus (opsional).
-2. Hasil dicatat: `pass`, `fail`, atau `bug`; `severity` hanya wajib untuk fail/bug.
-3. Bukti dapat diunggah (PNG/JPEG/WebP/GIF, divalidasi dari isi berkas).
+1. Tester memilih proyek (opsional), fitur, tanggal, peran yang diuji, dan siklus (opsional).
+   Memilih siklus yang punya proyek otomatis menyaring daftar fitur ke proyek itu.
+2. Hasil dicatat: **Berhasil** (`pass`) atau **Gagal** (`fail`). Untuk Gagal, tingkat
+   urgensi wajib: Rendah, Sedang, atau Tinggi (3 tingkat).
+3. Bukti gambar (maks 2 MB) dan tautan bukti tersedia langsung di form; keduanya opsional.
 4. Form menyimpan draft otomatis dan submit bersifat idempoten (klik ganda tidak
    menghasilkan dua catatan).
-5. Untuk `fail`/`bug`, defect dibuat otomatis dan masuk siklus
+5. Untuk hasil Gagal, defect dibuat otomatis dan masuk siklus
    `open → fixed → verified → closed` (bisa `reopened`).
 6. Hanya ketua tim yang boleh memindahkan defect ke `verified`.
 
 ### 3.2 Retest
 
-Retest diajukan per kombinasi **(fitur, peran, siklus)**. Ketua tim menyetujui dan
-persetujuan itu **sekali pakai, berlaku 7 hari**. Sistem menolak retest yang tidak
-punya persetujuan aktif, sehingga pengujian ulang selalu punya dasar.
+Retest diajukan per kombinasi **(fitur, peran, siklus)**. **Semua** retest — setelah
+hasil Berhasil maupun Gagal — wajib disetujui ketua tim. Persetujuan bersifat sekali
+pakai dan berlaku 7 hari, sehingga pengujian ulang selalu punya dasar. Halaman
+`/permohonan` memisahkan tab **Menunggu** dan **Riwayat permohonan**. Ketua tim boleh
+menyetujui permohonannya sendiri agar tidak terjadi deadlock.
 
 ### 3.3 AI Test
 
-Ketua/tester mengantrekan pengujian otomatis dengan menentukan URL target, tujuan, dan
-kriteria keberhasilan. Runner eksternal (GitHub Actions) mengambil antrean, menjalankan
-e2e berbantuan model Gemini, lalu mengirim balik status, catatan, log, dan galeri
-screenshot berurutan (`login-berhasil`, `hasil-ai`, dst.).
+Ketua/tester mengantrekan pengujian otomatis dengan menentukan URL target, tujuan,
+kriteria keberhasilan, dan **kategori**: fungsional (agent e2e), ketahanan, stress,
+atau keamanan dasar. Runner eksternal mengambil antrean lalu:
 
-Hasil AI **bukan hasil final**: hasil itu berupa draft yang harus dikonfirmasi manusia
-lewat form pengujian. Run yang masih antre dapat dibatalkan atau dihapus sebelum diambil
-runner; hasil yang sudah selesai dapat dikonfirmasi, ditolak (dibuang tanpa menjadi
-riwayat), atau dihapus. Run yang sedang berjalan tidak bisa dihapus sampai selesai, dan
-menghapus run yang sudah dikonfirmasi tidak menghapus riwayatnya.
+- kategori fungsional: menjalankan e2e berbantuan model Gemini;
+- kategori ketahanan/stress/keamanan: menjalankan probe HTTP deterministik tanpa model
+  (laju permintaan, latensi p95, tingkat gagal, dan pemeriksaan header keamanan).
+
+Hasilnya masuk ke halaman **Hasil AI** sebagai draft yang harus dikonfirmasi manusia
+lewat form pengujian. **Antrean AI** dan **Hasil AI** adalah halaman terpisah dari form
+`/ai-test`. Run yang masih antre dapat dibatalkan atau dihapus sebelum diambil runner;
+hasil yang sudah selesai dapat dikonfirmasi, **ditolak** (dibuang tanpa menjadi riwayat),
+atau dihapus. Run yang sedang berjalan tidak bisa dihapus sampai selesai, dan menghapus
+run yang sudah dikonfirmasi tidak menghapus riwayatnya.
 Kredensial target dienkripsi per run dan tidak pernah ditampilkan kembali.
 
 ---
@@ -82,12 +90,14 @@ Kredensial target dienkripsi per run dan tidak pernah ditampilkan kembali.
 | `/login`, `/lupa-password`, `/reset-password` | publik | Masuk, minta tautan reset, set kata sandi baru |
 | `/dashboard` | semua | Statistik, grafik, "Tugas Saya" |
 | `/pengujian-baru` | semua | Form pencatatan hasil uji |
-| `/riwayat` | semua | Riwayat + filter, sort, preset 7/30 hari, ekspor CSV/PDF |
+| `/riwayat` | semua | Riwayat + filter (termasuk proyek, sumber Manual/AI, dan kategori AI), sort, preset 7/30 hari, ekspor CSV/PDF |
 | `/fitur`, `/fitur/[id]` | semua | Daftar fitur; detail: test case, defect, timeline |
 | `/defect` | semua | Daftar dan perubahan status defect |
-| `/ai-test` | semua | Antrean AI Test, log, galeri screenshot |
-| `/notifikasi` | semua | Notifikasi in-app |
-| `/proyek`, `/permohonan`, `/pengguna`, `/peran`, `/siklus`, `/impor`, `/aktivitas` | ketua tim | Master, persetujuan, impor, audit log |
+| `/ai-test` | semua | Form pengajuan AI Test |
+| `/ai-antrean` | semua | Antrean run AI yang menunggu/sedang berjalan |
+| `/ai-hasil` | semua | Hasil run AI: konfirmasi, tolak, hapus, log, galeri screenshot |
+| `/notifikasi` | semua | Kotak masuk pribadi (pemberitahuan). Keputusan retest tetap di `/permohonan` |
+| `/proyek`, `/permohonan`, `/pengguna`, `/peran`, `/siklus`, `/impor`, `/aktivitas` | ketua tim | Master, persetujuan (tab Menunggu/Riwayat), impor, audit log |
 
 ---
 
@@ -150,8 +160,10 @@ tests/api/**             uji API terhadap Postgres sungguhan
 `test_cycles`, `testing_roles`, `projects`, `retest_requests`, `retest_approvals`,
 `ai_test_runs`, `notifications`, `audit_logs`, `import_batches`.
 
-Aturan penting: `test_sessions` menyimpan `result`, `severity`, `evidence_path`, dan
-rujukan ke fitur/peran/siklus. `defects.session_id` dan
+Aturan penting: `test_sessions` menyimpan `result` (`pass|fail`), `severity`
+(`low|medium|high`), `evidence_path`, dan rujukan ke fitur/peran/siklus.
+`test_cycles.project_name` opsional (kosong = semua proyek), dan
+`ai_test_runs.category` menyimpan kategori pengujian AI. `defects.session_id` dan
 `ai_test_runs.confirmed_session_id` memakai `ON DELETE SET NULL`.
 
 ---
@@ -168,6 +180,8 @@ Salin `.env.example` menjadi `.env.local`. Variabel yang paling penting:
 - `AI_RUNNER_TOKEN`, `AI_CREDENTIALS_KEY`, `GITHUB_DISPATCH_TOKEN` — integrasi runner AI.
 - `E2E_PROVIDER`, `E2E_MODEL`, `E2E_MODELS` — model runner. Untuk kuota hemat:
   `E2E_PROVIDER=google` dan `E2E_MODELS=gemini-3.5-flash-lite`.
+- `AI_ENDURANCE_SECONDS` (default 30), `AI_STRESS_REQUESTS` (default 60),
+  `AI_STRESS_CONCURRENCY` (default 10) — ambang probe non-fungsional.
 
 ---
 

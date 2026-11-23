@@ -38,7 +38,7 @@ export type DashboardStats = {
     fail_bulan_ini: number;
   };
   daily: { labels: string[]; values: number[] };
-  distribution: { pass: number; fail: number; bug: number };
+  distribution: { pass: number; fail: number };
   perFeature: { name: string; count: string; last_result: string | null }[];
 };
 
@@ -118,7 +118,7 @@ export async function getDashboardStats(
       ...p.vals,
     ),
     count(
-      `AND s.result IN ('fail','bug') AND date_trunc('month', s.tested_at) = date_trunc('month', $1::date) ${f.cond}`,
+      `AND s.result='fail' AND date_trunc('month', s.tested_at) = date_trunc('month', $1::date) ${f.cond}`,
       month,
       ...f.vals,
     ),
@@ -260,7 +260,7 @@ export async function getDashboardStats(
     `SELECT d.id, f.name AS feature_name, d.status, d.severity
        FROM defects d JOIN features f ON f.id = d.feature_id
       WHERE d.status IN ('open','reopened','fixed') ${defectScope}
-      ORDER BY CASE d.severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
+      ORDER BY CASE d.severity WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 3 END,
                d.created_at DESC
       LIMIT 10`,
     defectVals,
@@ -298,9 +298,9 @@ export async function getDashboardStats(
     values.push(byDate.get(iso) ?? 0);
   }
 
-  const distribution = { pass: 0, fail: 0, bug: 0 };
+  const distribution = { pass: 0, fail: 0 };
   for (const r of dist) {
-    if (r.result === "pass" || r.result === "fail" || r.result === "bug") {
+    if (r.result === "pass" || r.result === "fail") {
       distribution[r.result] = Number(r.n);
     }
   }

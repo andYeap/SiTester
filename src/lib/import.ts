@@ -6,7 +6,7 @@ import { query } from "@/lib/db";
 import { todayString } from "@/lib/time";
 import { isIsoDate } from "@/lib/validation";
 
-export type ImportResult = "pass" | "fail" | "bug";
+export type ImportResult = "pass" | "fail";
 
 export const IMPORT_MAX_BYTES = 2 * 1024 * 1024; // aman commit ≤60s + body Vercel ±4.5MB
 export const IMPORT_MAX_ROWS = 5_000;
@@ -208,9 +208,8 @@ function parseDate(value: string): string | null {
 
 function parseResult(value: string): ImportResult | null {
   const s = value.trim().toLowerCase();
-  if (["pass", "lulus", "ok"].includes(s)) return "pass";
-  if (["fail", "gagal"].includes(s)) return "fail";
-  if (["bug", "defect"].includes(s)) return "bug";
+  if (["pass", "lulus", "ok", "berhasil"].includes(s)) return "pass";
+  if (["fail", "gagal", "bug", "defect"].includes(s)) return "fail";
   return null;
 }
 
@@ -340,7 +339,8 @@ export async function parseAndValidate(
     const resultRaw = get("result");
     const result = parseResult(resultRaw);
     const severityRaw = get("severity").toLowerCase();
-    const severity = severityRaw || null;
+    const severity =
+      severityRaw === "critical" ? "high" : severityRaw || null;
     const environment = get("environment") || null;
     const expected = get("expected") || null;
     const actual = get("actual") || null;
@@ -372,15 +372,15 @@ export async function parseAndValidate(
       }
     }
 
-    if (!result) errors.push("Hasil harus Pass/Fail/Bug.");
-    if (severity && !["low", "medium", "high", "critical"].includes(severity)) {
-      errors.push("Severity harus low/medium/high/critical.");
+    if (!result) errors.push("Hasil harus Berhasil (pass) atau Gagal (fail).");
+    if (severity && !["low", "medium", "high"].includes(severity)) {
+      errors.push("Tingkat urgensi harus low/medium/high.");
     }
-    if ((result === "fail" || result === "bug") && !severity) {
-      errors.push("Severity wajib untuk Fail/Bug.");
+    if (result === "fail" && !severity) {
+      errors.push("Tingkat urgensi wajib untuk hasil Gagal.");
     }
-    if ((result === "fail" || result === "bug") && (!notes || notes.length < 10)) {
-      errors.push("Catatan minimal 10 karakter untuk Fail/Bug.");
+    if (result === "fail" && (!notes || notes.length < 10)) {
+      errors.push("Catatan minimal 10 karakter untuk hasil Gagal.");
     }
 
     let testCaseId: number | null = null;
@@ -472,7 +472,7 @@ export const IMPORT_TEMPLATE_SAMPLE = [
   "2026-11-01",
   "tester1@testlab.test",
   "Login Pengguna",
-  "Pass",
+  "Berhasil",
   "tester",
   "Lensa-ASN R1",
   "Login dengan kredensial valid",

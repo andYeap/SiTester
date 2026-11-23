@@ -77,7 +77,7 @@ export async function GET(
     }
   }
 
-  const last = await queryOne<{ result: "pass" | "fail" | "bug" }>(
+  const last = await queryOne<{ result: "pass" | "fail" }>(
     `SELECT result FROM test_sessions
       WHERE feature_id=$1 AND tested_as_role=$2
         AND test_cycle IS NOT DISTINCT FROM $3

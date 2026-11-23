@@ -56,6 +56,29 @@ describe("master + guard", () => {
     expect(r.status).toBe(200);
   });
 
+  it("siklus menyimpan proyek dan menolak proyek asing", async () => {
+    await loginAs(ketuaEmail);
+    const projectName = `Proyek Siklus ${uid()}`;
+    await query(`INSERT INTO projects (name) VALUES ($1)`, [projectName]);
+    const cycleName = `Siklus ${uid()}`;
+
+    let r: Response = await createCycle(
+      json({ name: cycleName, project_name: projectName }),
+    );
+    expect(r.status).toBe(201);
+
+    const row = await query<{ project_name: string | null }>(
+      `SELECT project_name FROM test_cycles WHERE name=$1`,
+      [cycleName],
+    );
+    expect(row[0].project_name).toBe(projectName);
+
+    r = await createCycle(
+      json({ name: `Siklus Asing ${uid()}`, project_name: `Asing ${uid()}` }),
+    );
+    expect(r.status).toBe(422);
+  });
+
   it("fitur ber-riwayat tidak bisa dihapus", async () => {
     const base = `Fitur Hapus ${uid()}`;
     await loginAs(testerEmail);

@@ -10,6 +10,8 @@ const LINKS = [
   { href: "/fitur", label: "Fitur", ketua: false },
   { href: "/defect", label: "Defect", ketua: false },
   { href: "/ai-test", label: "AI Test", ketua: false },
+  { href: "/ai-antrean", label: "Antrean AI", ketua: false },
+  { href: "/ai-hasil", label: "Hasil AI", ketua: false },
   { href: "/proyek", label: "Proyek", ketua: true },
   { href: "/permohonan", label: "Permohonan", ketua: true },
   { href: "/pengguna", label: "Pengguna", ketua: true },

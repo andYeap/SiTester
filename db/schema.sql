@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS test_cycles (
   name        text NOT NULL UNIQUE,
   description text,
   brief       text,
+  project_name text REFERENCES projects(name) ON UPDATE CASCADE ON DELETE SET NULL,
   is_active   boolean NOT NULL DEFAULT true,
   created_at  timestamptz NOT NULL DEFAULT now()
 );
@@ -333,6 +334,8 @@ CREATE TABLE IF NOT EXISTS ai_test_runs (
   feature_id           bigint NOT NULL REFERENCES features(id) ON DELETE RESTRICT,
   tested_as_role       text NOT NULL REFERENCES testing_roles(name) ON UPDATE CASCADE,
   test_cycle           text REFERENCES test_cycles(name) ON UPDATE CASCADE,
+  category             text NOT NULL DEFAULT 'fungsional'
+                       CHECK (category IN ('fungsional','ketahanan','stress','keamanan')),
   status               text NOT NULL DEFAULT 'queued'
                        CHECK (status IN ('queued','running','completed','failed','cancelled','confirmed','error','rejected')),
   result               text CHECK (result IN ('pass','fail','bug')),

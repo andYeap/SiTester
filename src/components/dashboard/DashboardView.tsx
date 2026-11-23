@@ -72,16 +72,15 @@ export default function DashboardView({
   }));
   const pieData = stats
     ? [
-        { name: "Pass", value: stats.distribution.pass, color: "#09090b" },
-        { name: "Fail", value: stats.distribution.fail, color: "#71717a" },
-        { name: "Bug", value: stats.distribution.bug, color: "#d4d4d8" },
+        { name: "Berhasil", value: stats.distribution.pass, color: "#09090b" },
+        { name: "Gagal", value: stats.distribution.fail, color: "#71717a" },
       ]
     : [];
 
   const cards = [
     { label: "Pengujian Bulan Ini", value: stats?.summary.total_bulan_ini ?? "—", top: "bg-neutral-950", text: "text-neutral-950" },
-    { label: "Pass Bulan Ini", value: stats?.summary.pass_bulan_ini ?? "—", top: "bg-neutral-950", text: "text-neutral-950" },
-    { label: "Fail / Bug Bulan Ini", value: stats?.summary.fail_bulan_ini ?? "—", top: "bg-neutral-400", text: "text-neutral-950" },
+    { label: "Berhasil Bulan Ini", value: stats?.summary.pass_bulan_ini ?? "—", top: "bg-neutral-950", text: "text-neutral-950" },
+    { label: "Gagal Bulan Ini", value: stats?.summary.fail_bulan_ini ?? "—", top: "bg-neutral-400", text: "text-neutral-950" },
     { label: "Fitur Belum Diuji" + (isKetua ? "" : " (tim)"), value: stats?.summary.fitur_belum_diuji ?? "—", top: "bg-neutral-300", text: "text-neutral-950" },
   ];
 
@@ -276,8 +275,8 @@ export default function DashboardView({
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="font-medium text-neutral-900">{f.name}</span>
                 {f.last_result ? (
-                  <span className={`badge ${f.last_result === "pass" ? "badge-pass" : f.last_result === "fail" ? "badge-fail" : "badge-bug"}`}>
-                    {f.last_result.toUpperCase()}
+                  <span className={`badge ${f.last_result === "pass" ? "badge-pass" : "badge-fail"}`}>
+                    {f.last_result === "pass" ? "BERHASIL" : "GAGAL"}
                   </span>
                 ) : (
                   <span className="badge badge-neutral">Belum diuji</span>

@@ -10,6 +10,8 @@ import { query, queryOne, withTransaction } from "@/lib/db";
 
 const MAX_PENDING = 3;
 
+const AI_CATEGORIES = ["fungsional", "ketahanan", "stress", "keamanan"] as const;
+
 function validTarget(raw: string): string | null {
   if (raw.length === 0 || raw.length > 2000) return null;
   try {
@@ -43,6 +45,7 @@ export async function GET() {
     goal: string;
     success_criteria: string | null;
     status: string;
+    category: string;
     result: string | null;
     severity: string | null;
     notes: string | null;
@@ -55,7 +58,8 @@ export async function GET() {
     user_name: string;
     has_log: boolean;
   }>(
-    `SELECT r.id, r.target_url, r.goal, r.success_criteria, r.status, r.result,
+    `SELECT r.id, r.target_url, r.goal, r.success_criteria, r.status, r.category,
+            r.result,
             r.severity, r.notes, r.evidence_path, r.error, r.created_at::text AS created_at,
             r.finished_at::text AS finished_at, r.confirmed_session_id,
             (r.runner_log IS NOT NULL) AS has_log,
@@ -85,6 +89,7 @@ export async function POST(request: Request) {
     feature_id?: unknown;
     tested_as_role?: unknown;
     test_cycle?: unknown;
+    category?: unknown;
     use_login?: unknown;
     login_url?: unknown;
     login_goal?: unknown;
@@ -109,6 +114,11 @@ export async function POST(request: Request) {
     typeof body?.test_cycle === "string" && body.test_cycle.trim() !== ""
       ? body.test_cycle.trim()
       : null;
+  const category =
+    typeof body?.category === "string" ? body.category.trim() : "fungsional";
+  if (!AI_CATEGORIES.includes(category as (typeof AI_CATEGORIES)[number])) {
+    return err("Kategori AI tidak valid.", 422);
+  }
 
   const useLogin = body?.use_login === true;
   let loginUrl: string | null = null;
@@ -135,7 +145,7 @@ export async function POST(request: Request) {
     const password = text(body?.login_password, 500, { trim: false });
     if (email || password) {
       if (!email || !password) {
-        return err("Email dan password target harus diisi keduanya.", 422);
+        return err("Email/username dan password harus diisi keduanya.", 422);
       }
       if (!credentialsConfigured()) {
         return err(
@@ -215,9 +225,9 @@ export async function POST(request: Request) {
     const ins = await client.query<{ id: string }>(
       `INSERT INTO ai_test_runs
         (created_by, target_url, goal, success_criteria, feature_id, tested_as_role,
-         test_cycle, status, use_login, login_url, login_goal, login_email_label,
+         test_cycle, category, status, use_login, login_url, login_goal, login_email_label,
          login_password_label, login_submit_label, login_credentials_enc)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'queued',$8,$9,$10,$11,$12,$13,$14)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'queued',$9,$10,$11,$12,$13,$14,$15)
        RETURNING id`,
       [
         user.id,
@@ -227,6 +237,7 @@ export async function POST(request: Request) {
         featureId,
         role,
         cycle,
+        category,
         useLogin,
         loginUrl,
         loginGoal,

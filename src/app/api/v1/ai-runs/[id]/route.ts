@@ -20,6 +20,7 @@ export async function GET(
     created_by: string;
     target_url: string;
     goal: string;
+    category: string;
     success_criteria: string | null;
     status: string;
     result: string | null;
@@ -35,7 +36,7 @@ export async function GET(
     feature_name: string;
     user_name: string;
   }>(
-    `SELECT r.id, r.created_by, r.target_url, r.goal, r.success_criteria,
+    `SELECT r.id, r.created_by, r.target_url, r.goal, r.category, r.success_criteria,
             r.status, r.result, r.severity, r.notes, r.error, r.evidence_path,
             r.evidence_gallery, r.runner_log, r.created_at::text AS created_at,
             r.finished_at::text AS finished_at, r.confirmed_session_id,

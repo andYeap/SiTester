@@ -20,12 +20,13 @@ SITester menggantikan pencatatan pengujian manual di Excel dengan satu alur:
 Manfaat utama:
 
 - Riwayat pengujian tersimpan rapi dan bisa difilter.
-- Pengujian ulang fitur yang sudah Pass dikendalikan lewat persetujuan ketua.
-- Hasil Fail/Bug otomatis membuat defect yang bisa dilacak sampai verified.
+- Pengujian ulang (setelah hasil Berhasil maupun Gagal) dikendalikan lewat persetujuan ketua.
+- Hasil Gagal otomatis membuat defect yang bisa dilacak sampai verified.
 - Dashboard menampilkan kondisi pengujian dan tugas yang belum selesai.
 - Data Excel lama bisa diimpor.
-- AI Test dapat menjalankan pengujian otomatis terhadap website lain dan
-  menghasilkan draft hasil untuk dikonfirmasi.
+- AI Test dapat menjalankan pengujian fungsional maupun non-fungsional (ketahanan,
+  stress, keamanan dasar) terhadap website lain dan menghasilkan draft hasil untuk
+  dikonfirmasi.
 
 ---
 
@@ -90,11 +91,13 @@ cookie di browser.
 |---|---|
 | **Dashboard** | Ringkasan hasil uji, grafik, dan Tugas Saya |
 | **Pengujian Baru** | Form pencatatan hasil uji |
-| **Riwayat** | Cari, filter, sort, ekspor CSV/PDF |
+| **Riwayat** | Cari, filter (proyek/AI), sort, ekspor CSV/PDF |
 | **Fitur** | Daftar fitur, usulan fitur, detail fitur/test case/defect |
-| **Defect** | Daftar temuan Fail/Bug dan siklus hidupnya |
-| **AI Test** | Antrean pengujian otomatis dan konfirmasi hasil |
-| **Notifikasi** | Pemberitahuan retest, persetujuan, dan aktivitas terkait |
+| **Defect** | Daftar temuan Gagal dan siklus hidupnya |
+| **AI Test** | Form pengajuan pengujian otomatis |
+| **Antrean AI** | Run yang menunggu/sedang dijalankan |
+| **Hasil AI** | Konfirmasi, tolak, hapus, log, dan galeri hasil AI |
+| **Notifikasi** | Kotak masuk pribadi; keputusan retest ada di menu Permohonan |
 
 ### Menu Manajemen (ketua)
 
@@ -104,7 +107,8 @@ cookie di browser.
 | **Permohonan** | Setujui/tolak permohonan retest |
 | **Pengguna** | Kelola akun, peran, dan tautan reset |
 | **Peran Uji** | Master peran yang dipakai saat pengujian |
-| **Siklus** | Master siklus dan fitur yang termasuk lingkupnya |
+| **Siklus** | Master siklus, proyek, dan fitur yang termasuk lingkupnya |
+| **Permohonan** | Setujui/tolak permohonan retest (tab Menunggu/Riwayat) |
 | **Import** | Impor riwayat dari Excel/CSV |
 | **Aktivitas** | Audit aktivitas pengguna |
 
@@ -118,7 +122,7 @@ Di layar kecil, sidebar dibuka lewat tombol menu di kiri atas.
 
 Dashboard menampilkan:
 
-- kartu bulan ini: jumlah pengujian, Pass, Fail/Bug (data Anda sendiri; seluruh
+- kartu bulan ini: jumlah pengujian, Berhasil, Gagal (data Anda sendiri; seluruh
   tim untuk ketua) dan **Fitur Belum Diuji** (belum diuji siapa pun),
 - filter **Siklus** dan grafik harian 7/30 hari, donut hasil, serta 10 fitur
   paling sering diuji,
@@ -145,16 +149,18 @@ Buka **Pengujian Baru**, lalu isi:
    - **Ya** jika menguji ulang fitur/peran/siklus yang sudah punya hasil.
 3. **Diuji sebagai peran** — peran yang dipakai saat menguji.
 4. **Siklus** — opsional; jika dipilih, instruksi siklus tampil dan daftar fitur
-   mengikuti lingkup siklus.
+   mengikuti lingkup siklus. Jika siklus terikat proyek, filter proyek otomatis
+   mengikuti proyek tersebut.
 5. **Filter proyek** dan **Fitur yang Diuji** — ketik untuk mencari; daftar
    dikelompokkan per proyek.
 6. **Test case** — opsional, muncul jika fitur punya test case.
-7. **Status Hasil** — Pass, Fail, atau Bug. Sistem langsung memeriksa apakah
+7. **Status Hasil** — Berhasil atau Gagal. Sistem langsung memeriksa apakah
    fitur boleh diuji dan menampilkan peringatannya.
-8. Jika hasil **Fail/Bug**, pilih **Tingkat Keparahan** (wajib) dan isi
-   **Catatan** minimal 10 karakter.
-9. Bagian **Detail opsional** (lipat) berisi lingkungan, yang diharapkan, yang
-   terjadi, bukti gambar (maks 2MB), dan tautan bukti.
+8. Jika hasil **Gagal**, pilih **Tingkat Urgensi** (Rendah/Sedang/Tinggi, wajib)
+   dan isi **Catatan** minimal 10 karakter.
+9. Bagian **Detail opsional** (lipat) berisi lingkungan, yang diharapkan, dan yang
+   terjadi. **Bukti gambar** (maks 2MB) dan **tautan bukti** ada di luar bagian
+   lipat dan keduanya opsional.
 10. Klik **Simpan Hasil Pengujian**.
 
 Setelah simpan, tanggal, pilihan pengujian ulang, peran, dan siklus tetap
@@ -178,15 +184,16 @@ akan tercatat ganda.
 Ruang lingkup retest adalah kombinasi **fitur + peran + siklus**.
 
 - Jika fitur belum pernah diuji, pengujian langsung boleh.
-- Jika hasil terakhir **Fail/Bug**, pengujian perbaikan boleh dilakukan lagi
-  tanpa persetujuan.
-- Jika hasil terakhir **Pass**, pengujian ulang memerlukan persetujuan ketua.
+- Jika sudah ada hasil (Berhasil **maupun** Gagal), pengujian ulang memerlukan
+  persetujuan ketua tim. Pengujian biasa pasca-Gagal tetap boleh dengan peringatan,
+  tetapi **retest** selalu butuh persetujuan.
 - Persetujuan retest berlaku **sekali pakai** dan memiliki masa berlaku hingga
   7 hari. Permohonan yang tidak diproses juga kedaluwarsa setelah 7 hari.
 - Satu permohonan/persetujuan hanya berlaku untuk kombinasi fitur + peran +
   siklus yang diajukan; persetujuan untuk siklus A tidak berlaku di siklus B,
   dan "tanpa siklus" dianggap terpisah dari semua siklus.
-- Permohonan hanya bisa diajukan untuk fitur yang hasil terakhirnya Pass.
+- Permohonan bisa diajukan untuk fitur yang sudah punya hasil, termasuk hasil Gagal.
+- Ketua tim boleh menyetujui permohonannya sendiri.
 
 Jika retest belum disetujui, form menampilkan peringatan dan tombol untuk
 mengajukan permohonan. Setelah ketua menyetujui, buka kembali form dan pilih
@@ -196,16 +203,19 @@ mengajukan permohonan. Setelah ketua menyetujui, buka kembali form dan pilih
 
 Menu **Riwayat** mendukung:
 
-- pencarian (catatan/fitur/tester) dan filter tanggal, fitur, hasil, serta
-  siklus,
-- menu **Urutkan**: tanggal, fitur, hasil, atau severity (naik/turun),
+- pencarian (catatan/fitur/tester) dan filter tanggal, fitur, hasil, siklus,
+  **proyek**, **sumber** (Manual/AI Test), serta **kategori AI** (fungsional,
+  ketahanan, stress, keamanan),
+- menu **Urutkan**: tanggal, fitur, hasil, atau urgensi (naik/turun),
 - tombol preset **7 hari** dan **30 hari**,
 - **Simpan filter** / **Hapus tersimpan** (disimpan di perangkat ini),
 - tampilan kartu di layar kecil dan 50 baris per halaman,
 - ekspor **CSV** dan **PDF** sesuai filter yang aktif.
 
 Tester hanya melihat riwayat miliknya; ketua melihat riwayat seluruh tim.
-Riwayat tidak dapat diubah atau dihapus.
+Hanya ketua tim yang dapat mengoreksi atau menghapus satu riwayat lewat tombol aksi;
+setiap perubahan masuk audit. Menghapus riwayat tertaut defect/AI meminta konfirmasi
+tambahan dan hanya menghapus baris itu.
 
 PDF memuat seluruh hasil terfilter, bukan hanya halaman yang sedang terlihat.
 Batas ekspor adalah 5.000 baris per file.
@@ -229,7 +239,7 @@ menghapusnya hanya bisa dilakukan pembuatnya atau ketua.
 
 ### 5.6 Defect
 
-Hasil **Fail** atau **Bug** otomatis membuat satu defect berstatus **open**.
+Hasil **Gagal** otomatis membuat satu defect berstatus **open**.
 
 Alur status:
 
@@ -279,13 +289,18 @@ konfirmasi.
 Buka **AI Test**, lalu isi:
 
 1. **URL target** — alamat halaman yang diuji.
-2. **Tujuan pengujian** — instruksi bahasa natural, misalnya
+2. **Kategori pengujian** — fungsional (agent e2e), ketahanan, stress, atau
+   keamanan dasar. Kategori non-fungsional dijalankan sebagai probe HTTP
+   deterministik tanpa model.
+3. **Tujuan pengujian** — instruksi bahasa natural, misalnya
    “buka menu Riwayat dan pastikan tabel riwayat tampil”.
-3. **Kriteria berhasil** — patokan Pass/Fail.
-4. **Fitur di SITester**, **Peran uji**, dan **Siklus** (opsional).
+4. **Kriteria berhasil** — patokan Berhasil/Gagal.
+5. **Fitur di SITester**, **Peran uji**, dan **Siklus** (opsional).
 
 Tips: buat tujuan dan kriteria sesingkat mungkin. Semakin banyak langkah,
-semakin lama dan semakin besar kemungkinan agent timeout.
+semakin lama dan semakin besar kemungkinan agent timeout. Untuk ketahanan/stress,
+operator dapat mengatur `AI_ENDURANCE_SECONDS`, `AI_STRESS_REQUESTS`, dan
+`AI_STRESS_CONCURRENCY` di runner.
 
 ### 6.2 Login ke website target
 
@@ -294,17 +309,17 @@ Jika website target memerlukan login, centang **“Perlu login ke target”**.
 Isi:
 
 - **URL login** — opsional; kosongkan jika login ada di URL target.
-- **Email target** dan **password target** — opsional; jika kosong, runner
+- **Email/Username** dan **Password** — opsional; jika kosong, runner
   memakai kredensial fallback yang dikonfigurasi administrator.
 - **Instruksi login** — dipakai jika login diserahkan ke AI.
-- **Label field email**, **Label field password**, **Label tombol login**.
+- **Label kolom email**, **Label kolom password**, **Label tombol masuk**.
 
 Jika ketiga label diisi (contoh: `Email`, `Kata sandi`, `Masuk`), runner
 melakukan **login deterministik** dengan locator. Cara ini lebih cepat dan
 stabil daripada menyerahkan login ke AI.
 
 Jika label dikosongkan, agent AI akan mencari field login sendiri. Cara ini
-lebih fleksibel tetapi lebih lambat, bisa timeout, dan **password target akan
+lebih fleksibel tetapi lebih lambat, bisa timeout, dan **password akan
 dikirim ke provider model AI**. Isi ketiga label agar login deterministik
 tanpa melibatkan model.
 
@@ -323,26 +338,34 @@ Status run:
 |---|---|
 | `queued` | Menunggu runner |
 | `running` | Sedang dijalankan |
-| `completed` | Runner selesai; lihat hasil Pass/Fail/Bug dan klik Konfirmasi |
+| `completed` | Runner selesai; lihat hasil Berhasil/Gagal lalu Konfirmasi |
+| `rejected` | Hasil ditolak; tidak menjadi riwayat |
+| `cancelled` | Dibatalkan sebelum diambil runner |
 | `error` | Run gagal karena infrastruktur/provider model/target diblokir — bukan verdict aplikasi; tidak bisa dikonfirmasi, baca Log lalu antrekan ulang |
-| `confirmed` | Hasil sudah dikonfirmasi dan tersimpan sebagai pengujian (kolom Aksi menampilkan "Tersimpan") |
+| `confirmed` | Hasil sudah dikonfirmasi dan tersimpan sebagai pengujian |
 
 Maksimal **3 run aktif** (queued/running) per pengguna. Tester hanya melihat run
 milik sendiri; ketua melihat semua.
 
+**Antrean AI** dan **Hasil AI** adalah halaman terpisah dari form `/ai-test`.
+Antrean menampilkan run queued/running (bisa dibatalkan); Hasil AI menampilkan
+run selesai untuk dikonfirmasi, ditolak, dihapus, atau dibaca log-nya.
+
 Jika trigger otomatis GitHub Actions aktif, run baru langsung memicu workflow.
 Jika tidak, run menunggu jadwal atau dijalankan manual oleh operator.
 
-Halaman AI Test otomatis refresh selama ada run aktif.
+Halaman Antrean AI otomatis refresh selama ada run aktif.
 
 ### 6.4 Hasil dan konfirmasi
 
 Setelah selesai:
 
-1. Lihat hasil **PASS/FAIL**.
+1. Buka **Hasil AI**, lihat hasil **BERHASIL/GAGAL** dan kategorinya.
 2. Klik **Log** untuk melihat penyebab detail jika gagal.
 3. Klik **Konfirmasi** untuk membuka form pengujian dengan data terisi.
 4. Periksa dan lengkapi hasil, lalu simpan.
+5. **Tolak** membuang hasil tanpa menyimpan riwayat; **Hapus** menghapus satu run
+   (run yang sudah dikonfirmasi butuh konfirmasi kedua dan riwayatnya tetap ada).
 
 Hasil AI **tidak otomatis** menjadi catatan resmi. Aturan retest dan persetujuan
 ketua tetap berlaku saat konfirmasi.
@@ -419,20 +442,25 @@ untuk pengujian baru, tetapi data lama tetap tersimpan.
 
 ### 7.4 Siklus
 
-Buat siklus pengujian dan tentukan fitur yang termasuk di dalamnya.
+Buat siklus pengujian, pilih **proyek** (opsional), dan tentukan fitur yang
+termasuk di dalamnya. Jika proyek dipilih, daftar fitur untuk lingkup otomatis
+tersaring ke proyek itu.
 
 - Jika siklus memiliki daftar fitur, form hanya menampilkan fitur dalam lingkup.
+- Memilih siklus di form pengujian juga menyaring daftar fitur ke proyek siklus.
 - Retest dan Tugas Saya mengikuti kombinasi fitur + peran + siklus.
 
 ### 7.5 Permohonan Retest
 
-Buka **Permohonan** untuk melihat permintaan yang menunggu.
+Buka **Permohonan** untuk melihat permintaan. Halaman ini punya dua tab:
+**Menunggu** dan **Riwayat permohonan**.
 
 - **Setujui** dengan catatan opsional, atau
 - **Tolak** dengan alasan (wajib diisi; alasan dikirim ke tester lewat notifikasi).
 
 Permohonan yang kedaluwarsa (7 hari) tidak bisa lagi disetujui atau ditolak;
-tester perlu mengajukan ulang. Halaman ini juga menampilkan 20 keputusan terakhir.
+tester perlu mengajukan ulang. Tab Riwayat menampilkan keputusan terakhir.
+Ketua tim boleh menyetujui permohonannya sendiri.
 
 Setelah disetujui, tester dapat melakukan retest sekali. Gunakan kebijakan yang
 konsisten agar riwayat tetap bermakna.
@@ -453,14 +481,16 @@ Buka **Import** dan ikuti langkah:
 Kolom yang didukung:
 
 `Tanggal`, `Email Tester`, `Fitur`, `Hasil`, `Peran`, `Siklus`, `Test Case`,
-`Severity`, `Lingkungan`, `Diharapkan`, `Terjadi`, `Catatan`, `Bukti URL`,
+`Severity` (tingkat urgensi), `Lingkungan`, `Diharapkan`, `Terjadi`, `Catatan`, `Bukti URL`,
 `Ulang`.
 
 Catatan:
 
 - Baris duplikat (hash sama) otomatis dilewati.
 - Import yang sama tidak menggandakan data.
-- Fail/Bug membuat defect dengan pembuat = tester pada baris tersebut.
+- Hasil Gagal membuat defect dengan pembuat = tester pada baris tersebut.
+  Nilai hasil yang diterima: `pass`/`fail` (Berhasil/Gagal). `critical` pada
+  kolom Severity otomatis dilebur menjadi `high`.
 - Import tidak mengirim notifikasi.
 - Riwayat batch tersedia untuk audit.
 
@@ -478,10 +508,10 @@ Gunakan pencarian dan filter aksi untuk menyaring.
 
 1. **Satu hasil = satu sesi.** Jangan menggabungkan beberapa fitur dalam satu
    catatan.
-2. **Isi catatan yang bisa ditindaklanjuti.** Untuk Fail/Bug, tulis langkah
+2. **Isi catatan yang bisa ditindaklanjuti.** Untuk hasil Gagal, tulis langkah
    reproduksi, expected, dan actual.
 3. **Lampirkan bukti** untuk temuan yang perlu diperiksa orang lain.
-4. **Jangan retest tanpa alasan.** Retest fitur Pass harus melalui approval.
+4. **Jangan retest tanpa alasan.** Semua retest harus melalui approval.
 5. **Gunakan siklus** agar cakupan pengujian jelas.
 6. **Untuk AI Test, mulai dari tujuan sederhana.** Jika sudah stabil, baru
    tambah langkah.
@@ -498,7 +528,7 @@ Gunakan pencarian dan filter aksi untuk menyaring.
 | Gejala | Kemungkinan penyebab | Solusi |
 |---|---|---|
 | Tidak bisa login | Password salah / sesi lain aktif / rate limit | Tunggu, reset password, login ulang |
-| “Fitur sudah Pass, perlu persetujuan” | Retest fitur yang sudah Pass | Ajukan retest, minta ketua menyetujui |
+| “Pengujian ulang perlu persetujuan” | Semua retest wajib approval | Ajukan retest, minta ketua menyetujui |
 | Form retest tidak bisa disimpan | Approval belum ada/kedaluwarsa | Cek Permohonan; ajukan ulang |
 | Upload bukti gagal | Token Blob belum diset / file bukan gambar / >2MB | Hubungi admin; gunakan PNG/JPEG/WebP/GIF ≤2MB |
 | Import gagal | File >2MB, >5.000 baris, atau baris invalid | Pecah file, perbaiki error CSV |

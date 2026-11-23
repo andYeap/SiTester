@@ -19,6 +19,7 @@ export async function GET(request: Request) {
     id: string;
     target_url: string;
     goal: string;
+    category: string;
     success_criteria: string | null;
     feature_id: number;
     tested_as_role: string;
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
         SET status='running', runner_id=$1, claimed_at=now(), updated_at=now()
        FROM next
       WHERE r.id = next.id
-      RETURNING r.id, r.target_url, r.goal, r.success_criteria, r.feature_id,
+      RETURNING r.id, r.target_url, r.goal, r.category, r.success_criteria, r.feature_id,
                 r.tested_as_role, r.test_cycle, r.use_login, r.login_url,
                 r.login_goal, r.login_email_label, r.login_password_label,
                 r.login_submit_label, r.login_credentials_enc,
