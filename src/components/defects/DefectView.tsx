@@ -90,6 +90,41 @@ export default function DefectView({ isKetua }: { isKetua: boolean }) {
     }
   }
 
+  async function remove(d: Defect) {
+    if (
+      !window.confirm(
+        `Hapus HANYA defect "${d.title}"?\n\nRiwayat pengujian tidak ikut terhapus.`,
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    setInfo(null);
+    setLoading(true);
+    try {
+      let res = await fetch(`/api/v1/defects/${d.id}`, { method: "DELETE" });
+      let data = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (res.status === 409) {
+        if (
+          !window.confirm(
+            `${data?.error ?? "Defect ini sebaiknya tidak dihapus langsung."}\n\nTetap hapus defect ini?`,
+          )
+        ) {
+          return;
+        }
+        res = await fetch(`/api/v1/defects/${d.id}?force=1`, { method: "DELETE" });
+        data = (await res.json().catch(() => null)) as { error?: string } | null;
+      }
+      if (!res.ok) throw new Error(data?.error ?? "Gagal menghapus defect.");
+      setInfo(`Defect "${d.title}" dihapus.`);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal menghapus defect.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -188,6 +223,15 @@ export default function DefectView({ isKetua }: { isKetua: boolean }) {
                             );
                           })}
                         </select>
+                        {isKetua && (
+                          <button
+                            type="button"
+                            onClick={() => void remove(d)}
+                            className="action-link min-h-9 px-1 text-xs text-neutral-600"
+                          >
+                            Hapus
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

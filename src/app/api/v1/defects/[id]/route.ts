@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { err, needUser } from "@/lib/api";
+import { err, needKetua, needUser } from "@/lib/api";
 import { audit, clientIp } from "@/lib/audit";
 import { queryOne } from "@/lib/db";
 import { parsePositiveInt } from "@/lib/validation";
@@ -94,6 +94,51 @@ export async function PATCH(
     action: "defects.update",
     target: existing.title,
     changes: { from: existing.status, to: status, assignee, fix_reference: fixReference },
+    ip: clientIp(request),
+  });
+
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const ketua = await needKetua();
+  if (!ketua) return err("Forbidden", 403);
+  const id = parsePositiveInt((await params).id);
+  if (id === null) return err("Defect tidak ditemukan.", 404);
+  const force = new URL(request.url).searchParams.get("force") === "1";
+
+  const existing = await queryOne<{ id: number; title: string; status: string }>(
+    `SELECT id, title, status FROM defects WHERE id=$1`,
+    [id],
+  );
+  if (!existing) return err("Defect tidak ditemukan.", 404);
+
+  // Defect yang sudah diverifikasi/ditutup adalah bukti hasil kerja;
+  // jangan hapus diam-diam.
+  if (!force && (existing.status === "verified" || existing.status === "closed")) {
+    return err(
+      `Defect berstatus ${existing.status} sebaiknya tidak dihapus langsung. ` +
+        "Ulangi dengan ?force=1 bila tetap ingin menghapus defect ini saja.",
+      409,
+    );
+  }
+
+  const removed = await queryOne<{ id: number; title: string; status: string }>(
+    `DELETE FROM defects WHERE id=$1 RETURNING id, title, status`,
+    [id],
+  );
+  if (!removed) return err("Defect tidak ditemukan.", 404);
+
+  await audit({
+    actorId: ketua.id,
+    actorName: ketua.name,
+    actorRole: ketua.role,
+    action: "defects.delete",
+    target: removed.title,
+    changes: { ...removed, force },
     ip: clientIp(request),
   });
 

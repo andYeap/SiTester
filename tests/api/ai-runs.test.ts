@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { GET as listRuns, POST as createRun } from "@/app/api/v1/ai-runs/route";
-import { GET as getRun } from "@/app/api/v1/ai-runs/[id]/route";
+import { GET as getRun, PATCH as cancelRun } from "@/app/api/v1/ai-runs/[id]/route";
 import { GET as nextRun } from "@/app/api/v1/ai-runs/next/route";
 import { POST as submitResult } from "@/app/api/v1/ai-runs/[id]/result/route";
 import { POST as heartbeat } from "@/app/api/v1/ai-runs/[id]/heartbeat/route";
@@ -461,5 +461,88 @@ describe("AI test runs", () => {
       }),
     );
     expect(res.status).toBe(422);
+  });
+});
+
+describe("batalkan AI run yang antre", () => {
+  it("pemilik dapat membatalkan run queued", async () => {
+    await resetDb();
+    const user = await createUser();
+    await loginAs(user.email);
+    const featureId = await feature();
+    const rows = await query<{ id: number }>(
+      `INSERT INTO ai_test_runs
+        (target_url, goal, feature_id, created_by, status, tested_as_role)
+       VALUES ('https://contoh.test','Antre',$1,$2,'queued','tester') RETURNING id`,
+      [featureId.id, user.id],
+    );
+    const id = rows[0].id;
+
+    const noBody = await cancelRun(
+      new Request(`http://test/api/v1/ai-runs/${id}`, { method: "PATCH", body: "{}" }),
+      { params: Promise.resolve({ id: String(id) }) },
+    );
+    expect(noBody.status).toBe(422);
+
+    const ok = await cancelRun(
+      new Request(`http://test/api/v1/ai-runs/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      }),
+      { params: Promise.resolve({ id: String(id) }) },
+    );
+    expect(ok.status).toBe(200);
+    const after = await query<{ status: string; finished_at: string | null }>(
+      `SELECT status, finished_at::text AS finished_at FROM ai_test_runs WHERE id=$1`,
+      [id],
+    );
+    expect(after[0].status).toBe("cancelled");
+    expect(after[0].finished_at).not.toBeNull();
+  });
+
+  it("run yang sudah selesai tidak bisa dibatalkan", async () => {
+    await resetDb();
+    const user = await createUser();
+    await loginAs(user.email);
+    const featureId = await feature();
+    const run = await query<{ id: number }>(
+      `INSERT INTO ai_test_runs
+        (target_url, goal, feature_id, created_by, status, tested_as_role)
+       VALUES ('https://contoh.test','Selesai',$1,$2,'completed','tester') RETURNING id`,
+      [featureId.id, user.id],
+    );
+    const res = await cancelRun(
+      new Request(`http://test/api/v1/ai-runs/${run[0].id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      }),
+      { params: Promise.resolve({ id: String(run[0].id) }) },
+    );
+    expect(res.status).toBe(422);
+  });
+
+  it("pengguna lain tidak bisa membatalkan run orang lain", async () => {
+    await resetDb();
+    const owner = await createUser();
+    const other = await createUser();
+    const featureId = await feature();
+    const run = await query<{ id: number }>(
+      `INSERT INTO ai_test_runs
+        (target_url, goal, feature_id, created_by, status, tested_as_role)
+       VALUES ('https://contoh.test','Antre',$1,$2,'queued','tester') RETURNING id`,
+      [featureId.id, owner.id],
+    );
+    await loginAs(other.email);
+    const res = await cancelRun(
+      new Request(`http://test/api/v1/ai-runs/${run[0].id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      }),
+      { params: Promise.resolve({ id: String(run[0].id) }) },
+    );
+    expect(res.status).toBe(404);
   });
 });

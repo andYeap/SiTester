@@ -51,6 +51,16 @@ export default function RiwayatTable({
   const [cycle, setCycle] = useState("");
   const [sort, setSort] = useState("date_desc");
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
+  const [editRow, setEditRow] = useState<SessionRow | null>(null);
+  const [editForm, setEditForm] = useState({
+    result: "pass",
+    severity: "",
+    expected: "",
+    actual: "",
+    notes: "",
+  });
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const isLoading = status === "Memuat…";
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -103,8 +113,7 @@ export default function RiwayatTable({
     setSavedNotice(null);
   }
 
-  function preset(days: number) {
-    const end = new Date();
+  function preset(days: number) {    const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - (days - 1));
     const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -162,12 +171,85 @@ export default function RiwayatTable({
     return `/api/v1/export/csv?${queryString()}`;
   }
 
+  function openEdit(s: SessionRow) {
+    setActionError(null);
+    setEditRow(s);
+    setEditForm({
+      result: s.result,
+      severity: s.severity ?? "",
+      expected: s.expected ?? "",
+      actual: s.actual ?? "",
+      notes: s.notes ?? "",
+    });
+  }
+
+  async function saveEdit() {
+    if (!editRow) return;
+    setBusyId(editRow.id);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/v1/test-sessions/${editRow.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(data?.error ?? "Gagal menyimpan koreksi.");
+      setEditRow(null);
+      await apply(page);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Gagal menyimpan koreksi.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function removeSession(s: SessionRow) {
+    const tanggal = new Date(s.tested_at).toLocaleDateString("id-ID");
+    if (
+      !window.confirm(
+        `Hapus HANYA riwayat "${s.feature_name}" (${tanggal})?\n\n` +
+          "Riwayat lain, defect, dan AI run tidak ikut terhapus.",
+      )
+    ) {
+      return;
+    }
+    setBusyId(s.id);
+    setActionError(null);
+    try {
+      let res = await fetch(`/api/v1/test-sessions/${s.id}`, {
+        method: "DELETE",
+      });
+      let data = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (res.status === 409) {
+        if (
+          !window.confirm(
+            `${data?.error ?? "Riwayat ini tertaut data lain."}\n\nTetap hapus satu riwayat ini?`,
+          )
+        ) {
+          return;
+        }
+        res = await fetch(`/api/v1/test-sessions/${s.id}?force=1`, {
+          method: "DELETE",
+        });
+        data = (await res.json().catch(() => null)) as { error?: string } | null;
+      }
+      if (!res.ok) throw new Error(data?.error ?? "Gagal menghapus riwayat.");
+      setSavedNotice("Riwayat dihapus.");
+      await apply(page);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Gagal menghapus riwayat.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div>
           <h1 className="page-title">Riwayat Pengujian</h1>
-          <p className="page-subtitle">Semua hasil yang tercatat — tidak dapat diubah atau dihapus.</p>
+          <p className="page-subtitle">Semua hasil yang tercatat. Ketua tim dapat mengoreksi atau menghapus; setiap perubahan masuk log aktivitas.</p>
         </div>
         <Link href="/pengujian-baru" className="btn-dark">
           + Pengujian Baru
@@ -175,6 +257,7 @@ export default function RiwayatTable({
       </div>
 
       {status && <div className="alert-warn" role="status" aria-live="polite">{status}</div>}
+      {actionError && <div className="alert-err" role="alert">{actionError}</div>}
 
       <div className="card p-5 print:hidden">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -251,6 +334,96 @@ export default function RiwayatTable({
       </div>
 
       <div className="card overflow-hidden">
+        {editRow && (
+          <div className="space-y-3 border-b border-neutral-200 bg-neutral-50 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-semibold text-neutral-800">
+                Koreksi riwayat #{editRow.id} — {editRow.feature_name}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setEditRow(null)}
+                className="action-link text-xs"
+              >
+                Tutup
+              </button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="koreksi-hasil" className="label text-xs">Hasil</label>
+                <select
+                  id="koreksi-hasil"
+                  className="input"
+                  value={editForm.result}
+                  onChange={(e) => setEditForm({ ...editForm, result: e.target.value })}
+                >
+                  <option value="pass">Pass</option>
+                  <option value="fail">Fail</option>
+                  <option value="bug">Bug</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="koreksi-severity" className="label text-xs">Tingkat keparahan</label>
+                <select
+                  id="koreksi-severity"
+                  className="input"
+                  value={editForm.severity}
+                  disabled={editForm.result === "pass"}
+                  onChange={(e) => setEditForm({ ...editForm, severity: e.target.value })}
+                >
+                  <option value="">—</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="koreksi-catatan" className="label text-xs">Catatan</label>
+                <textarea
+                  id="koreksi-catatan"
+                  className="input"
+                  rows={2}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="koreksi-harapan" className="label text-xs">Hasil diharapkan</label>
+                <textarea
+                  id="koreksi-harapan"
+                  className="input"
+                  rows={2}
+                  value={editForm.expected}
+                  onChange={(e) => setEditForm({ ...editForm, expected: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="koreksi-kenyataan" className="label text-xs">Hasil sebenarnya</label>
+                <textarea
+                  id="koreksi-kenyataan"
+                  className="input"
+                  rows={2}
+                  value={editForm.actual}
+                  onChange={(e) => setEditForm({ ...editForm, actual: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => void saveEdit()}
+                disabled={busyId !== null}
+                className="btn-dark"
+              >
+                {busyId === editRow.id ? "Menyimpan…" : "Simpan koreksi"}
+              </button>
+              <button type="button" onClick={() => setEditRow(null)} className="btn-soft">
+                Batal
+              </button>
+            </div>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="hidden min-w-full text-sm md:table">
             <caption className="sr-only">Riwayat hasil pengujian</caption>
@@ -316,6 +489,25 @@ export default function RiwayatTable({
                             <a href={s.evidence_url} target="_blank" rel="noreferrer" className="action-link min-h-9 px-1 text-xs text-neutral-950">Tautan</a>
                           )}
                           {!href && !s.evidence_url && <span className="text-neutral-400">—</span>}
+                          {isKetua && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openEdit(s)}
+                                className="action-link min-h-9 px-1 text-xs text-neutral-950"
+                              >
+                                Koreksi
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void removeSession(s)}
+                                disabled={busyId === s.id}
+                                className="action-link min-h-9 px-1 text-xs text-neutral-600 disabled:opacity-50"
+                              >
+                                Hapus
+                              </button>
+                            </>
+                          )}
                         </>
                       );
                     })()}
@@ -363,6 +555,25 @@ export default function RiwayatTable({
                     )}
                   </div>
                   {s.notes && <p className="line-clamp-3 text-sm text-neutral-600">{s.notes}</p>}
+                  {isKetua && (
+                    <div className="flex gap-3 pt-1 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(s)}
+                        className="min-h-9 text-neutral-950 underline underline-offset-2"
+                      >
+                        Koreksi
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void removeSession(s)}
+                        disabled={busyId === s.id}
+                        className="min-h-9 text-neutral-600 underline underline-offset-2 disabled:opacity-50"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))
             )}

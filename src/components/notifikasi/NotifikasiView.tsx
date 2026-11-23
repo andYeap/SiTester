@@ -15,6 +15,7 @@ type Notif = {
 export default function NotifikasiView({ initialItems }: { initialItems: Notif[] }) {
   const [items, setItems] = useState<Notif[]>(initialItems);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/v1/notifications");
@@ -39,6 +40,42 @@ export default function NotifikasiView({ initialItems }: { initialItems: Notif[]
     }
   }
 
+  async function remove(id: number) {
+    setError(null);
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/v1/notifications?id=${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Gagal menghapus notifikasi.");
+      setItems((prev) => prev.filter((n) => n.id !== id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal.");
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  async function removeAll() {
+    if (
+      !window.confirm(
+        "Hapus SEMUA notifikasi Anda? Notifikasi pengguna lain tidak terpengaruh, tetapi tindakan ini tidak bisa dibatalkan.",
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    try {
+      const res = await fetch("/api/v1/notifications?all=1", {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Gagal menghapus notifikasi.");
+      setItems([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal.");
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -47,9 +84,14 @@ export default function NotifikasiView({ initialItems }: { initialItems: Notif[]
           <p className="page-subtitle">Keputusan permohonan dan permohonan baru dari tim.</p>
         </div>
         {items.length > 0 && (
-          <button onClick={markAll} className="btn-soft text-xs">
-            Tandai semua dibaca
-          </button>
+          <div className="flex gap-2">
+            <button onClick={markAll} className="btn-soft text-xs">
+              Tandai semua dibaca
+            </button>
+            <button onClick={removeAll} className="btn-soft text-xs">
+              Hapus semua
+            </button>
+          </div>
         )}
       </div>
       {error && <div className="alert-err" role="alert">{error}</div>}
@@ -64,7 +106,7 @@ export default function NotifikasiView({ initialItems }: { initialItems: Notif[]
         {items.map((n) => (
           <div key={n.id} className={`flex gap-3 p-4 text-sm transition hover:bg-neutral-100 ${n.read_at ? "text-neutral-500" : "bg-neutral-100 text-neutral-950"}`}>
             {!n.read_at && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-neutral-950" aria-hidden />}
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 font-semibold">
                 {n.title}
                 {!n.read_at && <span className="badge badge-pass">Baru</span>}
@@ -79,6 +121,15 @@ export default function NotifikasiView({ initialItems }: { initialItems: Notif[]
                 )}
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => void remove(n.id)}
+              disabled={deleting === n.id}
+              className="action-link ml-auto min-h-9 shrink-0 px-2 text-xs text-neutral-500 disabled:opacity-50"
+              aria-label={`Hapus notifikasi ${n.title}`}
+            >
+              Hapus
+            </button>
           </div>
         ))}
       </div>

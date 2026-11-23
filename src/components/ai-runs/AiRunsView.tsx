@@ -60,6 +60,7 @@ export default function AiRunsView() {
   const [logRun, setLogRun] = useState<RunLog | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const [logBusy, setLogBusy] = useState(false);
+  const [cancelling, setCancelling] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -164,6 +165,27 @@ export default function AiRunsView() {
       setError(e instanceof Error ? e.message : "Gagal memuat log.");
     } finally {
       setLogBusy(false);
+    }
+  }
+
+  async function cancelRun(id: number) {
+    setError(null);
+    setInfo(null);
+    setCancelling(id);
+    try {
+      const res = await fetch(`/api/v1/ai-runs/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(data?.error ?? "Gagal membatalkan run.");
+      setInfo("Run dibatalkan sebelum diambil runner.");
+      await loadRuns();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal membatalkan run.");
+    } finally {
+      setCancelling(null);
     }
   }
 
@@ -499,6 +521,16 @@ export default function AiRunsView() {
                     </td>
                     <td className="px-4 py-2">
                       <div className="flex flex-wrap items-center gap-2">
+                        {r.status === "queued" && (
+                          <button
+                            type="button"
+                            disabled={cancelling === r.id}
+                            onClick={() => void cancelRun(r.id)}
+                            className="action-link text-neutral-950 disabled:opacity-50"
+                          >
+                            Batalkan
+                          </button>
+                        )}
                         {r.has_log ? (
                           <button
                             type="button"

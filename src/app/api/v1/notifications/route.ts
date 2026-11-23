@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { err, needUser } from "@/lib/api";
 import { query } from "@/lib/db";
+import { parsePositiveInt } from "@/lib/validation";
 
 export async function GET(request: Request) {
   const user = await needUser();
@@ -43,5 +44,25 @@ export async function POST(request: Request) {
     `UPDATE notifications SET read_at=now() WHERE user_id=$1 AND id = ANY($2)`,
     [user.id, ids],
   );
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(request: Request) {
+  const user = await needUser();
+  if (!user) return err("Unauthorized", 401);
+
+  const sp = new URL(request.url).searchParams;
+  if (sp.get("all") === "1") {
+    await query(`DELETE FROM notifications WHERE user_id=$1`, [user.id]);
+    return NextResponse.json({ ok: true });
+  }
+
+  const id = parsePositiveInt(sp.get("id") ?? "");
+  if (id === null) return err("Notifikasi tidak ditemukan.", 404);
+  const rows = await query(
+    `DELETE FROM notifications WHERE id=$1 AND user_id=$2 RETURNING id`,
+    [id, user.id],
+  );
+  if (rows.length === 0) return err("Notifikasi tidak ditemukan.", 404);
   return NextResponse.json({ ok: true });
 }
