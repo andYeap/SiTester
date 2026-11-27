@@ -584,7 +584,7 @@ export default function AiRunsView({
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="w-full text-sm table-cards">
             <caption className="sr-only">Daftar AI test run</caption>
             <thead className="table-head">
               <tr>
@@ -601,27 +601,27 @@ export default function AiRunsView({
             <tbody className="divide-y divide-neutral-200">
               {visibleRuns.map((r) => (
                   <tr key={r.id} className="align-top transition hover:bg-neutral-100">
-                    <td className="whitespace-nowrap px-4 py-2 text-neutral-600">
+                    <td data-label="Waktu" className="whitespace-nowrap px-4 py-2 text-neutral-600">
                       {new Date(r.created_at).toLocaleString("id-ID")}
                     </td>
-                    <td className="px-4 py-2 font-medium text-neutral-900">{r.feature_name}</td>
-                    <td className="px-4 py-2 text-neutral-600">{r.category}</td>
-                    <td className="max-w-56 truncate px-4 py-2 text-neutral-600" title={r.target_url}>
-                      <a href={r.target_url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                    <td data-label="Fitur" className="px-4 py-2 font-medium text-neutral-900">{r.feature_name}</td>
+                    <td data-label="Kategori" className="px-4 py-2 text-neutral-600">{r.category}</td>
+                    <td data-label="Target" className="px-4 py-2 text-neutral-600 sm:max-w-56 sm:truncate" title={r.target_url}>
+                      <a href={r.target_url} target="_blank" rel="noreferrer" className="break-all underline underline-offset-2 sm:break-normal">
                         {r.target_url}
                       </a>
                     </td>
-                    <td className="max-w-72 px-4 py-2 text-neutral-700">
+                    <td data-label="Tujuan" className="max-w-72 px-4 py-2 text-neutral-700">
                       <div className="line-clamp-3">{r.goal}</div>
                       {r.success_criteria && <div className="mt-1 line-clamp-2 text-xs text-neutral-500">Kriteria: {r.success_criteria}</div>}
                       {r.error && <div className="mt-1 text-xs text-neutral-800">Error: {r.error}</div>}
                     </td>
-                    <td className="px-4 py-2">
+                    <td data-label="Status" className="px-4 py-2">
                       <span className={`badge ${r.status === "completed" ? "badge-pass" : r.status === "failed" || r.status === "error" ? "badge-fail" : "badge-neutral"}`}>
                         {r.status === "error" ? "error (provider)" : r.status === "rejected" ? "ditolak" : r.status}
                       </span>
                     </td>
-                    <td className="px-4 py-2">
+                    <td data-label="Hasil" className="px-4 py-2">
                       {r.result ? (
                         <span className={`badge ${r.result === "pass" ? "badge-pass" : "badge-fail"}`}>
                           {r.result === "pass" ? "BERHASIL" : "GAGAL"}
@@ -633,7 +633,7 @@ export default function AiRunsView({
                         </a>
                       )}
                     </td>
-                    <td className="px-4 py-2">
+                    <td data-label="Aksi" className="px-4 py-2">
                       <div className="flex flex-wrap items-center gap-2">
                         {r.status === "queued" && (
                           <button
