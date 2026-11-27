@@ -15,7 +15,7 @@ const FIELDS = [
   { key: "role", label: "Peran", required: false },
   { key: "cycle", label: "Siklus", required: false },
   { key: "test_case", label: "Test Case", required: false },
-  { key: "severity", label: "Severity", required: false },
+  { key: "severity", label: "Urgensi", required: false },
   { key: "environment", label: "Lingkungan", required: false },
   { key: "expected", label: "Diharapkan", required: false },
   { key: "actual", label: "Terjadi", required: false },
@@ -201,7 +201,7 @@ export default function ImportView() {
         summary?: Preview["summary"];
       };
       if (!res.ok) {
-        setError(data.error ?? "Import gagal.");
+        setError(data.error ?? "Impor gagal.");
         if (data.rows && preview) {
           setPreview({
             ...preview,
@@ -218,7 +218,7 @@ export default function ImportView() {
       setFile(null);
       await loadBatches();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Import gagal.");
+      setError(e instanceof Error ? e.message : "Impor gagal.");
     } finally {
       setBusy(false);
     }
@@ -276,7 +276,7 @@ export default function ImportView() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="page-title">Import Excel/CSV</h1>
+        <h1 className="page-title">Impor Excel/CSV</h1>
         <p className="page-subtitle">
           Pindahkan riwayat pengujian dari spreadsheet. Pratinjau dulu; data
           ditulis hanya untuk baris valid.
@@ -302,10 +302,18 @@ export default function ImportView() {
                 setInfo(null);
                 setError(null);
               }}
-              className="input-file"
+              className="peer sr-only"
             />
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <label htmlFor="import-file" className="btn-soft cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-neutral-950 peer-focus-visible:ring-offset-2">
+                Pilih file
+              </label>
+              <span className="text-sm text-neutral-500">
+                {file ? file.name : "Belum ada file dipilih"}
+              </span>
+            </div>
             <p className="hint">
-              `.xls` lama tidak didukung — simpan ulang sebagai `.xlsx` atau `.csv`.
+              File .xls lama tidak didukung. Simpan ulang sebagai .xlsx atau .csv.
               Batas 2MB agar commit selesai dalam batas 60 detik Vercel.
             </p>
           </div>
@@ -426,7 +434,7 @@ export default function ImportView() {
 
           <div className="flex flex-wrap items-center gap-3">
             <button onClick={() => void commit()} disabled={!canCommit || busy} className="btn-dark">
-              {busy ? "Menyimpan..." : `Import ${preview.summary.valid} baris valid`}
+              {busy ? "Menyimpan…" : `Impor ${preview.summary.valid} baris valid`}
             </button>
             {preview.summary.invalid > 0 && (
               <button onClick={() => void downloadErrors()} disabled={busy} className="btn-soft">
@@ -441,9 +449,9 @@ export default function ImportView() {
           </div>
 
           <div className="card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <caption className="sr-only">Pratinjau import</caption>
+            <div className="table-scroll">
+              <table className="w-full text-sm table-cards">
+                <caption className="sr-only">Pratinjau impor</caption>
                 <thead className="table-head">
                   <tr>
                     <th scope="col" className="table-th">Baris</th>
@@ -459,14 +467,14 @@ export default function ImportView() {
                 <tbody className="divide-y divide-neutral-200">
                   {preview.rows.map((r) => (
                     <tr key={r.row} className={r.errors.length ? "bg-neutral-100" : ""}>
-                      <td className="px-4 py-2 tabular-nums">{r.row}</td>
-                      <td className="px-4 py-2">{r.testedAt || "—"}</td>
-                      <td className="px-4 py-2">{r.email || "—"}</td>
-                      <td className="px-4 py-2">{r.featureName || "—"}</td>
-                      <td className="px-4 py-2">{r.role}</td>
-                      <td className="px-4 py-2">{r.testCaseTitle ?? "—"}</td>
-                      <td className="px-4 py-2">{r.result?.toUpperCase()}</td>
-                      <td className="px-4 py-2">
+                      <td data-label="Baris" className="px-4 py-2 tabular-nums">{r.row}</td>
+                      <td data-label="Tanggal" className="px-4 py-2">{r.testedAt || "—"}</td>
+                      <td data-label="Tester" className="px-4 py-2">{r.email || "—"}</td>
+                      <td data-label="Fitur" className="px-4 py-2">{r.featureName || "—"}</td>
+                      <td data-label="Peran" className="px-4 py-2">{r.role}</td>
+                      <td data-label="Test Case" className="px-4 py-2">{r.testCaseTitle ?? "—"}</td>
+                      <td data-label="Hasil" className="px-4 py-2">{r.result?.toUpperCase()}</td>
+                      <td data-label="Status" className="px-4 py-2">
                         {r.errors.length === 0 ? (
                           <span className="badge badge-pass">Valid</span>
                         ) : (
@@ -491,11 +499,11 @@ export default function ImportView() {
 
       <div className="card overflow-hidden">
         <div className="border-b border-neutral-200 p-5">
-          <h2 className="font-semibold text-neutral-700">Riwayat Import</h2>
+          <h2 className="font-semibold text-neutral-700">Riwayat Impor</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <caption className="sr-only">Riwayat import</caption>
+        <div className="table-scroll">
+          <table className="w-full text-sm table-cards">
+            <caption className="sr-only">Riwayat impor</caption>
             <thead className="table-head">
               <tr>
                 <th scope="col" className="table-th">Waktu</th>
@@ -510,23 +518,23 @@ export default function ImportView() {
             </thead>
             <tbody className="divide-y divide-neutral-200">
               {batches.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-6 text-center text-neutral-500">Belum ada riwayat import.</td></tr>
+                <tr><td colSpan={8} className="px-4 py-6 text-center text-neutral-500">Belum ada riwayat impor.</td></tr>
               ) : (
                 batches.map((b) => (
                   <tr key={b.id} className="transition hover:bg-neutral-100">
-                    <td className="whitespace-nowrap px-4 py-2 text-neutral-600">
+                    <td data-label="Waktu" className="whitespace-nowrap px-4 py-2 text-neutral-600">
                       {new Date(b.created_at).toLocaleString("id-ID")}
                     </td>
-                    <td className="px-4 py-2">
+                    <td data-label="File" className="px-4 py-2">
                       <div className="font-medium text-neutral-900">{b.file_name}</div>
                       <div className="text-xs text-neutral-500">{fileSize(b.file_size)}</div>
                     </td>
-                    <td className="px-4 py-2 text-neutral-600">{b.user_name ?? "—"}</td>
-                    <td className="px-4 py-2 tabular-nums">{b.total}</td>
-                    <td className="px-4 py-2 tabular-nums">{b.imported}</td>
-                    <td className="px-4 py-2 tabular-nums">{b.skipped}</td>
-                    <td className="px-4 py-2 tabular-nums">{b.invalid}</td>
-                    <td className="px-4 py-2">
+                    <td data-label="Oleh" className="px-4 py-2 text-neutral-600">{b.user_name ?? "—"}</td>
+                    <td data-label="Total" className="px-4 py-2 tabular-nums">{b.total}</td>
+                    <td data-label="Masuk" className="px-4 py-2 tabular-nums">{b.imported}</td>
+                    <td data-label="Duplikat" className="px-4 py-2 tabular-nums">{b.skipped}</td>
+                    <td data-label="Error" className="px-4 py-2 tabular-nums">{b.invalid}</td>
+                    <td data-label="Status" className="px-4 py-2">
                       <span className={`badge ${b.status === "committed" ? "badge-pass" : b.status === "failed" ? "badge-fail" : "badge-neutral"}`}>
                         {b.status}
                       </span>

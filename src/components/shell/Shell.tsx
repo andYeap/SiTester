@@ -17,7 +17,7 @@ const LINKS = [
   { href: "/pengguna", label: "Pengguna", ketua: true },
   { href: "/peran", label: "Peran Uji", ketua: true },
   { href: "/siklus", label: "Siklus", ketua: true },
-  { href: "/impor", label: "Import", ketua: true },
+  { href: "/impor", label: "Impor", ketua: true },
   { href: "/aktivitas", label: "Aktivitas", ketua: true },
 ] as const;
 

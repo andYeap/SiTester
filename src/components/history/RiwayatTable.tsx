@@ -3,7 +3,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import type { SessionRow } from "@/lib/history";
 
@@ -12,6 +12,11 @@ import DownloadPdfButton from "./DownloadPdfButton";
 type Feature = { id: number; name: string };
 
 const badge = (r: string) => (r === "pass" ? "badge-pass" : "badge-fail");
+
+const resultLabel = (r: string) => (r === "pass" ? "Berhasil" : "Gagal");
+
+const severityLabel = (s: string) =>
+  (({ low: "Rendah", medium: "Sedang", high: "Tinggi" }) as Record<string, string>)[s] ?? s;
 
 function evidenceHref(path: string | null): string | null {
   if (!path) return null;
@@ -60,6 +65,7 @@ export default function RiwayatTable({
     notes: "",
   });
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const isLoading = status === "Memuat…";
@@ -462,96 +468,125 @@ export default function RiwayatTable({
             </div>
           </div>
         )}
-        <div className="overflow-x-auto">
-          <table className="hidden min-w-full text-sm md:table">
+        <div className="table-scroll">
+          <table className="hidden min-w-full text-sm md:table table-sticky-actions">
             <caption className="sr-only">Riwayat hasil pengujian</caption>
             <thead className="table-head">
               <tr>
                 <th scope="col" className="table-th">Tanggal</th>
                 {isKetua && <th scope="col" className="table-th">Tester</th>}
-                <th scope="col" className="table-th">Peran</th>
-                <th scope="col" className="table-th">Siklus</th>
                 <th scope="col" className="table-th">Fitur</th>
                 <th scope="col" className="table-th">Hasil</th>
                 <th scope="col" className="table-th">Urgensi</th>
-                <th scope="col" className="table-th">Ulang</th>
-                <th scope="col" className="table-th">Disetujui oleh</th>
-                <th scope="col" className="table-th">Bukti</th>
-                <th scope="col" className="table-th">Catatan</th>
+                <th scope="col" className="table-th text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} aria-hidden>
-                    <td colSpan={11} className="px-4 py-3">
+                    <td colSpan={isKetua ? 6 : 5} className="px-4 py-3">
                       <div className="skeleton h-6" />
                     </td>
                   </tr>
                 ))
               ) : (
               sessions.map((s) => (
-                <tr key={s.id} className="transition hover:bg-neutral-100">
-                  <td className="whitespace-nowrap px-4 py-3 tabular-nums">{new Date(s.tested_at).toLocaleDateString("id-ID")}</td>
-                  {isKetua && <td className="px-4 py-3">{s.user_name}</td>}
-                  <td className="px-4 py-3 text-neutral-600">{s.tested_as_role}</td>
-                  <td className="px-4 py-3 text-neutral-600">{s.test_cycle ?? "—"}</td>
-                  <td className="px-4 py-3 font-medium text-neutral-900">{s.feature_name}</td>
-                  <td className="px-4 py-3">
-                    <span className={`badge ${badge(s.result)}`}>{s.result.toUpperCase()}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {s.severity ? (
-                      <span className="badge badge-outline">{s.severity.toUpperCase()}</span>
-                    ) : (
-                      <span className="text-neutral-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {s.is_retest ? (
-                      <span className="badge badge-neutral">Ya</span>
-                    ) : (
-                      <span className="text-neutral-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">{s.approver_name ?? "—"}</td>
-                  <td className="space-x-2 px-4 py-3">
-                    {(() => {
-                      const href = evidenceHref(s.evidence_path);
-                      return (
-                        <>
-                          {href && (
-                            <a href={href} target="_blank" rel="noreferrer" className="action-link min-h-9 px-1 text-xs text-neutral-950">Lihat</a>
-                          )}
-                          {s.evidence_url && (
-                            <a href={s.evidence_url} target="_blank" rel="noreferrer" className="action-link min-h-9 px-1 text-xs text-neutral-950">Tautan</a>
-                          )}
-                          {!href && !s.evidence_url && <span className="text-neutral-400">—</span>}
-                          {isKetua && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => openEdit(s)}
-                                className="action-link min-h-9 px-1 text-xs text-neutral-950"
-                              >
-                                Koreksi
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => void removeSession(s)}
-                                disabled={busyId === s.id}
-                                className="action-link min-h-9 px-1 text-xs text-neutral-600 disabled:opacity-50"
-                              >
-                                Hapus
-                              </button>
-                            </>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </td>
-                  <td className="max-w-md truncate px-4 py-3 text-neutral-600" title={s.notes ?? ""}>{s.notes ?? "—"}</td>
-                </tr>
+                <Fragment key={s.id}>
+                  <tr className="transition hover:bg-neutral-100">
+                    <td className="whitespace-nowrap px-4 py-3 tabular-nums">{new Date(s.tested_at).toLocaleDateString("id-ID")}</td>
+                    {isKetua && <td className="px-4 py-3">{s.user_name}</td>}
+                    <td className="px-4 py-3 font-medium text-neutral-900">{s.feature_name}</td>
+                    <td className="px-4 py-3">
+                      <span className={`badge ${badge(s.result)}`}>{resultLabel(s.result)}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {s.severity ? (
+                        <span className="badge badge-outline">{severityLabel(s.severity)}</span>
+                      ) : (
+                        <span className="text-neutral-400">—</span>
+                      )}
+                    </td>
+                    <td className="action-cell px-4 py-3 text-right">
+                      <span className="inline-flex flex-wrap justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setDetailId(detailId === s.id ? null : s.id)}
+                          className="action-link min-h-9 px-1 text-xs text-neutral-950"
+                          aria-expanded={detailId === s.id}
+                        >
+                          {detailId === s.id ? "Tutup" : "Detail"}
+                        </button>
+                        {isKetua && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openEdit(s)}
+                              className="action-link min-h-9 px-1 text-xs text-neutral-950"
+                            >
+                              Koreksi
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void removeSession(s)}
+                              disabled={busyId === s.id}
+                              className="action-link min-h-9 px-1 text-xs text-neutral-600 disabled:opacity-50"
+                            >
+                              Hapus
+                            </button>
+                          </>
+                        )}
+                      </span>
+                    </td>
+                  </tr>
+                  {detailId === s.id && (
+                    <tr className="bg-neutral-50">
+                      <td colSpan={isKetua ? 6 : 5} className="px-4 py-4">
+                        <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Peran</p>
+                            <p className="mt-0.5 text-neutral-800">{s.tested_as_role}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Siklus</p>
+                            <p className="mt-0.5 text-neutral-800">{s.test_cycle ?? "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Uji ulang</p>
+                            <p className="mt-0.5 text-neutral-800">{s.is_retest ? "Ya" : "Tidak"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Disetujui oleh</p>
+                            <p className="mt-0.5 text-neutral-800">{s.approver_name ?? "—"}</p>
+                          </div>
+                          <div className="sm:col-span-2 lg:col-span-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Catatan</p>
+                            <p className="mt-0.5 whitespace-pre-wrap break-words text-neutral-800">{s.notes ?? "—"}</p>
+                          </div>
+                          <div className="sm:col-span-2 lg:col-span-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Bukti</p>
+                            <div className="mt-0.5 flex flex-wrap gap-3">
+                              {(() => {
+                                const href = evidenceHref(s.evidence_path);
+                                return (
+                                  <>
+                                    {href && (
+                                      <a href={href} target="_blank" rel="noreferrer" className="action-link min-h-9 px-1 text-xs text-neutral-950">Lihat bukti</a>
+                                    )}
+                                    {s.evidence_url && (
+                                      <a href={s.evidence_url} target="_blank" rel="noreferrer" className="action-link min-h-9 px-1 text-xs text-neutral-950">Buka tautan</a>
+                                    )}
+                                    {!href && !s.evidence_url && <span className="text-neutral-400">—</span>}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))
               )}
             </tbody>
@@ -565,7 +600,7 @@ export default function RiwayatTable({
                 <div key={s.id} className="space-y-1 p-4">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-neutral-900">{s.feature_name}</span>
-                    <span className={`badge ${badge(s.result)}`}>{s.result.toUpperCase()}</span>
+                    <span className={`badge ${badge(s.result)}`}>{resultLabel(s.result)}</span>
                   </div>
                   <p className="text-xs text-neutral-500">
                     {new Date(s.tested_at).toLocaleDateString("id-ID")}
@@ -574,20 +609,21 @@ export default function RiwayatTable({
                     {s.test_cycle ? ` · ${s.test_cycle}` : ""}
                   </p>
                   <div className="flex flex-wrap gap-2 text-xs">
-                    {s.severity && <span className="badge badge-outline">{s.severity.toUpperCase()}</span>}
+                    {s.severity && <span className="badge badge-outline">{severityLabel(s.severity)}</span>}
                     {s.is_retest && <span className="badge badge-neutral">Ulang</span>}
+                    {s.approver_name && <span className="text-neutral-500">Disetujui: {s.approver_name}</span>}
                     {s.evidence_path && (
                       <a
                         href={evidenceHref(s.evidence_path) ?? "#"}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-neutral-700 underline underline-offset-2"
+                        className="inline-flex min-h-11 items-center text-neutral-700 underline underline-offset-2"
                       >
                         Bukti
                       </a>
                     )}
                     {s.evidence_url && (
-                      <a href={s.evidence_url} target="_blank" rel="noreferrer" className="text-neutral-700 underline underline-offset-2">
+                      <a href={s.evidence_url} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-neutral-700 underline underline-offset-2">
                         Tautan
                       </a>
                     )}
@@ -598,7 +634,7 @@ export default function RiwayatTable({
                       <button
                         type="button"
                         onClick={() => openEdit(s)}
-                        className="min-h-9 text-neutral-950 underline underline-offset-2"
+                        className="inline-flex min-h-11 items-center text-neutral-950 underline underline-offset-2"
                       >
                         Koreksi
                       </button>
@@ -606,7 +642,7 @@ export default function RiwayatTable({
                         type="button"
                         onClick={() => void removeSession(s)}
                         disabled={busyId === s.id}
-                        className="min-h-9 text-neutral-600 underline underline-offset-2 disabled:opacity-50"
+                        className="inline-flex min-h-11 items-center text-neutral-600 underline underline-offset-2 disabled:opacity-50"
                       >
                         Hapus
                       </button>

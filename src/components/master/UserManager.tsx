@@ -139,25 +139,25 @@ export default function UserManager({ selfId, initialUsers }: { selfId: string; 
         <button className="btn-dark">+ Tambah</button>
       </form>
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <div className="table-scroll">
+        <table className="w-full text-sm table-cards table-sticky-actions">
           <caption className="sr-only">Daftar pengguna</caption>
           <thead className="table-head">
-            <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Email</th><th scope="col" className="table-th">Peran</th><th scope="col" className="table-th">Uji</th><th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th></tr>
+            <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Email</th><th scope="col" className="table-th">Peran</th><th scope="col" className="table-th">Uji</th><th scope="col" className="table-th text-right">Aksi</th></tr>
           </thead>
           <tbody className="divide-y divide-neutral-200">
             {users.map((u) => (
               <tr key={u.id} className="transition hover:bg-neutral-100">
-                <td className="px-4 py-3 font-medium text-neutral-800">{u.name}{u.id === selfId ? " (Anda)" : ""}</td>
-                <td className="px-4 py-3 text-neutral-600">{u.email}</td>
-                <td className="px-4 py-3">
+                <td data-label="Nama" className="px-4 py-3 font-medium text-neutral-800">{u.name}{u.id === selfId ? " (Anda)" : ""}</td>
+                <td data-label="Email" className="px-4 py-3 text-neutral-600">{u.email}</td>
+                <td data-label="Peran" className="px-4 py-3">
                   <button onClick={() => toggleRole(u)} title="Ubah peran" aria-pressed={u.role === "ketua_tim"} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${u.role === "ketua_tim" ? "bg-neutral-100 text-neutral-700" : "bg-neutral-100 text-neutral-600"}`}>
                     {u.role === "ketua_tim" ? "Ketua Tim" : "Tester"}
                   </button>
                 </td>
-                <td className="px-4 py-3 text-neutral-600">{u.test_count}</td>
-                <td className="px-4 py-3 text-right">
-                  <button onClick={() => makeResetLink(u)} title={`Buat tautan reset untuk ${u.name}`} className="action-link">Reset</button>
+                <td data-label="Uji" className="px-4 py-3 text-neutral-600">{u.test_count}</td>
+                <td data-label="Aksi" className="action-cell px-4 py-3 text-right">
+                  <button onClick={() => makeResetLink(u)} title={`Buat tautan reset untuk ${u.name}`} className="action-link">Tautan reset</button>
                   <button onClick={() => remove(u)} disabled={u.id === selfId} title={u.id === selfId ? "Anda tidak dapat menghapus akun sendiri" : `Hapus pengguna ${u.name}`} className="action-link disabled:text-neutral-300 disabled:no-underline">Hapus</button>
                 </td>
               </tr>

@@ -40,7 +40,7 @@ export const IMPORT_FIELDS: {
   { key: "role", label: "Peran", required: false },
   { key: "cycle", label: "Siklus", required: false },
   { key: "test_case", label: "Test Case", required: false },
-  { key: "severity", label: "Severity", required: false },
+  { key: "severity", label: "Urgensi", required: false },
   { key: "environment", label: "Lingkungan", required: false },
   { key: "expected", label: "Diharapkan", required: false },
   { key: "actual", label: "Terjadi", required: false },

@@ -31,6 +31,18 @@ const TRANSITIONS: Record<string, string[]> = {
 
 const allowedNext = (s: string) => TRANSITIONS[s] ?? [];
 
+const statusLabel = (s: string) =>
+  (({
+    open: "Terbuka",
+    reopened: "Dibuka kembali",
+    fixed: "Diperbaiki",
+    verified: "Terverifikasi",
+    closed: "Selesai",
+  }) as Record<string, string>)[s] ?? s;
+
+const severityLabel = (s: string) =>
+  (({ low: "Rendah", medium: "Sedang", high: "Tinggi" }) as Record<string, string>)[s] ?? s;
+
 export default function DefectView({ isKetua }: { isKetua: boolean }) {
   const [defects, setDefects] = useState<Defect[]>([]);
   const [status, setStatus] = useState("");
@@ -83,7 +95,7 @@ export default function DefectView({ isKetua }: { isKetua: boolean }) {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Gagal memperbarui defect.");
-      setInfo(`Defect "${d.title}" → ${next}.`);
+      setInfo(`Defect "${d.title}" → ${statusLabel(next)}.`);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal memperbarui defect.");
@@ -130,7 +142,7 @@ export default function DefectView({ isKetua }: { isKetua: boolean }) {
       <div>
         <h1 className="page-title">Defect</h1>
         <p className="page-subtitle">
-          Temuan Gagal otomatis tercatat. Alur: open → fixed → verified → closed.
+          Temuan Gagal otomatis tercatat. Alur status: Terbuka → Diperbaiki → Terverifikasi → Selesai.
           {isKetua ? " Hanya ketua tim yang dapat memverifikasi." : ""}
         </p>
       </div>
@@ -143,7 +155,7 @@ export default function DefectView({ isKetua }: { isKetua: boolean }) {
           <label htmlFor="defect-status" className="label text-xs">Status</label>
           <select id="defect-status" value={status} onChange={(e) => setStatus(e.target.value)} className="input">
             <option value="">Semua</option>
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            {STATUSES.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
           </select>
         </div>
         <div>
@@ -157,17 +169,17 @@ export default function DefectView({ isKetua }: { isKetua: boolean }) {
       </div>
 
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+        <div className="table-scroll">
+          <table className="w-full text-sm table-cards table-sticky-actions">
             <caption className="sr-only">Daftar defect</caption>
             <thead className="table-head">
               <tr>
                 <th scope="col" className="table-th">Fitur</th>
                 <th scope="col" className="table-th">Temuan</th>
-                <th scope="col" className="table-th">Severity</th>
-                <th scope="col" className="table-th">Status</th>
+                <th scope="col" className="table-th">Urgensi</th>
+                <th scope="col" className="table-th">Ubah status</th>
                 <th scope="col" className="table-th">Pelapor</th>
-                <th scope="col" className="table-th">Aksi</th>
+                <th scope="col" className="table-th text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200">
@@ -178,61 +190,60 @@ export default function DefectView({ isKetua }: { isKetua: boolean }) {
               ) : (
                 defects.map((d) => (
                   <tr key={d.id} className="align-top transition hover:bg-neutral-100">
-                    <td className="px-4 py-3">
+                    <td data-label="Fitur" className="px-4 py-3">
                       <Link href={`/fitur/${d.feature_id}`} className="font-medium text-neutral-900 underline-offset-2 hover:underline">
                         {d.feature_name}
                       </Link>
                       <div className="text-xs text-neutral-500">{new Date(d.created_at).toLocaleDateString("id-ID")}</div>
                     </td>
-                    <td className="px-4 py-3 text-neutral-700">
+                    <td data-label="Temuan" className="px-4 py-3 text-neutral-700">
                       {d.title}
-                      {d.fix_reference && <div className="text-xs text-neutral-500">Fix: {d.fix_reference}</div>}
+                      {d.fix_reference && <div className="text-xs text-neutral-500">Perbaikan: {d.fix_reference}</div>}
                     </td>
-                    <td className="px-4 py-3">
-                      {d.severity ? <span className="badge badge-outline">{d.severity.toUpperCase()}</span> : "—"}
+                    <td data-label="Urgensi" className="px-4 py-3">
+                      {d.severity ? <span className="badge badge-outline">{severityLabel(d.severity)}</span> : "—"}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="badge badge-neutral">{d.status.toUpperCase()}</span>
+                    <td data-label="Ubah status" className="px-4 py-3">
+                      <select
+                        aria-label={`Ubah status defect ${d.title}`}
+                        value={d.status}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          if (next !== d.status) void update(d, next);
+                        }}
+                        className="input mt-0 w-auto max-w-full text-xs"
+                      >
+                        {STATUSES.map((s) => {
+                          const allowed = s === d.status || allowedNext(d.status).includes(s);
+                          return (
+                            <option
+                              key={s}
+                              value={s}
+                              disabled={!allowed || (s === "verified" && !isKetua)}
+                            >
+                              {statusLabel(s)}
+                              {!allowed ? " (tidak diizinkan)" : ""}
+                            </option>
+                          );
+                        })}
+                      </select>
                       {d.verifier_name && (
-                        <div className="text-xs text-neutral-500">oleh {d.verifier_name}</div>
+                        <div className="mt-1 text-xs text-neutral-500">oleh {d.verifier_name}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-neutral-600">{d.creator_name ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <select
-                          aria-label={`Ubah status defect ${d.title}`}
-                          defaultValue={d.status}
-                          onChange={(e) => {
-                            const next = e.target.value;
-                            if (next !== d.status) void update(d, next);
-                          }}
-                          className="input mt-0 w-auto text-xs"
+                    <td data-label="Pelapor" className="px-4 py-3 text-neutral-600">{d.creator_name ?? "—"}</td>
+                    <td data-label="Aksi" className="action-cell px-4 py-3 text-right">
+                      {isKetua ? (
+                        <button
+                          type="button"
+                          onClick={() => void remove(d)}
+                          className="action-link min-h-11 px-1 text-xs text-neutral-600"
                         >
-                          {STATUSES.map((s) => {
-                            const allowed = s === d.status || allowedNext(d.status).includes(s);
-                            return (
-                              <option
-                                key={s}
-                                value={s}
-                                disabled={!allowed || (s === "verified" && !isKetua)}
-                              >
-                                {s}
-                                {!allowed ? " (tidak diizinkan)" : ""}
-                              </option>
-                            );
-                          })}
-                        </select>
-                        {isKetua && (
-                          <button
-                            type="button"
-                            onClick={() => void remove(d)}
-                            className="action-link min-h-9 px-1 text-xs text-neutral-600"
-                          >
-                            Hapus
-                          </button>
-                        )}
-                      </div>
+                          Hapus
+                        </button>
+                      ) : (
+                        <span className="text-neutral-400">—</span>
+                      )}
                     </td>
                   </tr>
                 ))

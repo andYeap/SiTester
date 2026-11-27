@@ -139,8 +139,8 @@ export default function FeatureManager({ isKetua, initialFeatures, initialProjec
         )}
       </form>
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+        <div className="table-scroll">
+          <table className="w-full text-sm table-cards table-sticky-actions">
             <caption className="sr-only">Daftar fitur</caption>
             <thead className="table-head">
               <tr>
@@ -149,34 +149,34 @@ export default function FeatureManager({ isKetua, initialFeatures, initialProjec
                 <th scope="col" className="table-th">Status</th>
                 <th scope="col" className="table-th">Verifikasi</th>
                 <th scope="col" className="table-th">Uji</th>
-                <th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th>
+                <th scope="col" className="table-th text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200">
               {features.map((f) => (
                 <tr key={f.id} className="transition hover:bg-neutral-100">
-                  <td className="px-4 py-3 font-medium text-neutral-800">{f.name}</td>
-                  <td className="px-4 py-3 text-neutral-600">{f.project_name ?? "—"}</td>
-                  <td className="px-4 py-3">
+                  <td data-label="Nama" className="px-4 py-3 font-medium text-neutral-800">{f.name}</td>
+                  <td data-label="Proyek" className="px-4 py-3 text-neutral-600">{f.project_name ?? "—"}</td>
+                  <td data-label="Status" className="px-4 py-3">
                     {isKetua ? (
                       <button onClick={() => toggle(f)} aria-pressed={f.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${f.is_active ? "badge-pass" : "badge-neutral"}`}>
                         {f.is_active ? "Aktif" : "Nonaktif"}
                       </button>
                     ) : (
-                      <span className={`badge ${f.is_active ? "badge badge-pass" : "badge badge-neutral"}`}>
+                      <span className={`badge ${f.is_active ? "badge-pass" : "badge-neutral"}`}>
                         {f.is_active ? "Aktif" : "Nonaktif"}
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td data-label="Verifikasi" className="px-4 py-3">
                     {f.verified ? (
                       <span className="badge badge-pass">Terverifikasi</span>
                     ) : (
                       <span className="badge badge-outline" title={`Diusulkan oleh ${f.creator_name ?? "?"}`}>Usulan baru</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-neutral-600">{f.test_count}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td data-label="Uji" className="px-4 py-3 text-neutral-600">{f.test_count}</td>
+                  <td data-label="Aksi" className="action-cell px-4 py-3 text-right">
                     <span className="inline-flex flex-wrap justify-end gap-1">
                       <Link href={`/fitur/${f.id}`} className="action-link text-neutral-950">Detail</Link>
                       {isKetua && (
