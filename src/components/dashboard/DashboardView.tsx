@@ -86,11 +86,30 @@ export default function DashboardView({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle">
-          Ringkasan hasil pengujian {isKetua ? "tim" : "Anda"}{stats?.cycle ? ` · Siklus ${stats.cycle}` : ""}.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="page-title">Dashboard</h1>
+            {stats?.cycle && <span className="badge badge-neutral">Siklus {stats.cycle}</span>}
+          </div>
+          <p className="page-subtitle">Ringkasan hasil pengujian {isKetua ? "tim" : "Anda"}.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="dash-siklus" className="text-sm font-medium text-neutral-600">Siklus</label>
+          <select
+            id="dash-siklus"
+            value={cycle}
+            onChange={(e) => changeCycle(e.target.value)}
+            disabled={loading}
+            className="input mt-0 w-auto rounded-xl border-neutral-300 text-sm shadow-sm focus:border-neutral-950 focus:ring-neutral-950"
+          >
+            <option value="">Semua siklus</option>
+            {initialCycles.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <span aria-live="polite" className="text-sm text-neutral-500">{loading ? "Memuat…" : ""}</span>
+        </div>
       </div>
       {error && <div className="alert-err" role="alert">{error}</div>}
 
@@ -114,7 +133,7 @@ export default function DashboardView({
       {stats?.myTasks && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="card p-5">
-            <h3 className="mb-3 font-semibold text-neutral-800">Belum saya uji</h3>
+            <h2 className="mb-3 font-semibold text-neutral-800">Belum saya uji</h2>
             {stats.myTasks.untestedFeatures.length === 0 ? (
               <p className="text-sm text-neutral-500">Semua fitur dalam lingkup ini sudah Anda uji.</p>
             ) : (
@@ -133,7 +152,7 @@ export default function DashboardView({
           </div>
 
           <div className="card p-5">
-            <h3 className="mb-3 font-semibold text-neutral-800">Permohonan saya</h3>
+            <h2 className="mb-3 font-semibold text-neutral-800">Permohonan saya</h2>
             {stats.myTasks.readyApprovals > 0 && (
               <p className="mb-2 inline-flex rounded-full border border-neutral-950 bg-neutral-950 px-3 py-1 text-xs font-semibold text-white">
                 {stats.myTasks.readyApprovals} siap diuji ulang
@@ -160,7 +179,7 @@ export default function DashboardView({
           </div>
 
           <div className="card p-5">
-            <h3 className="mb-3 font-semibold text-neutral-800">Defect terbuka</h3>
+            <h2 className="mb-3 font-semibold text-neutral-800">Defect terbuka</h2>
             {stats.myTasks.openDefects.length === 0 ? (
               <p className="text-sm text-neutral-500">Tidak ada defect yang perlu ditindak.</p>
             ) : (
@@ -179,17 +198,6 @@ export default function DashboardView({
         </div>
       )}
 
-      <div className="card flex flex-wrap items-center gap-3 p-4">
-        <label htmlFor="dash-siklus" className="text-sm font-medium text-neutral-600">Siklus</label>
-        <select id="dash-siklus" value={cycle} onChange={(e) => changeCycle(e.target.value)} disabled={loading} className="input mt-0 w-auto rounded-xl border-neutral-300 text-sm shadow-sm focus:border-neutral-950 focus:ring-neutral-950">
-          <option value="">Semua siklus</option>
-          {initialCycles.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-        <span aria-live="polite" className="text-sm text-neutral-400">{loading ? "Memuat…" : ""}</span>
-      </div>
-
       {stats?.cycle && (
         <div className="card space-y-3 p-5" role="region" aria-label={`Ringkasan lingkup ${stats.cycle}`}>
           {stats.brief ? (
@@ -201,7 +209,7 @@ export default function DashboardView({
           {stats.scope && stats.scope.total > 0 ? (
             <div>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="font-semibold text-neutral-800">Cakupan siklus: {stats.scope.tested} dari {stats.scope.total} fitur teruji</h3>
+                <h2 className="font-semibold text-neutral-800">Cakupan siklus: {stats.scope.tested} dari {stats.scope.total} fitur teruji</h2>
                 <span className="text-sm tabular-nums text-neutral-500">
                   {stats.scope.total === 0 ? 0 : Math.round((stats.scope.tested / stats.scope.total) * 100)}%
                 </span>
@@ -254,7 +262,7 @@ export default function DashboardView({
       )}
 
       <div className="card p-5">
-        <h3 className="mb-4 font-semibold text-neutral-800">Fitur Paling Sering Diuji</h3>
+        <h2 className="mb-4 font-semibold text-neutral-800">Fitur Paling Sering Diuji</h2>
         {loading ? (
           <div className="space-y-3" aria-hidden>
             <div className="skeleton h-8" />

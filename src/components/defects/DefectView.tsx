@@ -43,6 +43,14 @@ const statusLabel = (s: string) =>
 const severityLabel = (s: string) =>
   (({ low: "Rendah", medium: "Sedang", high: "Tinggi" }) as Record<string, string>)[s] ?? s;
 
+// Judul otomatis menyimpan nama fitur; kolom Fitur sudah menampilkannya.
+function defectTitle(d: Defect) {
+  const raw = d.title.replace(/^Temuan:\s*/, "");
+  if (raw === d.feature_name) return "Dijumpai saat pengujian";
+  if (raw.startsWith(`${d.feature_name} — `)) return raw.slice(d.feature_name.length + 3);
+  return raw || "—";
+}
+
 export default function DefectView({ isKetua }: { isKetua: boolean }) {
   const [defects, setDefects] = useState<Defect[]>([]);
   const [status, setStatus] = useState("");
@@ -197,7 +205,7 @@ export default function DefectView({ isKetua }: { isKetua: boolean }) {
                       <div className="text-xs text-neutral-500">{new Date(d.created_at).toLocaleDateString("id-ID")}</div>
                     </td>
                     <td data-label="Temuan" className="px-4 py-3 text-neutral-700">
-                      {d.title}
+                      {defectTitle(d)}
                       {d.fix_reference && <div className="text-xs text-neutral-500">Perbaikan: {d.fix_reference}</div>}
                     </td>
                     <td data-label="Urgensi" className="px-4 py-3">

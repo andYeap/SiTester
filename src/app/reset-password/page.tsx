@@ -100,7 +100,7 @@ function ResetForm() {
               disabled={loading || !token}
               className="btn-primary w-full py-2.5"
             >
-              {loading ? "Menyimpan..." : "Simpan password baru"}
+              {loading ? "Menyimpan…" : "Simpan password baru"}
             </button>
           </form>
         )}

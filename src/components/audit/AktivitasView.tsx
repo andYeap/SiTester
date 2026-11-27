@@ -97,7 +97,7 @@ export default function AktivitasView({
           </select>
         </div>
         <button onClick={() => void apply()} disabled={loading} className="btn-dark disabled:opacity-50">
-          {loading ? "Memuat..." : "Filter"}
+          {loading ? "Memuat…" : "Filter"}
         </button>
       </div>
 

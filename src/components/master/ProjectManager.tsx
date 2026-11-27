@@ -123,24 +123,24 @@ export default function ProjectManager({ initialProjects }: { initialProjects: P
         </p>
       )}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <div className="table-scroll">
+        <table className="w-full text-sm table-cards table-sticky-actions">
           <caption className="sr-only">Daftar proyek</caption>
           <thead className="table-head">
-            <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Status</th><th scope="col" className="table-th">Fitur</th><th scope="col" className="table-th">Uji</th><th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th></tr>
+            <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Status</th><th scope="col" className="table-th">Fitur</th><th scope="col" className="table-th">Uji</th><th scope="col" className="table-th text-right">Aksi</th></tr>
           </thead>
           <tbody className="divide-y divide-neutral-200">
             {projects.map((p) => (
               <tr key={p.id} className="transition hover:bg-neutral-100">
-                <td className="px-4 py-3 font-medium text-neutral-800">{p.name}</td>
-                <td className="px-4 py-3">
-                  <button onClick={() => toggle(p)} aria-pressed={p.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${p.is_active ? "badge-pass" : "badge-neutral"}`}>
+                <td data-label="Nama" className="px-4 py-3 font-medium text-neutral-800">{p.name}</td>
+                <td data-label="Status" className="px-4 py-3">
+                  <button onClick={() => toggle(p)} aria-pressed={p.is_active} className={`badge relative transition after:absolute after:-inset-3 after:content-[''] hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${p.is_active ? "badge-pass" : "badge-neutral"}`}>
                     {p.is_active ? "Aktif" : "Nonaktif"}
                   </button>
                 </td>
-                <td className="px-4 py-3 text-neutral-600">{p.feature_count}</td>
-                <td className="px-4 py-3 text-neutral-600">{p.test_count}</td>
-                <td className="px-4 py-3 text-right">
+                <td data-label="Fitur" className="px-4 py-3 text-neutral-600">{p.feature_count}</td>
+                <td data-label="Uji" className="px-4 py-3 text-neutral-600">{p.test_count}</td>
+                <td data-label="Aksi" className="action-cell px-4 py-3 text-right">
                   <button onClick={() => startEdit(p)} className="action-link text-neutral-950">Edit</button>{" "}
                   <button onClick={() => remove(p)} className="action-link text-neutral-950">Hapus</button>
                 </td>

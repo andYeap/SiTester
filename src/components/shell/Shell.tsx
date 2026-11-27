@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { SessionUser } from "@/lib/auth";
+import SidebarController from "./SidebarController";
 import { ShellNotifIcon, ShellSidebarNav, type ShellNavItem } from "./ShellNav";
 
 const LINKS = [
@@ -49,6 +50,10 @@ export default function Shell({
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
+      <a href="#main" className="skip-link">
+        Lewati ke konten
+      </a>
+      <SidebarController />
       <input
         id="sidebar-toggle"
         type="checkbox"
@@ -63,6 +68,7 @@ export default function Shell({
       />
 
       <aside
+        id="sidebar"
         aria-label="Sidebar aplikasi"
         className="fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col border-r border-neutral-800 bg-neutral-950 text-white shadow-[8px_0_32px_-24px_rgba(0,0,0,0.8)] transition-transform duration-200 ease-out peer-checked:translate-x-0 lg:translate-x-0"
       >
@@ -103,6 +109,10 @@ export default function Shell({
               htmlFor="sidebar-toggle"
               className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl text-neutral-700 transition hover:bg-neutral-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 lg:hidden"
               aria-label="Buka menu"
+              aria-controls="sidebar"
+              aria-expanded="false"
+              role="button"
+              tabIndex={0}
             >
               <svg
                 width="22"
@@ -126,7 +136,11 @@ export default function Shell({
           <ShellNotifIcon unread={unread} />
         </header>
 
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+        <main
+          id="main"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 focus:outline-none sm:px-6 lg:px-8"
+        >
           {children}
         </main>
       </div>

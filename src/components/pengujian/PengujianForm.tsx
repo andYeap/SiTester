@@ -598,9 +598,9 @@ export default function PengujianForm({
       {draftAvailable && (
         <div className="alert-info flex flex-wrap items-center justify-between gap-2">
           <span>Ada draft pengujian yang belum disimpan.</span>
-          <span className="flex gap-3">
-            <button type="button" onClick={restoreDraft} className="font-semibold underline underline-offset-2">Pulihkan</button>
-            <button type="button" onClick={discardDraft} className="underline underline-offset-2">Hapus</button>
+          <span className="flex flex-wrap gap-2">
+            <button type="button" onClick={restoreDraft} className="btn-soft">Pulihkan</button>
+            <button type="button" onClick={discardDraft} className="btn-danger-soft">Hapus</button>
           </span>
         </div>
       )}
@@ -612,7 +612,7 @@ export default function PengujianForm({
 
       <form onSubmit={quickMode ? (e) => { e.preventDefault(); addToQueue(); } : submit} className="space-y-5 card-pad">
         <div>
-          <label className="label" htmlFor="uji-tanggal">Tanggal Pengujian</label>
+          <label className="label" htmlFor="uji-tanggal">Tanggal Pengujian <span className="text-neutral-500" aria-hidden>*</span></label>
           <input id="uji-tanggal" type="date" value={testedAt} max={today()} onChange={(e) => setTestedAt(e.target.value)} required className="input" />
         </div>
 
@@ -630,7 +630,7 @@ export default function PengujianForm({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="uji-peran">Diuji sebagai peran</label>
+            <label className="label" htmlFor="uji-peran">Diuji sebagai peran <span className="text-neutral-500" aria-hidden>*</span></label>
             <select id="uji-peran" value={role} onChange={(e) => { setRole(e.target.value); checkNow(featureId, isRetest, e.target.value, cycle); }} required className="input">
               {roles.map((r) => (
                 <option key={r.name} value={r.name}>{r.label}</option>
@@ -720,7 +720,7 @@ export default function PengujianForm({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="uji-hasil">Status Hasil</label>
+            <label className="label" htmlFor="uji-hasil">Status Hasil <span className="text-neutral-500" aria-hidden>*</span></label>
             <select id="uji-hasil" value={result} onChange={(e) => setResult(e.target.value)} required className="input">
               <option value="">— Pilih hasil —</option>
               {RESULTS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
@@ -780,7 +780,7 @@ export default function PengujianForm({
 
         <button type="submit" disabled={saving || (check !== null && !check.allowed)} className="btn-dark">
           {saving
-            ? "Menyimpan..."
+            ? "Menyimpan…"
             : quickMode
               ? "Tambah ke daftar"
               : initialAiRun
@@ -794,7 +794,7 @@ export default function PengujianForm({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-semibold text-neutral-900">Daftar cepat ({queue.length})</h2>
             <button onClick={() => void saveQueue()} disabled={saving || queue.length === 0} className="btn-primary">
-              {saving ? "Menyimpan..." : "Simpan semua"}
+              {saving ? "Menyimpan…" : "Simpan semua"}
             </button>
           </div>
           {queue.length === 0 ? (

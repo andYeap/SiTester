@@ -87,7 +87,7 @@ function LoginForm() {
           />
           <span>
             Ingat saya di perangkat ini
-            <span className="block text-xs font-normal text-neutral-400">Tetap masuk 30 hari. Jangan aktifkan di komputer bersama.</span>
+            <span className="block text-xs font-normal text-neutral-600">Tetap masuk 30 hari. Jangan aktifkan di komputer bersama.</span>
           </span>
         </label>
         <button
@@ -95,7 +95,7 @@ function LoginForm() {
           disabled={loading}
           className="btn-primary w-full py-2.5"
         >
-          {loading ? "Memeriksa..." : "Masuk"}
+          {loading ? "Memeriksa…" : "Masuk"}
         </button>
         <p className="text-center text-sm text-neutral-500">
           <Link href="/lupa-password" className="underline underline-offset-2">

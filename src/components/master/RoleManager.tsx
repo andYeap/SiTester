@@ -92,23 +92,23 @@ export default function RoleManager({ initialRoles }: { initialRoles: Role[] }) 
         <button className="btn-dark">+ Tambah</button>
       </form>
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <div className="table-scroll">
+        <table className="w-full text-sm table-cards table-sticky-actions">
           <caption className="sr-only">Daftar peran pengujian</caption>
           <thead className="table-head">
-            <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Label</th><th scope="col" className="table-th">Status</th><th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th></tr>
+            <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Label</th><th scope="col" className="table-th">Status</th><th scope="col" className="table-th text-right">Aksi</th></tr>
           </thead>
           <tbody className="divide-y divide-neutral-200">
             {roles.map((r) => (
               <tr key={r.name} className="transition hover:bg-neutral-100">
-                <td className="px-4 py-3 font-mono text-xs text-neutral-700">{r.name}</td>
-                <td className="px-4 py-3 text-neutral-800">{r.label}</td>
-                <td className="px-4 py-3">
-                  <button onClick={() => toggle(r)} aria-pressed={r.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${r.is_active ? "badge-pass" : "badge-neutral"}`}>
+                <td data-label="Nama" className="px-4 py-3 font-mono text-xs text-neutral-700">{r.name}</td>
+                <td data-label="Label" className="px-4 py-3 text-neutral-800">{r.label}</td>
+                <td data-label="Status" className="px-4 py-3">
+                  <button onClick={() => toggle(r)} aria-pressed={r.is_active} className={`badge relative transition after:absolute after:-inset-3 after:content-[''] hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${r.is_active ? "badge-pass" : "badge-neutral"}`}>
                     {r.is_active ? "Aktif" : "Nonaktif"}
                   </button>
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td data-label="Aksi" className="action-cell px-4 py-3 text-right">
                   <button onClick={() => remove(r)} className="action-link text-neutral-950">Hapus</button>
                 </td>
               </tr>

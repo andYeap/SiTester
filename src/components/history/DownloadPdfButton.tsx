@@ -66,7 +66,7 @@ export default function DownloadPdfButton({ query }: { query: string }) {
   return (
     <div className="inline-flex flex-col gap-1">
       <button onClick={() => void download()} disabled={busy} className="btn-soft disabled:opacity-50">
-        {busy ? "Menyiapkan PDF..." : "Unduh PDF"}
+        {busy ? "Menyiapkan PDF…" : "Unduh PDF"}
       </button>
       {error && <span className="text-xs text-neutral-800">{error}</span>}
     </div>

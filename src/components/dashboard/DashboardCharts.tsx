@@ -34,9 +34,9 @@ export default function DashboardCharts({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="card p-5 lg:col-span-2">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-semibold text-neutral-800">
+          <h2 className="font-semibold text-neutral-800">
             Masa Pengujian ({range} hari terakhir){cycle ? ` — ${cycle}` : ""}
-          </h3>
+          </h2>
           <div className="flex gap-2 text-xs" role="group" aria-label="Rentang masa pengujian">
             <button
               onClick={() => onChangeRange(7)}
@@ -69,7 +69,7 @@ export default function DashboardCharts({
       </div>
 
       <div className="card p-5">
-        <h3 className="font-semibold text-neutral-800">Hasil Pengujian Bulan Ini</h3>
+        <h2 className="font-semibold text-neutral-800">Hasil Pengujian Bulan Ini</h2>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>

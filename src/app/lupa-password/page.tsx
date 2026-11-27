@@ -73,7 +73,7 @@ export default function LupaPasswordPage() {
             />
           </div>
           <button type="submit" disabled={loading} className="btn-primary w-full py-2.5">
-            {loading ? "Mengirim..." : "Kirim tautan reset"}
+            {loading ? "Mengirim…" : "Kirim tautan reset"}
           </button>
         </form>
 

@@ -19,6 +19,26 @@ body {
   color: #fafafa;
 }
 
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 60;
+  border-radius: 0.75rem;
+  background: #09090b;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 /* ===== Komponen UI bersama — monokrom hitam/putih ===== */
 @layer components {
   .card {

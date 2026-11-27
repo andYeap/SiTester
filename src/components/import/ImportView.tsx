@@ -317,8 +317,8 @@ export default function ImportView() {
               Batas 2MB agar commit selesai dalam batas 60 detik Vercel.
             </p>
           </div>
-          <button onClick={() => void doPreview()} disabled={!file || busy} className="btn-soft">
-            {busy ? "Memproses..." : "Pratinjau"}
+          <button onClick={() => void doPreview()} disabled={!file || busy} className="btn-dark">
+            {busy ? "Memproses…" : "Pratinjau"}
           </button>
           <a href="/api/v1/import/template?format=csv" className="btn-soft">
             Template CSV
@@ -517,10 +517,7 @@ export default function ImportView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200">
-              {batches.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-6 text-center text-neutral-500">Belum ada riwayat impor.</td></tr>
-              ) : (
-                batches.map((b) => (
+              {batches.map((b) => (
                   <tr key={b.id} className="transition hover:bg-neutral-100">
                     <td data-label="Waktu" className="whitespace-nowrap px-4 py-2 text-neutral-600">
                       {new Date(b.created_at).toLocaleString("id-ID")}
@@ -540,10 +537,16 @@ export default function ImportView() {
                       </span>
                     </td>
                   </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
+          {batches.length === 0 && (
+            <div className="empty-state border-t border-neutral-200">
+              <span className="empty-icon" aria-hidden>📄</span>
+              <p className="empty-title">Belum ada riwayat impor</p>
+              <p className="empty-hint">Riwayat akan muncul setelah impor pertama selesai.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

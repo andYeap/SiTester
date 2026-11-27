@@ -69,18 +69,19 @@ export default function FeatureCombobox({ id, label, features, value, project, o
 
   return (
     <div ref={rootRef} className="relative">
-      <label className="label" htmlFor={id}>{label}</label>
+      <label className="label" htmlFor={id}>{label} <span className="text-neutral-500" aria-hidden>*</span></label>
       <div className="relative">
         <input
           ref={inputRef}
           id={id}
           role="combobox"
+          aria-required="true"
           aria-expanded={open}
           aria-controls={listId}
           aria-activedescendant={open && flat[active] ? `uji-fitur-opt-${flat[active].id}` : undefined}
           autoComplete="off"
           value={open ? query : (selected ? `${selected.name}${selected.project ? ` — ${selected.project}` : ""}` : "")}
-          placeholder={open ? "Ketik untuk mencari..." : "— Pilih fitur —"}
+          placeholder={open ? "Ketik untuk mencari…" : "— Pilih fitur —"}
           readOnly={!open}
           onFocus={() => setOpen(true)}
           onClick={() => setOpen(true)}

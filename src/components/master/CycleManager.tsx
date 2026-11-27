@@ -135,110 +135,128 @@ export default function CycleManager({ initialCycles, initialFeatures, projects 
       </div>
       {error && <div className="alert-err" role="alert">{error}</div>}
       {info && <div className="alert-ok" role="status">{info}</div>}
-      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-      <form onSubmit={submit} className="card-pad space-y-4 xl:sticky xl:top-24">
-        <div>
-          <label htmlFor="siklus-nama" className="label">Nama Siklus</label>
-          <input id="siklus-nama" value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} placeholder="Lensa-ASN R3" className="input" />
-        </div>
-        <div>
-          <label htmlFor="siklus-deskripsi" className="label">Deskripsi <span className="font-normal text-neutral-400">(opsional)</span></label>
-          <textarea id="siklus-deskripsi" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="input" />
-        </div>
-        <div>
-          <label htmlFor="siklus-brief" className="label">Instruksi untuk tester <span className="font-normal text-neutral-400">(opsional)</span></label>
-          <textarea id="siklus-brief" value={brief} onChange={(e) => setBrief(e.target.value)} rows={3} maxLength={2000}
-            placeholder="Cth: Fokus uji ulang checkout setelah bug #12. Abaikan notifikasi — belum deploy. Kredensial uji: tester@tugas.id / rahasia."
-            className="input" />
-          <p className="hint">Tampil mencolok saat tester memilih siklus ini.</p>
-        </div>
-        <div>
-          <label htmlFor="siklus-proyek" className="label">Proyek <span className="font-normal text-neutral-400">(opsional)</span></label>
-          <select id="siklus-proyek" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="input">
-            <option value="">Semua proyek</option>
-            {projects.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-          <p className="hint">Jika dipilih, lingkup fitur di bawah otomatis tersaring ke proyek ini.</p>
-        </div>
-        <div>
-          <span id="siklus-scope-label" className="label">Lingkup fitur <span className="font-normal text-neutral-400">(opsional — kosong = semua fitur)</span></span>
-          <div className="mt-2 rounded-xl border border-neutral-200 p-3">
-            <input
-              type="search"
-              value={scopeSearch}
-              onChange={(e) => setScopeSearch(e.target.value)}
-              placeholder="Cari fitur…"
-              aria-label="Cari fitur untuk lingkup"
-              className="input"
-            />
-            <div className="mt-2 max-h-56 space-y-1 overflow-auto pr-1" role="group" aria-labelledby="siklus-scope-label">
-              {filteredFeatures.length === 0 && (
-                <p className="py-2 text-center text-sm text-neutral-500">Tidak ada fitur yang cocok.</p>
-              )}
-              {filteredFeatures.map((f) => (
-                <label key={f.id} className="flex min-h-11 cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-neutral-100">
-                  <input
-                    type="checkbox"
-                    checked={scopeIds.includes(f.id)}
-                    onChange={() => toggleScope(f.id)}
-                    className="mt-1 h-4 w-4 accent-neutral-950"
-                  />
-                  <span className="text-sm">
-                    <span className="block font-medium text-neutral-800">{f.name}</span>
-                    {f.project && <span className="block text-xs text-neutral-500">{f.project}</span>}
-                  </span>
-                </label>
-              ))}
+      <form onSubmit={submit} className="card-pad space-y-5">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="siklus-nama" className="label">Nama Siklus</label>
+              <input id="siklus-nama" value={name} onChange={(e) => setName(e.target.value)} required maxLength={100} placeholder="Lensa-ASN R3" className="input" />
             </div>
-            <p className="hint mt-2">{scopeIds.length === 0 ? "Kosong = semua fitur aktif boleh diuji di siklus ini." : `${scopeIds.length} fitur dipilih.`}</p>
+            <div>
+              <label htmlFor="siklus-deskripsi" className="label">Deskripsi <span className="font-normal text-neutral-500">(opsional)</span></label>
+              <textarea id="siklus-deskripsi" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="input" />
+            </div>
+            <div>
+              <label htmlFor="siklus-brief" className="label">Instruksi untuk tester <span className="font-normal text-neutral-500">(opsional)</span></label>
+              <textarea id="siklus-brief" value={brief} onChange={(e) => setBrief(e.target.value)} rows={3} maxLength={2000}
+                placeholder="Cth: Fokus uji ulang checkout setelah bug #12. Abaikan notifikasi — belum deploy. Kredensial uji: tester@tugas.id / rahasia."
+                className="input" />
+              <p className="hint">Tampil mencolok saat tester memilih siklus ini.</p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="siklus-proyek" className="label">Proyek <span className="font-normal text-neutral-500">(opsional)</span></label>
+              <select id="siklus-proyek" value={projectName} onChange={(e) => setProjectName(e.target.value)} className="input">
+                <option value="">Semua proyek</option>
+                {projects.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              <p className="hint">Jika dipilih, lingkup fitur di bawah otomatis tersaring ke proyek ini.</p>
+            </div>
+            <div>
+              <span id="siklus-scope-label" className="label">Lingkup fitur <span className="font-normal text-neutral-500">(opsional — kosong = semua fitur)</span></span>
+              <div className="mt-2 rounded-xl border border-neutral-200 p-3">
+                <input
+                  type="search"
+                  value={scopeSearch}
+                  onChange={(e) => setScopeSearch(e.target.value)}
+                  placeholder="Cari fitur…"
+                  aria-label="Cari fitur untuk lingkup"
+                  className="input"
+                />
+                <div className="mt-2 max-h-56 space-y-1 overflow-auto pr-1" role="group" aria-labelledby="siklus-scope-label">
+                  {filteredFeatures.length === 0 && (
+                    <p className="py-2 text-center text-sm text-neutral-500">Tidak ada fitur yang cocok.</p>
+                  )}
+                  {filteredFeatures.map((f) => (
+                    <label key={f.id} className="flex min-h-11 cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-neutral-100">
+                      <input
+                        type="checkbox"
+                        checked={scopeIds.includes(f.id)}
+                        onChange={() => toggleScope(f.id)}
+                        className="mt-1 h-4 w-4 accent-neutral-950"
+                      />
+                      <span className="text-sm">
+                        <span className="block font-medium text-neutral-800">{f.name}</span>
+                        {f.project && <span className="block text-xs text-neutral-500">{f.project}</span>}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p className="hint mt-2">{scopeIds.length === 0 ? "Kosong = semua fitur aktif boleh diuji di siklus ini." : `${scopeIds.length} fitur dipilih.`}</p>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="btn-dark">{editing ? "Simpan" : "+ Tambah"}</button>
+        <div className="flex flex-wrap items-center gap-3 border-t border-neutral-200 pt-4">
+          <button className="btn-dark">{editing ? "Simpan perubahan" : "+ Tambah siklus"}</button>
           {editing && <button type="button" onClick={resetForm} className="action-link">Batal</button>}
         </div>
       </form>
+
       <div className="card min-w-0 overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <caption className="sr-only">Daftar siklus pengujian</caption>
-          <thead className="table-head">
-            <tr><th scope="col" className="table-th">Nama</th><th scope="col" className="table-th">Proyek</th><th scope="col" className="table-th">Deskripsi</th><th scope="col" className="table-th">Lingkup</th><th scope="col" className="table-th">Status</th><th scope="col" className="table-th">Jumlah Uji</th><th scope="col" className="px-4 py-3 text-right font-medium">Aksi</th></tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-200">
-            {cycles.map((c) => (
-              <tr key={c.id} className="transition hover:bg-neutral-100">
-                <td className="px-4 py-3 font-medium text-neutral-800">{c.name}</td>
-                <td className="px-4 py-3 text-neutral-600">{c.project_name ?? "Semua proyek"}</td>
-                <td className="px-4 py-3 text-neutral-600">{c.description ?? "—"}</td>
-                <td className="px-4 py-3 text-neutral-600">{c.scope_count > 0 ? `${c.scope_count} fitur` : "Semua fitur"}</td>
-                <td className="px-4 py-3">
-                  <button onClick={() => toggle(c)} aria-pressed={c.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${c.is_active ? "badge-pass" : "badge-neutral"}`}>
-                    {c.is_active ? "Aktif" : "Nonaktif"}
-                  </button>
-                </td>
-                <td className="px-4 py-3 text-neutral-600">{c.test_count}</td>
-                <td className="px-4 py-3 text-right">
-                  <span className="inline-flex flex-wrap justify-end gap-1">
-                    <button onClick={() => startEdit(c)} className="action-link text-neutral-950">Edit</button>
-                    <button onClick={() => remove(c)} className="action-link text-neutral-950">Hapus</button>
-                  </span>
-                </td>
+        <div className="table-scroll">
+          <table className="table-cards table-sticky-actions w-full text-sm">
+            <caption className="sr-only">Daftar siklus pengujian</caption>
+            <thead className="table-head">
+              <tr>
+                <th scope="col" className="table-th">Nama</th>
+                <th scope="col" className="table-th">Proyek</th>
+                <th scope="col" className="table-th">Status</th>
+                <th scope="col" className="table-th">Jumlah Uji</th>
+                <th scope="col" className="table-th text-right">Aksi</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {cycles.length === 0 && (
-          <div className="empty-state border-t border-neutral-200">
-            <span className="empty-icon" aria-hidden>🔄</span>
-            <p className="empty-title">Belum ada siklus</p>
-            <p className="empty-hint">Tambahkan siklus pertama lewat form di samping.</p>
-          </div>
-        )}
+            </thead>
+            <tbody className="divide-y divide-neutral-200">
+              {cycles.map((c) => (
+                <tr key={c.id} className="transition hover:bg-neutral-100">
+                  <td data-label="Nama" className="px-4 py-3">
+                    <div className="font-medium text-neutral-800">{c.name}</div>
+                    <div className="mt-0.5 line-clamp-2 text-xs text-neutral-500">
+                      {c.description ?? "Tanpa deskripsi"} · {c.scope_count > 0 ? `${c.scope_count} fitur` : "Semua fitur"}
+                    </div>
+                  </td>
+                  <td data-label="Proyek" className="px-4 py-3 text-neutral-600">{c.project_name ?? "Semua proyek"}</td>
+                  <td data-label="Status" className="px-4 py-3">
+                    <button
+                      onClick={() => toggle(c)}
+                      aria-pressed={c.is_active}
+                      className={`badge relative transition after:absolute after:-inset-3 after:content-[''] hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${c.is_active ? "badge-pass" : "badge-neutral"}`}
+                    >
+                      {c.is_active ? "Aktif" : "Nonaktif"}
+                    </button>
+                  </td>
+                  <td data-label="Jumlah Uji" className="px-4 py-3 text-neutral-600">{c.test_count}</td>
+                  <td data-label="Aksi" className="action-cell px-4 py-3 text-right">
+                    <span className="inline-flex flex-wrap justify-end gap-1">
+                      <button onClick={() => startEdit(c)} className="action-link text-neutral-950">Edit</button>
+                      <button onClick={() => remove(c)} className="action-link text-neutral-950">Hapus</button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {cycles.length === 0 && (
+            <div className="empty-state border-t border-neutral-200">
+              <span className="empty-icon" aria-hidden>🔄</span>
+              <p className="empty-title">Belum ada siklus</p>
+              <p className="empty-hint">Tambahkan siklus pertama lewat form di atas.</p>
+            </div>
+          )}
         </div>
-      </div>
       </div>
     </div>
   );

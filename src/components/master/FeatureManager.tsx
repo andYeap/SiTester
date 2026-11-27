@@ -159,7 +159,7 @@ export default function FeatureManager({ isKetua, initialFeatures, initialProjec
                   <td data-label="Proyek" className="px-4 py-3 text-neutral-600">{f.project_name ?? "—"}</td>
                   <td data-label="Status" className="px-4 py-3">
                     {isKetua ? (
-                      <button onClick={() => toggle(f)} aria-pressed={f.is_active} className={`badge transition hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${f.is_active ? "badge-pass" : "badge-neutral"}`}>
+                      <button onClick={() => toggle(f)} aria-pressed={f.is_active} className={`badge relative transition after:absolute after:-inset-3 after:content-[''] hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${f.is_active ? "badge-pass" : "badge-neutral"}`}>
                         {f.is_active ? "Aktif" : "Nonaktif"}
                       </button>
                     ) : (
@@ -170,7 +170,7 @@ export default function FeatureManager({ isKetua, initialFeatures, initialProjec
                   </td>
                   <td data-label="Verifikasi" className="px-4 py-3">
                     {f.verified ? (
-                      <span className="badge badge-pass">Terverifikasi</span>
+                      <span className="badge badge-outline">Terverifikasi</span>
                     ) : (
                       <span className="badge badge-outline" title={`Diusulkan oleh ${f.creator_name ?? "?"}`}>Usulan baru</span>
                     )}

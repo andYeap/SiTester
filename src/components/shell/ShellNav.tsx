@@ -77,7 +77,7 @@ export function ShellSidebarNav({
     <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Navigasi utama">
       {groups.map((group) => (
         <div key={group.key} className="pb-2">
-          <p className="px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+          <p className="px-3 pb-2 pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400">
             {group.label}
           </p>
           <div className="space-y-1">
