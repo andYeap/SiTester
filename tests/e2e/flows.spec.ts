@@ -39,7 +39,11 @@ test("D1 defect: fail tercatat otomatis dan bisa difixed ketua", async ({
 
     await page.goto("/defect");
     const row = page.locator("tbody tr", { hasText: name });
-    await expect(row.getByText("OPEN", { exact: true })).toBeVisible();
+    await expect(
+      row.getByRole("combobox", {
+        name: `Ubah status defect Temuan: ${name}`,
+      }),
+    ).toHaveValue("open");
 
     await page.context().clearCookies();
     await loginUi(page, KETUA.email, KETUA.password);
@@ -48,7 +52,7 @@ test("D1 defect: fail tercatat otomatis dan bisa difixed ketua", async ({
       .getByRole("combobox", { name: `Ubah status defect Temuan: ${name}` })
       .selectOption("fixed");
     await expect(
-      page.getByText(`Defect "Temuan: ${name}" → fixed.`),
+      page.getByText(`Defect "Temuan: ${name}" → Diperbaiki.`),
     ).toBeVisible();
   } finally {
     await cleanupFeature(name);

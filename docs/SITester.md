@@ -50,7 +50,9 @@ punya satu sesi aktif** — login baru mencabut sesi lama.
    urgensi wajib: Rendah, Sedang, atau Tinggi (3 tingkat).
 3. Bukti gambar (maks 2 MB) dan tautan bukti tersedia langsung di form; keduanya opsional.
 4. Form menyimpan draft otomatis dan submit bersifat idempoten (klik ganda tidak
-   menghasilkan dua catatan).
+   menghasilkan dua catatan). Jika dua tester menyimpan scope yang sama secara
+   bersamaan, hanya satu yang tersimpan; request lain ditolak `409` dan diminta
+   memuat ulang.
 5. Untuk hasil Gagal, defect dibuat otomatis dan masuk siklus
    `open → fixed → verified → closed` (bisa `reopened`).
 6. Hanya ketua tim yang boleh memindahkan defect ke `verified`.

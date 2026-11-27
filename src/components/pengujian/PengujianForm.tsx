@@ -744,25 +744,26 @@ export default function PengujianForm({
         </div>
 
         {!quickMode && (
-          <details className="rounded-xl border border-neutral-200 p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-neutral-800">
-              Detail opsional (lingkungan, expected/actual)
-            </summary>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="label" htmlFor="uji-env">Lingkungan</label>
-                <input id="uji-env" value={environment} onChange={(e) => setEnvironment(e.target.value)} placeholder="cth: Chrome 126 / Windows 11" className="input" />
-              </div>
-              <div>
-                <label className="label" htmlFor="uji-expected">Yang diharapkan</label>
-                <textarea id="uji-expected" value={expected} onChange={(e) => setExpected(e.target.value)} rows={2} className="input" />
-              </div>
-              <div>
-                <label className="label" htmlFor="uji-actual">Yang terjadi</label>
-                <textarea id="uji-actual" value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="input" />
-              </div>
+          <section aria-labelledby="uji-detail-opsional" className="space-y-4">
+            <div>
+              <h2 id="uji-detail-opsional" className="text-sm font-semibold text-neutral-800">
+                Detail opsional
+              </h2>
+              <p className="hint">Isi jika perlu konteks tambahan; boleh dikosongkan.</p>
             </div>
-          </details>
+            <div>
+              <label className="label" htmlFor="uji-env">Lingkungan <span className="font-normal text-neutral-400">(opsional)</span></label>
+              <input id="uji-env" value={environment} onChange={(e) => setEnvironment(e.target.value)} placeholder="cth: Chrome 126 / Windows 11" className="input" />
+            </div>
+            <div>
+              <label className="label" htmlFor="uji-expected">Yang diharapkan <span className="font-normal text-neutral-400">(opsional)</span></label>
+              <textarea id="uji-expected" value={expected} onChange={(e) => setExpected(e.target.value)} rows={2} className="input" />
+            </div>
+            <div>
+              <label className="label" htmlFor="uji-actual">Yang terjadi <span className="font-normal text-neutral-400">(opsional)</span></label>
+              <textarea id="uji-actual" value={actual} onChange={(e) => setActual(e.target.value)} rows={2} className="input" />
+            </div>
+          </section>
         )}
 
         {!quickMode && (
@@ -787,6 +788,11 @@ export default function PengujianForm({
                 ? "Konfirmasi & Simpan Hasil AI"
                 : "Simpan Hasil Pengujian"}
         </button>
+        {!quickMode && (
+          <p className="hint">
+            Kolom bertanda <span className="font-medium text-neutral-700">(opsional)</span> boleh dikosongkan.
+          </p>
+        )}
       </form>
 
       {quickMode && (

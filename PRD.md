@@ -61,7 +61,7 @@ Auth: email + password (scrypt `scrypt:<salt>:<hash>`), sesi opak di cookie http
 ### F1 — Form Pengujian (`/pengujian-baru`)
 - Urutan field: tanggal (tidak boleh masa depan) → "Apakah ini pengujian ulang?" (radio Tidak/Ya) → peran uji + siklus → filter proyek → **fitur (combobox pencarian, dikelompokkan per proyek)** → test case (opsional, hanya mode biasa) → status hasil (Pass/Fail/Bug) → tingkat keparahan → catatan.
 - Memilih siklus yang punya lingkup menyaring daftar fitur dan menampilkan instruksi siklus (`brief`).
-- **Severity hanya tampil saat Fail/Bug; Fail/Bug wajib severity + catatan ≥10 karakter** (BR-8). Lingkungan, expected, actual, bukti gambar (maks 2MB), dan tautan bukti dilipat di `<details>`.
+- **Severity hanya tampil saat Fail/Bug; Fail/Bug wajib severity + catatan ≥10 karakter** (BR-8). Lingkungan, expected, actual, bukti gambar (maks 2MB), dan tautan bukti ditampilkan langsung di form dan ditandai **(opsional)**.
 - **Live check** `GET /api/v1/features/[id]/can-test` setiap fitur/peran/siklus/retest berubah: menampilkan blokir, peringatan, atau "siap diuji"; juga peringatan "baru diuji tester lain sejak kemarin". Bila retest butuh approval, muncul kartu **Ajukan Permohonan** (alasan opsional, maks 1000 karakter).
 - **Draft otomatis** ke `localStorage` kunci `sitester:draft-v3:<userId>` + banner Pulihkan/Hapus; dibersihkan setelah simpan (termasuk jalur konfirmasi AI). Kunci lama tanpa pengguna dihapus.
 - **Mode cepat**: antrean hasil dengan tanggal/peran/siklus/retest/lingkungan dari saat baris ditambahkan; tombol "Simpan semua" mengirim satu per satu, baris gagal tetap di daftar dengan pesan error.
@@ -75,7 +75,7 @@ Auth: email + password (scrypt `scrypt:<salt>:<hash>`), sesi opak di cookie http
 - Hasil terakhir Pass memblokir pengujian biasa; retest wajib approval ketua (BR-2/3). Hasil terakhir Fail/Bug boleh diuji tanpa approval (BR-5), dengan peringatan bila bukan retest.
 - Permohonan: satu pending per (fitur, peran, siklus); ditolak bila hasil terakhir bukan Pass atau sudah ada approval berlaku; kedaluwarsa 7 hari (BR-6).
 - Ketua: **Setujui** (catatan opsional → `retest_approvals.note`) atau **Tolak** (alasan **wajib**). Approval single-use, kedaluwarsa 7 hari sejak disetujui (BR-4).
-- Approve/reject transaksional (`FOR UPDATE`); dua submit bersamaan ke scope yang sama diserialkan lewat `pg_advisory_xact_lock`; approval dikonsumsi atomik (`used_at`).
+- Approve/reject transaksional (`FOR UPDATE`); dua submit bersamaan ke scope yang sama diserialkan lewat `pg_advisory_xact_lock`. Request yang mulai dari snapshot scope lama ditolak `409` (hanya satu yang tersimpan); approval dikonsumsi atomik (`used_at`).
 - Halaman `/permohonan`: daftar menunggu + 20 riwayat keputusan terakhir.
 
 ### F3 — Notifikasi
@@ -193,6 +193,7 @@ Auth: email + password (scrypt `scrypt:<salt>:<hash>`), sesi opak di cookie http
 | BR-23 | `Idempotency-Key` unik per pengguna `(user_id, idempotency_key)`; replay mengembalikan sesi yang sama tanpa efek ganda |
 | BR-24 | Usulan fitur dari non-ketua `is_active=false, verified=false` sampai diverifikasi ketua |
 | BR-25 | Update status defect hanya oleh pembuat defect atau ketua |
+| BR-26 | Submit baru yang berbarengan dalam scope (fitur, peran, siklus) yang sama: hanya satu tersimpan; request lain `409` dan harus memuat ulang. Fail→Fail berurutan tetap boleh (BR-5) |
 
 ---
 

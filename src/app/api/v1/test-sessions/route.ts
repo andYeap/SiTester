@@ -4,7 +4,7 @@ import { err, needUser, UserError } from "@/lib/api";
 import { query, queryOne, withTransaction } from "@/lib/db";
 import { getSessions, parseSessionFilters } from "@/lib/history";
 import { canTest, type TestResult } from "@/lib/retest";
-import { saveEvidence } from "@/lib/storage";
+import { deleteEvidence, saveEvidence } from "@/lib/storage";
 import { todayString } from "@/lib/time";
 import { isIsoDate } from "@/lib/validation";
 
@@ -213,13 +213,25 @@ export async function POST(request: Request) {
     }
   }
 
+  // Snapshot id terbesar sebelum upload bukti. Bila setelah menunggu lock ada
+  // baris baru di scope yang sama, berarti submit ini balapan dan harus ditolak.
+  const startMax = await queryOne<{ max_id: string }>(
+    `SELECT coalesce(max(id), 0)::text AS max_id FROM test_sessions
+      WHERE feature_id=$1 AND tested_as_role=$2
+        AND test_cycle IS NOT DISTINCT FROM $3`,
+    [featureId, role, cycle],
+  );
+  const startMaxId = Number(startMax?.max_id ?? 0);
+
   let evidencePath: string | null = null;
+  let uploadedEvidencePath: string | null = null;
   if (evidence instanceof File && evidence.size > 0) {
     if (evidence.size > 2 * 1024 * 1024) {
       return err("Ukuran bukti maksimal 2MB.", 422);
     }
     try {
       evidencePath = await saveEvidence(evidence);
+      uploadedEvidencePath = evidencePath;
     } catch (e) {
       const message = e instanceof Error ? e.message : "";
       if (message.startsWith("Bukti harus")) return err(message, 422);
@@ -232,38 +244,6 @@ export async function POST(request: Request) {
   }
   if (aiRun && evidencePath === null) {
     evidencePath = aiRun.evidence_path;
-  }
-
-  const last = await queryOne<{ result: TestResult }>(
-    `SELECT result FROM test_sessions
-      WHERE feature_id=$1 AND tested_as_role=$2
-        AND test_cycle IS NOT DISTINCT FROM $3
-      ORDER BY tested_at DESC, id DESC LIMIT 1`,
-    [featureId, role, cycle],
-  );
-
-  const approval = await queryOne<{ id: number }>(
-    `SELECT id FROM retest_approvals
-      WHERE feature_id=$1 AND requested_by=$2 AND scope_role=$3 AND test_cycle IS NOT DISTINCT FROM $4 AND used_at IS NULL AND (expires_at IS NULL OR expires_at > now())
-      ORDER BY id DESC LIMIT 1`,
-    [featureId, user.id, role, cycle],
-  );
-
-  // Saat replay idempotent, lewati cek awal: transaksi akan memeriksa pemenang
-  // kunci sebelum aturan retest, sehingga double-submit tetap mengembalikan sesi.
-  if (!idempotencyKey) {
-    const check = canTest(last?.result ?? null, isRetest, approval !== null);
-    if (!check.allowed) {
-      return err(check.warning ?? "Pengujian tidak diizinkan.", 422);
-    }
-
-    const needsApproval = isRetest && last !== null;
-    if (needsApproval && !approval) {
-      return err(
-        "Pengujian ulang memerlukan persetujuan ketua tim yang masih berlaku.",
-        422,
-      );
-    }
   }
 
   let saved: { sessionId: number; defectId: number | null; deduped?: boolean } = {
@@ -299,6 +279,21 @@ export async function POST(request: Request) {
             deduped: true,
           };
         }
+      }
+
+      const changed = await client.query<{ id: number }>(
+        `SELECT id FROM test_sessions
+          WHERE feature_id=$1 AND tested_as_role=$2
+            AND test_cycle IS NOT DISTINCT FROM $3
+            AND id > $4
+          LIMIT 1`,
+        [featureId, role, cycle, startMaxId],
+      );
+      if (changed.rows.length > 0) {
+        throw new UserError(
+          "Data pengujian untuk fitur ini baru saja berubah karena ada pengujian lain yang masuk bersamaan. Hasil Anda belum disimpan. Muat ulang halaman, periksa hasil terakhir, lalu simpan lagi.",
+          409,
+        );
       }
 
       const lastLocked = await client.query<{ result: TestResult }>(
@@ -387,6 +382,11 @@ export async function POST(request: Request) {
       return { sessionId, defectId };
     });
   } catch (e) {
+    if (uploadedEvidencePath) {
+      await deleteEvidence(uploadedEvidencePath).catch((err) => {
+        console.error("deleteEvidence gagal", err);
+      });
+    }
     // Balapan double-submit: kunci sama menang satu, yang kalah ambil sesi pemenang.
     const pg = e as { code?: string; constraint?: string };
     if (idempotencyKey && (pg.code === "23505" || /idempotency/i.test(pg.constraint ?? "") || /idempotency/i.test(e instanceof Error ? e.message : ""))) {
@@ -411,6 +411,11 @@ export async function POST(request: Request) {
   }
 
   if (saved.deduped) {
+    if (uploadedEvidencePath) {
+      await deleteEvidence(uploadedEvidencePath).catch((err) => {
+        console.error("deleteEvidence gagal", err);
+      });
+    }
     return NextResponse.json(
       {
         ok: true,

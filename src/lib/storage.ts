@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { basename, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import { encryptEvidence } from "./evidence-crypto";
@@ -78,6 +78,24 @@ export async function saveEvidence(file: File): Promise<string> {
   const name = `${randomUUID()}.${image.ext}`;
   await writeFile(join(LOCAL_DIR, name), buffer);
   return name;
+}
+
+/** Hapus bukti yang sudah terlanjur disimpan tetapi gagal masuk DB. */
+export async function deleteEvidence(path: string): Promise<void> {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (token && (path.startsWith("evidence/") || isBlobUrl(path))) {
+    const { del } = await import("@vercel/blob");
+    await del(path, { token });
+    return;
+  }
+  if (isBlobUrl(path)) {
+    throw new Error("Tidak bisa menghapus bukti Blob tanpa token.");
+  }
+  try {
+    await unlink(localUploadPath(basename(path)));
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+  }
 }
 
 export function isBlobUrl(path: string): boolean {

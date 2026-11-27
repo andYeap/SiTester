@@ -157,14 +157,19 @@ Buka **Pengujian Baru**, lalu isi:
    fitur boleh diuji dan menampilkan peringatannya.
 8. Jika hasil **Gagal**, pilih **Tingkat Urgensi** (Rendah/Sedang/Tinggi, wajib)
    dan isi **Catatan** minimal 10 karakter.
-9. Bagian **Detail opsional** (lipat) berisi lingkungan, yang diharapkan, dan yang
-   terjadi. **Bukti gambar** (maks 2MB) dan **tautan bukti** ada di luar bagian
-   lipat dan keduanya opsional.
+9. Bagian **Detail opsional** berisi lingkungan, yang diharapkan, dan yang
+   terjadi. Ketiganya ditandai **(opsional)** dan boleh dikosongkan, begitu juga
+   **bukti gambar** (maks 2MB) dan **tautan bukti**.
 10. Klik **Simpan Hasil Pengujian**.
 
 Setelah simpan, tanggal, pilihan pengujian ulang, peran, dan siklus tetap
 terisi, sedangkan fitur/hasil/catatan dan detail lain direset agar mudah
 mencatat hasil berikutnya.
+
+Jika dua tester menyimpan fitur/peran/siklus yang sama pada saat bersamaan,
+hanya satu hasil yang tersimpan. Yang lain melihat pesan untuk memuat ulang
+dan memeriksa hasil terakhir. Pengujian Gagal secara berurutan tetap boleh
+tanpa persetujuan (siklus perbaikan bug).
 
 **Draft otomatis:** isian disimpan di browser (per akun). Jika form dibuka
 kembali, muncul pilihan **Pulihkan** atau **Hapus**.
