@@ -81,7 +81,8 @@ describe("alur retest", () => {
     expect(r.status).toBe(201);
 
     const used = await query<{ used: boolean }>(
-      `SELECT used_at IS NOT NULL AS used FROM retest_approvals ORDER BY id DESC LIMIT 1`,
+      `SELECT used_at IS NOT NULL AS used FROM retest_approvals WHERE feature_id = $1 ORDER BY id DESC LIMIT 1`,
+      [fid],
     );
     expect(used[0].used).toBe(true);
   });
