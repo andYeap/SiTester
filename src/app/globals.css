@@ -156,7 +156,6 @@ body {
     right: 0;
     z-index: 1;
     background: #fff;
-    box-shadow: -10px 0 12px -12px rgba(0, 0, 0, 0.35);
   }
   .table-sticky-actions thead th:last-child {
     background: #f5f5f5;
