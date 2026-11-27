@@ -38,7 +38,7 @@ Manfaat utama:
 | **Ketua Tim** | Semua hak tester + menyetujui/menolak retest, melihat semua data, mengelola master, memverifikasi fitur/defect, import, mengelola pengguna dan tautan reset |
 
 Hanya **Ketua Tim** yang melihat menu **Manajemen**: Proyek, Permohonan,
-Pengguna, Peran Uji, Siklus, Import, dan Aktivitas.
+Pengguna, Peran Uji, Siklus, Impor, dan Aktivitas.
 
 Akun memiliki **satu sesi aktif**. Jika login di perangkat lain, sesi lama
 otomatis tidak berlaku.
@@ -70,9 +70,9 @@ Anda perlu menunggu 15 menit.
 
 Tautan reset berlaku **24 jam** dan hanya bisa dipakai sekali.
 
-### 3.3 Reset oleh ketua
+### 3.3 Tautan reset oleh ketua
 
-Ketua dapat membuka **Pengguna → Reset** pada baris pengguna untuk mendapatkan
+Ketua dapat membuka **Pengguna → Tautan reset** pada baris pengguna untuk mendapatkan
 tautan reset sekali pakai (berlaku 24 jam), lalu menyalin dan mengirimkannya.
 Cara ini berguna jika email belum dikonfigurasi.
 
@@ -104,12 +104,11 @@ cookie di browser.
 | Menu | Fungsi |
 |---|---|
 | **Proyek** | Master proyek tempat fitur bernaung |
-| **Permohonan** | Setujui/tolak permohonan retest |
+| **Permohonan** | Setujui/tolak permohonan retest (tab Menunggu/Riwayat) |
 | **Pengguna** | Kelola akun, peran, dan tautan reset |
 | **Peran Uji** | Master peran yang dipakai saat pengujian |
 | **Siklus** | Master siklus, proyek, dan fitur yang termasuk lingkupnya |
-| **Permohonan** | Setujui/tolak permohonan retest (tab Menunggu/Riwayat) |
-| **Import** | Impor riwayat dari Excel/CSV |
+| **Impor** | Impor riwayat dari Excel/CSV |
 | **Aktivitas** | Audit aktivitas pengguna |
 
 Di layar kecil, sidebar dibuka lewat tombol menu di kiri atas.
@@ -432,7 +431,7 @@ Ketua dapat:
 - menambah pengguna (kata sandi awal minimal 8 karakter),
 - melihat daftar pengguna dan jumlah pengujiannya,
 - mengubah peran tester/ketua (tidak bisa menurunkan diri sendiri),
-- membuat tautan reset password sekali pakai (tombol **Reset**),
+- membuat tautan reset password sekali pakai (tombol **Tautan reset**),
 - menghapus pengguna yang belum punya riwayat (akun sendiri tidak bisa dihapus).
 
 ### 7.3 Peran Uji
@@ -465,9 +464,9 @@ Ketua tim boleh menyetujui permohonannya sendiri.
 Setelah disetujui, tester dapat melakukan retest sekali. Gunakan kebijakan yang
 konsisten agar riwayat tetap bermakna.
 
-### 7.6 Import Excel/CSV
+### 7.6 Impor Excel/CSV
 
-Buka **Import** dan ikuti langkah:
+Buka **Impor** dan ikuti langkah:
 
 1. Unduh template **CSV** atau **XLSX**.
 2. Pilih file `.xlsx` atau `.csv` (maks **2MB**, **5.000 baris**).
@@ -487,11 +486,11 @@ Kolom yang didukung:
 Catatan:
 
 - Baris duplikat (hash sama) otomatis dilewati.
-- Import yang sama tidak menggandakan data.
+- Impor yang sama tidak menggandakan data.
 - Hasil Gagal membuat defect dengan pembuat = tester pada baris tersebut.
   Nilai hasil yang diterima: `pass`/`fail` (Berhasil/Gagal). `critical` pada
   kolom Severity otomatis dilebur menjadi `high`.
-- Import tidak mengirim notifikasi.
+- Impor tidak mengirim notifikasi.
 - Riwayat batch tersedia untuk audit.
 
 ### 7.7 Aktivitas
@@ -531,7 +530,7 @@ Gunakan pencarian dan filter aksi untuk menyaring.
 | “Pengujian ulang perlu persetujuan” | Semua retest wajib approval | Ajukan retest, minta ketua menyetujui |
 | Form retest tidak bisa disimpan | Approval belum ada/kedaluwarsa | Cek Permohonan; ajukan ulang |
 | Upload bukti gagal | Token Blob belum diset / file bukan gambar / >2MB | Hubungi admin; gunakan PNG/JPEG/WebP/GIF ≤2MB |
-| Import gagal | File >2MB, >5.000 baris, atau baris invalid | Pecah file, perbaiki error CSV |
+| Impor gagal | File >2MB, >5.000 baris, atau baris invalid | Pecah file, perbaiki error CSV |
 | AI Test lama `queued` | Runner tidak aktif / dispatch token belum diset | Cek Log/Actions; operator jalankan workflow |
 | AI Test FAIL `high demand` | Model gratis sedang sibuk | Ulangi atau ganti model |
 | AI Test langsung `error` target diblokir | Target metadata cloud/IP privat | Untuk target internal, operator set `AI_RUNNER_ALLOW_PRIVATE_TARGETS=1` di runner |
@@ -547,7 +546,7 @@ Gunakan pencarian dan filter aksi untuk menyaring.
 
 - Hasil AI adalah draft, bukan keputusan final.
 - PDF/CSV dibatasi 5.000 baris per ekspor.
-- Import dibatasi 2MB / 5.000 baris agar commit tidak timeout (60 detik).
+- Impor dibatasi 2MB / 5.000 baris agar commit tidak timeout (60 detik).
 - Satu akun hanya boleh memiliki satu sesi aktif.
 - Bukti gambar dibatasi 2MB per file.
 - AI Test tidak menjamin bisa menangani MFA/CAPTCHA/SSO.
